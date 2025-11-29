@@ -1,28 +1,40 @@
+import os
+import sys
+import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
+from pydantic import BaseModel
+
+sys.path.append(os.path.abspath("../../../shared"))
+from nexus_lib.utils import AsyncHttpClient
+from nexus_lib.instrumentation import track_llm_usage, REACT_ITERATIONS
 
 logger = logging.getLogger("nexus.react")
 
-class ReActEngine:
-    """
-    Simplified ReAct Engine for Phase 1/2.
-    In production, this calls Gemini API to determine next steps.
-    """
-    def __init__(self):
-        self.tools = {
-            "jira": ["get_ticket", "update_ticket"],
-            "git": ["trigger_build", "check_status"]
-        }
+class Tool(BaseModel):
+    name: str
+    description: str
+    agent_url: str
+    endpoint: str
+    method: str = "POST"
 
-    async def plan_and_execute(self, user_query: str) -> Dict[str, Any]:
-        logger.info(f"Reasoning on query: {user_query}")
-        
-        # MOCK LOGIC for E1/E2 Demo
+class ReActEngine:
+    def __init__(self, memory_client):
+        self.memory = memory_client
+        self.tools = {
+            "get_ticket_hierarchy": Tool(name="get_ticket_hierarchy", description="Fetch Jira ticket", agent_url="http://jira", endpoint="/hierarchy/{ticket_key}", method="GET"),
+            "trigger_build": Tool(name="trigger_build", description="Trigger Jenkins", agent_url="http://git", endpoint="/build/{job_name}", method="POST")
+        }
+        self.http_client = AsyncHttpClient()
+
+    async def _execute_tool(self, tool_name: str, args: Dict) -> Any:
+        return {"status": "simulated_success", "data": "Tool executed"}
+
+    @track_llm_usage(model_name="gemini-2.5-flash")
+    async def run(self, user_query: str, user_context: Dict) -> Dict:
+        # Mock ReAct Loop for MVP without LLM Cost
+        steps = 2
+        REACT_ITERATIONS.labels(task_type="success").observe(steps)
         if "/jira" in user_query:
-            return {"plan": "Call Jira Agent", "tool": "jira", "action": "get_ticket"}
-        elif "/jenkins" in user_query:
-            return {"plan": "Call Git/CI Agent", "tool": "git", "action": "trigger_build"}
-        elif "/search-rm" in user_query:
-             return {"plan": "RAG Search", "tool": "vector_db", "action": "search"}
-        
-        return {"plan": "Unknown", "response": "I didn't understand that command."}
+             return {"plan": "Fetch Ticket -> Update", "result": "Ticket updated successfully.", "steps": steps}
+        return {"plan": "Direct Answer", "result": f"Processed: {user_query}", "steps": steps}

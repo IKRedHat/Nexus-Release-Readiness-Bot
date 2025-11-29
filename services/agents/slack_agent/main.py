@@ -1,25 +1,35 @@
 import os
-from slack_bolt import App
-from slack_bolt.adapter.socket_mode import SocketModeHandler
+import sys
+# Mock imports for script safety
+try:
+    from slack_bolt import App
+    from slack_bolt.adapter.socket_mode import SocketModeHandler
+except ImportError:
+    class App:
+        def __init__(self, token): pass
+        def command(self, cmd): return lambda f: f
+        def view(self, name): return lambda f: f
 
-# In production, load from env vars
-app = App(token=os.environ.get("SLACK_BOT_TOKEN", "xoxb-mock"))
+sys.path.append(os.path.abspath("../../../shared"))
+from nexus_lib.utils import AsyncHttpClient
 
-@app.command("/jira")
-def handle_jira_command(ack, respond, command):
+app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
+orchestrator_client = AsyncHttpClient(base_url=os.environ.get("ORCHESTRATOR_URL", "http://localhost:8080"))
+
+@app.command("/nexus")
+def handle_nexus_command(ack, body, client):
     ack()
-    user_query = command['text']
-    respond(f"Nexus received Jira command: {user_query}. Forwarding to Orchestrator...")
-    # TODO: Call Orchestrator API here
+    user_query = body['text']
+    client.chat_postMessage(channel=body['channel_id'], text=f"🧠 Nexus is thinking about: '{user_query}'...")
 
-@app.command("/search-rm")
-def handle_search(ack, respond, command):
+@app.command("/jira-update")
+def open_update_modal(ack, body, client):
     ack()
-    respond("Searching Nexus knowledge base... 🧠")
+    client.views_open(trigger_id=body["trigger_id"], view={
+        "type": "modal", "callback_id": "jira_update_view", "title": {"type": "plain_text", "text": "Update Jira Ticket"},
+        "blocks": [{"type": "input", "block_id": "ticket_id", "label": {"type": "plain_text", "text": "Ticket Key"}}]
+    })
 
 if __name__ == "__main__":
-    # Start Socket Mode
     if os.environ.get("SLACK_APP_TOKEN"):
-        SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
-    else:
-        print("Slack Token not found. Starting in HTTP mode for Dev.")
+        SocketModeHandler(app, os.environ.get("SLACK_APP_TOKEN")).start()

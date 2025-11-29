@@ -1,0 +1,8 @@
+<div style="font-family: Arial, sans-serif;">
+    <h1>Release Readiness Report: {{ data.release_version }}</h1>
+    <p><strong>Decision:</strong> <span style="color: {{ 'green' if data.go_no_go == 'GO' else 'red' }}; font-weight: bold;">{{ data.go_no_go }}</span></p>
+    <h2>1. Ticket Statistics</h2>
+    <p>Total: {{ data.jira_stats.total }} | Done: {{ data.jira_stats.done }}</p>
+    <h2>2. Quality & Security</h2>
+    <ul><li>Test Coverage: {{ data.test_coverage }}%</li><li>Risk Score: {{ data.security_score }}/100</li></ul>
+</div>

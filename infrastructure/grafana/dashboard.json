@@ -1,0 +1,7 @@
+{
+  "title": "Nexus Release Automation Observability",
+  "panels": [
+    { "title": "Total LLM Token Usage", "type": "stat", "targets": [{ "expr": "sum(nexus_llm_tokens_total)" }] },
+    { "title": "Agent Errors", "type": "timeseries", "targets": [{ "expr": "rate(nexus_tool_usage_total{status='error'}[5m])" }] }
+  ]
+}
