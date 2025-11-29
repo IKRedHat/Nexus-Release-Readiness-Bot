@@ -1,0 +1,5 @@
+global:
+  env: production
+  imageTag: latest
+orchestrator:
+  replicas: 2
