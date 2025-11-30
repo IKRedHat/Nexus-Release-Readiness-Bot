@@ -39,7 +39,7 @@ class TestReportingAgent:
                     "job_name": "nexus-main",
                     "build_number": 142,
                     "status": "SUCCESS",
-                    "timestamp": "2024-01-15T10:30:00Z",
+                    "timestamp": "2025-11-30T10:30:00Z",
                     "duration_seconds": 485
                 }
             ],

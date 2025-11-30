@@ -691,7 +691,7 @@ async def build_hygiene_fix_modal(violation_data_json: str) -> Dict[str, Any]:
                     "action_id": "fixversion_input",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "e.g., v2.0.0, 2024-Q1"
+                        "text": "e.g., v2.0.0, 2025-Q4"
                     }
                 },
                 "label": {

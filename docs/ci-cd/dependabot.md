@@ -182,7 +182,7 @@ Dependabot security updates are separate from version updates:
 Bumps [jinja2](https://github.com/pallets/jinja) from 2.11.3 to 3.0.1.
 
 ### Security Vulnerability
-- **CVE-2024-1234**: Remote code execution via template injection
+- **CVE-2025-1234**: Remote code execution via template injection
 - **Severity**: High
 - **CVSS Score**: 8.5
 

@@ -292,7 +292,7 @@ class VectorMemory:
 - Previous release v1.9.0 was delayed by 2 days due to unresolved security vulnerabilities in the authentication module.
 - Sprint 41 achieved 95% completion rate with all critical stories completed.
 - The PROJ-87 epic had blocking issues related to database migration that were resolved by the DBA team.
-- Last successful production deployment was on 2024-01-15 with zero rollbacks."""
+- Last successful production deployment was on 2025-11-30 with zero rollbacks."""
     
     async def delete(self, doc_id: str):
         """Delete a document from memory"""

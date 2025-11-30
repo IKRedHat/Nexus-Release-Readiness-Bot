@@ -412,7 +412,7 @@ class AppHomeBuilder:
             "build_passing": True,
             "security_score": 75,
             "blockers": 2,
-            "target_date": "Dec 15, 2024",
+            "target_date": "Dec 15, 2025",
         }
     
     async def _fetch_hygiene_summary(self, user_email: Optional[str]) -> Dict[str, Any]:
