@@ -147,7 +147,7 @@ Click **"View All"** in the AI Recommendations widget.
 | Type | Icon | Example |
 |------|------|---------|
 | **Blocker Resolution** | 🔴 | "2 blocking issues need immediate attention" |
-| **Risk Mitigation** | 🔴 | "Critical vulnerability CVE-2024-1234 detected" |
+| **Risk Mitigation** | 🔴 | "Critical vulnerability CVE-2025-1234 detected" |
 | **Hygiene Improvement** | 🟠 | "5 tickets missing Story Points" |
 | **Release Timing** | 🟡 | "Consider releasing Tuesday - lower failure rate" |
 | **Velocity Optimization** | 🟡 | "Velocity dropped 30% - review blockers" |

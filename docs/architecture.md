@@ -470,7 +470,7 @@ Structured JSON logging with correlation IDs:
 
 ```json
 {
-  "timestamp": "2024-01-15T10:30:00Z",
+  "timestamp": "2025-11-30T10:30:00Z",
   "level": "INFO",
   "service": "jira-hygiene-agent",
   "request_id": "req-abc123",
@@ -844,7 +844,7 @@ The App Home provides a rich dashboard when users open the Nexus app.
 ┌─────────────────────────────────────────────────────────────┐
 │  🚀 Nexus Release Automation                                 │
 │  Good morning! Here's your release management dashboard.     │
-│  📅 Monday, December 2, 2024 | Last updated: 9:30 AM        │
+│  📅 Sunday, November 30, 2025 | Last updated: 9:30 AM       │
 ├─────────────────────────────────────────────────────────────┤
 │  ⚡ Quick Actions                                            │
 │  [📊 Release Status] [🔧 Hygiene Check] [📝 Report] [❓ Help] │

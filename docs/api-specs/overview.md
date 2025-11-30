@@ -372,7 +372,7 @@ Response:
   "service": "jira-hygiene-agent",
   "mock_mode": true,
   "scheduler_running": true,
-  "next_scheduled_run": "2024-01-16T09:00:00+00:00"
+  "next_scheduled_run": "2025-12-01T09:00:00+00:00"
 }
 ```
 
@@ -431,7 +431,7 @@ Response:
   },
   "scheduler": {
     "running": true,
-    "next_run": "2024-01-16T09:00:00+00:00"
+    "next_run": "2025-12-01T09:00:00+00:00"
   },
   "jira": {
     "mock_mode": true,
@@ -649,7 +649,7 @@ Response:
         "blocker_count": 2,
         "affected_version": "v2.0.0"
       },
-      "created_at": "2024-01-15T10:30:00Z"
+      "created_at": "2025-11-30T10:30:00Z"
     },
     {
       "id": "rec-def456",
@@ -695,7 +695,7 @@ Response:
       "low": 0
     }
   },
-  "generated_at": "2024-01-15T10:30:00Z"
+  "generated_at": "2025-11-30T10:30:00Z"
 }
 ```
 
