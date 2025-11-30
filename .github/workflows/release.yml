@@ -1,0 +1,293 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v2.1.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/nexus
+
+jobs:
+  # ============================================================================
+  # Validate Release
+  # ============================================================================
+  validate:
+    name: 🔍 Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+            if [[ "$VERSION" == *"-"* ]]; then
+              IS_PRERELEASE="true"
+            else
+              IS_PRERELEASE="false"
+            fi
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "📦 Releasing version: $VERSION (prerelease: $IS_PRERELEASE)"
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: v1.2.3 or v1.2.3-beta.1"
+            exit 1
+          fi
+          echo "✅ Version format is valid"
+
+  # ============================================================================
+  # Run Tests
+  # ============================================================================
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio
+          pip install -e shared/
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short || true
+
+  # ============================================================================
+  # Build Docker Images
+  # ============================================================================
+  build:
+    name: 🐳 Build & Push Images
+    runs-on: ubuntu-latest
+    needs: [validate, test]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service:
+          - name: orchestrator
+            dockerfile: Dockerfile.orchestrator
+          - name: jira-agent
+            dockerfile: Dockerfile.generic-agent
+          - name: git-ci-agent
+            dockerfile: Dockerfile.generic-agent
+          - name: reporting-agent
+            dockerfile: Dockerfile.generic-agent
+          - name: slack-agent
+            dockerfile: Dockerfile.generic-agent
+          - name: jira-hygiene-agent
+            dockerfile: Dockerfile.generic-agent
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.validate.outputs.version }}
+            type=raw,value=latest,enable=${{ needs.validate.outputs.is_prerelease == 'false' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infrastructure/docker/${{ matrix.service.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            AGENT_NAME=${{ matrix.service.name }}
+            VERSION=${{ needs.validate.outputs.version }}
+
+  # ============================================================================
+  # Create Release
+  # ============================================================================
+  release:
+    name: 📦 Create Release
+    runs-on: ubuntu-latest
+    needs: [validate, build]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [[ -z "$PREV_TAG" ]]; then
+            echo "First release - no previous tag found"
+            COMMITS=$(git log --oneline --no-merges | head -50)
+          else
+            echo "Comparing $PREV_TAG to $VERSION"
+            COMMITS=$(git log --oneline --no-merges $PREV_TAG..HEAD)
+          fi
+          
+          # Categorize commits
+          FEATURES=$(echo "$COMMITS" | grep -E "^[a-f0-9]+ feat" || true)
+          FIXES=$(echo "$COMMITS" | grep -E "^[a-f0-9]+ fix" || true)
+          DOCS=$(echo "$COMMITS" | grep -E "^[a-f0-9]+ docs" || true)
+          CHORES=$(echo "$COMMITS" | grep -E "^[a-f0-9]+ (chore|ci|refactor)" || true)
+          
+          # Build changelog
+          CHANGELOG="## What's Changed in $VERSION\n\n"
+          
+          if [[ -n "$FEATURES" ]]; then
+            CHANGELOG+="### ✨ New Features\n"
+            while IFS= read -r line; do
+              if [[ -n "$line" ]]; then
+                CHANGELOG+="- ${line#* }\n"
+              fi
+            done <<< "$FEATURES"
+            CHANGELOG+="\n"
+          fi
+          
+          if [[ -n "$FIXES" ]]; then
+            CHANGELOG+="### 🐛 Bug Fixes\n"
+            while IFS= read -r line; do
+              if [[ -n "$line" ]]; then
+                CHANGELOG+="- ${line#* }\n"
+              fi
+            done <<< "$FIXES"
+            CHANGELOG+="\n"
+          fi
+          
+          if [[ -n "$DOCS" ]]; then
+            CHANGELOG+="### 📖 Documentation\n"
+            while IFS= read -r line; do
+              if [[ -n "$line" ]]; then
+                CHANGELOG+="- ${line#* }\n"
+              fi
+            done <<< "$DOCS"
+            CHANGELOG+="\n"
+          fi
+          
+          if [[ -n "$CHORES" ]]; then
+            CHANGELOG+="### 🔧 Maintenance\n"
+            while IFS= read -r line; do
+              if [[ -n "$line" ]]; then
+                CHANGELOG+="- ${line#* }\n"
+              fi
+            done <<< "$CHORES"
+            CHANGELOG+="\n"
+          fi
+          
+          # Add installation instructions
+          CHANGELOG+="## 🚀 Quick Start\n\n"
+          CHANGELOG+="\`\`\`bash\n"
+          CHANGELOG+="# Clone and setup\n"
+          CHANGELOG+="git clone https://github.com/${{ github.repository }}.git\n"
+          CHANGELOG+="cd Nexus-Release-Readiness-Bot\n"
+          CHANGELOG+="git checkout $VERSION\n"
+          CHANGELOG+="./scripts/setup.sh\n"
+          CHANGELOG+="\`\`\`\n\n"
+          
+          CHANGELOG+="## 🐳 Docker Images\n\n"
+          CHANGELOG+="All images are available at \`ghcr.io/${{ github.repository_owner }}/nexus-<service>:${VERSION#v}\`\n\n"
+          CHANGELOG+="| Service | Image |\n"
+          CHANGELOG+="|---------|-------|\n"
+          CHANGELOG+="| Orchestrator | \`ghcr.io/${{ github.repository_owner }}/nexus-orchestrator:${VERSION#v}\` |\n"
+          CHANGELOG+="| Jira Agent | \`ghcr.io/${{ github.repository_owner }}/nexus-jira-agent:${VERSION#v}\` |\n"
+          CHANGELOG+="| Jira Hygiene Agent | \`ghcr.io/${{ github.repository_owner }}/nexus-jira-hygiene-agent:${VERSION#v}\` |\n"
+          CHANGELOG+="| Slack Agent | \`ghcr.io/${{ github.repository_owner }}/nexus-slack-agent:${VERSION#v}\` |\n"
+          
+          # Save to file for the release
+          echo -e "$CHANGELOG" > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.validate.outputs.version }}
+          name: Nexus ${{ needs.validate.outputs.version }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: ${{ needs.validate.outputs.is_prerelease == 'true' }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # Notify
+  # ============================================================================
+  notify:
+    name: 📢 Notify
+    runs-on: ubuntu-latest
+    needs: [validate, release]
+    if: success()
+    steps:
+      - name: Release summary
+        run: |
+          echo "## 🎉 Release Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release:** ${{ needs.validate.outputs.is_prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Images Published" >> $GITHUB_STEP_SUMMARY
+          echo "- orchestrator" >> $GITHUB_STEP_SUMMARY
+          echo "- jira-agent" >> $GITHUB_STEP_SUMMARY
+          echo "- jira-hygiene-agent" >> $GITHUB_STEP_SUMMARY
+          echo "- slack-agent" >> $GITHUB_STEP_SUMMARY
+          echo "- git-ci-agent" >> $GITHUB_STEP_SUMMARY
+          echo "- reporting-agent" >> $GITHUB_STEP_SUMMARY

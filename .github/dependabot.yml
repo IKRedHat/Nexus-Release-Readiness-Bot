@@ -1,0 +1,169 @@
+# Dependabot configuration for automated dependency updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  # ============================================================================
+  # Python Dependencies
+  # ============================================================================
+  
+  # Orchestrator
+  - package-ecosystem: "pip"
+    directory: "/services/orchestrator"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+      - "orchestrator"
+    commit-message:
+      prefix: "deps(orchestrator)"
+    reviewers:
+      - "IKRedHat"
+    groups:
+      python-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Jira Agent
+  - package-ecosystem: "pip"
+    directory: "/services/agents/jira_agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "python"
+      - "jira-agent"
+    commit-message:
+      prefix: "deps(jira-agent)"
+
+  # Jira Hygiene Agent
+  - package-ecosystem: "pip"
+    directory: "/services/agents/jira_hygiene_agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "python"
+      - "hygiene-agent"
+    commit-message:
+      prefix: "deps(hygiene-agent)"
+
+  # Git/CI Agent
+  - package-ecosystem: "pip"
+    directory: "/services/agents/git_ci_agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "python"
+      - "git-ci-agent"
+    commit-message:
+      prefix: "deps(git-ci-agent)"
+
+  # Reporting Agent
+  - package-ecosystem: "pip"
+    directory: "/services/agents/reporting_agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "python"
+      - "reporting-agent"
+    commit-message:
+      prefix: "deps(reporting-agent)"
+
+  # Slack Agent
+  - package-ecosystem: "pip"
+    directory: "/services/agents/slack_agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "python"
+      - "slack-agent"
+    commit-message:
+      prefix: "deps(slack-agent)"
+
+  # Shared Library
+  - package-ecosystem: "pip"
+    directory: "/shared"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+      - "shared-lib"
+      - "critical"
+    commit-message:
+      prefix: "deps(shared)"
+    reviewers:
+      - "IKRedHat"
+
+  # ============================================================================
+  # GitHub Actions
+  # ============================================================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci"
+    commit-message:
+      prefix: "ci(deps)"
+    reviewers:
+      - "IKRedHat"
+
+  # ============================================================================
+  # Docker
+  # ============================================================================
+  - package-ecosystem: "docker"
+    directory: "/infrastructure/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "infrastructure"
+    commit-message:
+      prefix: "deps(docker)"
+
+  # ============================================================================
+  # Terraform (if using)
+  # ============================================================================
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure/terraform"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "infrastructure"
+    commit-message:
+      prefix: "deps(terraform)"

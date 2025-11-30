@@ -466,6 +466,23 @@ Contributions welcome! We value every contribution, whether it's code, documenta
 
 ---
 
+## 🔄 CI/CD
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **CI** | Push, PR | Lint, test, security scan, Docker build |
+| **Release** | Tags (v*) | Build images, create GitHub release |
+| **Dependabot** | Weekly | Automated dependency updates |
+| **Stale** | Daily | Clean up inactive issues/PRs |
+
+See [GitHub Setup Guide](docs/GITHUB_SETUP.md) for branch protection and configuration details.
+
+## 📋 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file.
