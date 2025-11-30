@@ -251,10 +251,33 @@ kubectl logs -l app.kubernetes.io/component=jira-hygiene-agent -f
 |----------|-------------|---------|
 | `NEXUS_ENV` | Environment | development |
 | `LLM_PROVIDER` | LLM backend (google/openai/mock) | mock |
+| `LLM_MODEL` | LLM model name | gemini-2.0-flash |
 | `LLM_API_KEY` | API key for LLM | - |
+| `LLM_TEMPERATURE` | Generation temperature | 0.7 |
+| `LLM_MAX_TOKENS` | Max output tokens | 4096 |
 | `MEMORY_BACKEND` | Vector store (chromadb/pgvector/mock) | mock |
 | `MAX_REACT_ITERATIONS` | Max reasoning steps | 10 |
 | `ORCHESTRATOR_URL` | Self URL for agents | http://localhost:8080 |
+| `RECOMMENDATIONS_ENABLED` | Enable AI recommendations | true |
+
+### Multi-Tenancy Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MULTI_TENANT_ENABLED` | Enable multi-tenant mode | false |
+| `TENANT_RESOLUTION_STRATEGY` | header/subdomain/path | header |
+| `DEFAULT_TENANT_PLAN` | Default plan for new tenants | starter |
+| `TENANT_DB_URL` | Database for tenant storage | - |
+| `TENANT_CACHE_TTL` | Tenant cache TTL in seconds | 300 |
+
+### AI Recommendations Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RECOMMENDATIONS_ENABLED` | Enable recommendations | true |
+| `RELEASE_HISTORY_DAYS` | Days of history to analyze | 90 |
+| `HYGIENE_TREND_WINDOW` | Days for hygiene trend | 14 |
+| `MIN_RELEASES_FOR_PATTERNS` | Min releases for analysis | 5 |
 
 ### Jira Hygiene Agent Configuration
 

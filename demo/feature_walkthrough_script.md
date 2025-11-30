@@ -1,12 +1,51 @@
 # Demo Script: Nexus Release Automation Walkthrough
 
-**Goal:** Showcase the Nexus Multi-Agent System automating release readiness checks, proactive Jira hygiene management, and interactive reporting.
+**Goal:** Showcase the Nexus Multi-Agent System automating release readiness checks, proactive Jira hygiene management, AI-powered recommendations, and interactive reporting.
 
-**Duration:** ~3 minutes
+**Duration:** ~4 minutes
+
+**What's New in v2.0:**
+- 🤖 Google Gemini LLM integration
+- 🏠 Slack App Home dashboard
+- 💡 AI-powered recommendations
+- 🏢 Multi-tenant support
 
 ---
 
-## Scene 1: Initiating a Release Readiness Check via Slack (0:00 - 0:30)
+## Scene 1: App Home Dashboard (0:00 - 0:30)
+
+**Visual:** User clicks on the Nexus app in Slack sidebar. App Home opens.
+
+**Visual:** Rich dashboard appears:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🚀 Nexus Release Automation                                 │
+│  Good morning, Alice! Here's your release management dashboard│
+│  📅 Monday, December 2, 2024 | Last updated: 9:30 AM        │
+├─────────────────────────────────────────────────────────────┤
+│  ⚡ Quick Actions                                            │
+│  [📊 Release Status] [🔧 Hygiene Check] [📝 Report] [❓ Help] │
+├─────────────────────────────────────────────────────────────┤
+│  📈 Release Status Overview                                  │
+│  Current Version: v2.0.0                                     │
+│  Decision: 🟡 CONDITIONAL | Completion: 87%                  │
+│  Build: ✅ Passing | Security: 75/100 | Blockers: 2         │
+├─────────────────────────────────────────────────────────────┤
+│  🔧 Jira Hygiene: 🟡 78% - Good                [Fix Now]     │
+├─────────────────────────────────────────────────────────────┤
+│  💡 AI Recommendations                       [View All]      │
+│  🔴 Address 2 blocking issues before release                 │
+│  🟠 Improve hygiene score from 78% to 90%+                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Voiceover:**
+> "Welcome to Nexus 2.0! When you open the app in Slack, you're greeted with a personalized dashboard. At a glance, you see your release status, hygiene score, and AI-powered recommendations - all without typing a single command."
+
+---
+
+## Scene 2: Initiating a Release Readiness Check via Slack (0:30 - 1:00)
 
 **Visual:** Slack interface. User types `/nexus status release-1.2.0` in a channel.
 
@@ -27,12 +66,13 @@
 
 ---
 
-## Scene 2: Orchestrator ReAct Loop Visualization (0:30 - 1:00)
+## Scene 3: Orchestrator ReAct Loop with Gemini (1:00 - 1:30)
 
-**Visual:** Terminal or log view showing the ReAct loop trace.
+**Visual:** Terminal or log view showing the ReAct loop trace with Gemini LLM.
 
 ```
 User: "Is the v1.2.0 release ready?"
+LLM: Google Gemini 2.0 Flash
 
 🤔 Thought: I need to check Jira ticket completion first.
 🔧 Action: get_sprint_stats
@@ -47,14 +87,51 @@ User: "Is the v1.2.0 release ready?"
 📊 Observation: {"status": "SUCCESS", "tests": {"passed": 245}}
 
 ✅ Final Answer: The release is READY (GO).
+
+📊 LLM Usage: 1,245 tokens | Cost: $0.0012 | Latency: 1.2s
 ```
 
 **Voiceover:**
-> "Behind the scenes, the ReAct engine reasons through each step. It thinks about what data it needs, calls specialized agents to gather information, observes the results, and continues until it has enough context to make a decision. This reasoning is fully transparent and auditable."
+> "Behind the scenes, Google Gemini 2.0 Flash powers the reasoning. It thinks about what data it needs, calls specialized agents, and synthesizes a decision. Token usage and costs are tracked for every request."
 
 ---
 
-## Scene 3: Jira Hygiene Agent - Proactive Quality (1:00 - 1:45)
+## Scene 4: AI-Powered Recommendations (1:30 - 2:00)
+
+**Visual:** User clicks "View All" in the AI Recommendations widget. Full recommendations panel opens.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  💡 AI Recommendations for PROJ                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  🔴 CRITICAL: Address Blocking Issues                        │
+│  2 blocking issues are preventing release readiness.         │
+│  → Resolve PROJ-145: API timeout issue                       │
+│  → Resolve PROJ-147: Database connection failure             │
+│                                                              │
+│  🟠 HIGH: Improve Hygiene Score                              │
+│  Current: 78% | Target: 90%+                                 │
+│  → Add Story Points to 3 tickets                             │
+│  → Add Labels to 2 tickets                                   │
+│                                                              │
+│  🟡 MEDIUM: Optimize Release Timing                          │
+│  Historical analysis suggests Tuesday releases have          │
+│  25% higher success rate than Friday releases.               │
+│  → Consider scheduling for Tuesday afternoon                 │
+│                                                              │
+│  🟢 LOW: Process Improvement                                 │
+│  → Add automated release checks to CI pipeline               │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Voiceover:**
+> "The AI Recommendations engine analyzes historical patterns - release timing, hygiene trends, velocity data - to provide actionable suggestions. Critical blockers are flagged first, followed by hygiene improvements and process optimizations."
+
+---
+
+## Scene 5: Jira Hygiene Agent - Proactive Quality (2:00 - 2:30)
 
 **Visual:** Clock showing 9:00 AM. Animation of the Hygiene Agent activating.
 
@@ -90,7 +167,7 @@ Tickets needing attention:
 
 ---
 
-## Scene 4: Interactive Fix Modal (1:45 - 2:15)
+## Scene 6: Interactive Fix Modal (2:30 - 3:00)
 
 **Visual:** User clicks "🔧 Fix Tickets Now" button. Modal opens.
 
@@ -127,7 +204,7 @@ Tickets needing attention:
 
 ---
 
-## Scene 5: Confluence Report Publishing (2:15 - 2:45)
+## Scene 7: Confluence Report Publishing (3:00 - 3:30)
 
 **Visual:** User types `/nexus report v1.2.0`
 
@@ -147,36 +224,40 @@ Tickets needing attention:
 
 ---
 
-## Scene 6: Observability Dashboard (2:45 - 3:00)
+## Scene 8: Observability Dashboard (3:30 - 3:50)
 
 **Visual:** Grafana dashboard showing:
 - Hygiene score trend (70% → 95% over 2 weeks)
-- LLM token usage graph
+- LLM token usage and cost tracking (Gemini vs OpenAI)
 - Agent response times
+- AI recommendation effectiveness
 - Release decisions pie chart (GO: 80%, CONDITIONAL: 15%, NO-GO: 5%)
 
 **Voiceover:**
-> "Finally, everything is observable. Track hygiene improvements over time, monitor LLM costs, analyze agent performance, and review release decision trends - all in real-time dashboards."
+> "Finally, everything is observable. Track hygiene improvements over time, monitor LLM costs across providers, analyze agent performance, measure recommendation impact, and review release decision trends - all in real-time dashboards."
 
 ---
 
-## Closing (3:00)
+## Closing (3:50 - 4:00)
 
 **Visual:** Nexus logo with tagline.
 
 **Voiceover:**
-> "Nexus: Intelligent release automation that thinks, acts, and keeps your data clean. Try it today."
+> "Nexus 2.0: Intelligent release automation powered by Google Gemini, with proactive AI recommendations and a beautiful dashboard experience. Try it today."
 
 ---
 
 ## Key Talking Points for Live Demo
 
-1. **Natural Language Understanding**: Emphasize that users don't need to learn complex syntax
-2. **Multi-Agent Coordination**: Show how one query triggers multiple specialized agents
-3. **Proactive Quality**: Highlight the shift-left approach of the Hygiene Agent
-4. **Zero Context Switching**: Fixing Jira issues without leaving Slack
-5. **Transparency**: The ReAct loop shows exactly how decisions are made
-6. **Observability**: Everything is measured and visualized
+1. **App Home Dashboard**: First-class Slack experience with at-a-glance status
+2. **Google Gemini Integration**: Production-ready LLM with cost tracking
+3. **AI Recommendations**: Pattern-based intelligent suggestions
+4. **Multi-Agent Coordination**: Show how one query triggers multiple specialized agents
+5. **Proactive Quality**: Highlight the shift-left approach of the Hygiene Agent
+6. **Zero Context Switching**: Fixing Jira issues without leaving Slack
+7. **Transparency**: The ReAct loop shows exactly how decisions are made
+8. **Multi-Tenancy**: Enterprise-ready organization isolation (optional demo)
+9. **Observability**: Everything is measured and visualized
 
 ## Demo Environment Setup
 
