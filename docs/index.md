@@ -1,7 +1,7 @@
 # Nexus Release Automation System
 
 <div style="text-align: center; margin-bottom: 2em;">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.10+-green" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
 </div>
@@ -24,11 +24,11 @@ git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
 cd Nexus-Release-Readiness-Bot
 
 # Start the development stack
-cd infrastructure/docker
 docker-compose up -d
 
 # Access services
 # - Orchestrator: http://localhost:8080
+# - Jira Hygiene Agent: http://localhost:8005
 # - Grafana: http://localhost:3000 (admin/nexus_admin)
 # - Prometheus: http://localhost:9090
 # - Jaeger: http://localhost:16686
@@ -44,6 +44,11 @@ curl http://localhost:8080/health
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
   -d '{"query": "What is the release readiness status for v2.0?"}'
+
+# Trigger a hygiene check
+curl -X POST http://localhost:8005/run-check \
+  -H "Content-Type: application/json" \
+  -d '{"project_key": "PROJ", "notify": false}'
 ```
 
 ## 🏗️ Architecture Overview
@@ -65,6 +70,9 @@ flowchart TB
         Orchestrator --> JiraAgent[Jira Agent]
         Orchestrator --> GitAgent[Git/CI Agent]
         Orchestrator --> ReportAgent[Reporting Agent]
+        
+        HygieneAgent[Jira Hygiene Agent] --> JiraAgent
+        HygieneAgent --> SlackAgent
     end
     
     subgraph External["External Systems"]
@@ -87,17 +95,26 @@ Automatically gathers data from:
 - **Jenkins**: Build status, test results, artifacts
 - **Confluence**: Publishes rich HTML reports
 
+### 🔧 Proactive Jira Hygiene (NEW)
+The Jira Hygiene Agent ensures data quality:
+- **Scheduled Checks**: Weekdays at 9:00 AM
+- **Field Validation**: Labels, Fix Version, Story Points, Team
+- **Interactive Fixes**: Fix violations directly from Slack modals
+- **Hygiene Scoring**: Track compliance percentage
+
 ### 📈 Real-time Observability
 Full visibility into system performance:
 - LLM token usage and costs
 - Agent latency and error rates
 - ReAct loop analytics
+- Hygiene score tracking
 - Business metrics (Go/No-Go decisions)
 
 ### 💬 Slack Integration
 Natural Slack interface with:
 - `/nexus status` - Check release readiness
 - `/jira-update` - Update tickets via modal
+- Hygiene notifications with fix buttons
 - Block Kit rich messages
 
 ## 📖 Documentation
@@ -117,8 +134,20 @@ Natural Slack interface with:
 | LLM | Google Gemini, OpenAI GPT (configurable) |
 | Vector Store | ChromaDB, PostgreSQL + pgvector |
 | Messaging | Slack Bolt SDK |
+| Scheduling | APScheduler |
 | Observability | Prometheus, Grafana, Jaeger, OpenTelemetry |
 | Infrastructure | Docker, Kubernetes, Helm |
+
+## 🔌 Service Ports
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Orchestrator | 8080 | Central brain |
+| Jira Agent | 8081 | Jira operations |
+| Git/CI Agent | 8082 | GitHub + Jenkins |
+| Reporting Agent | 8083 | Reports |
+| Slack Agent | 8084 | Slack interface |
+| **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
 
 ## 🤝 Contributing
 

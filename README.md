@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10+-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
@@ -25,6 +25,7 @@ Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning 
 - 🔗 **Multi-Tool Integration** - Jira, GitHub, Jenkins, Confluence, Slack
 - 📊 **Rich Reports** - Beautiful HTML reports with Go/No-Go decisions
 - 💬 **Natural Language** - Ask questions in plain English via Slack
+- 🔧 **Proactive Hygiene** - Automated Jira data quality checks with interactive fixes
 - 📈 **Full Observability** - Prometheus metrics, Grafana dashboards, OpenTelemetry tracing
 - 🔐 **Production Ready** - JWT auth, Kubernetes deployment, Helm charts
 
@@ -33,42 +34,47 @@ Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Slack Workspace                          │
-│                    (User: /nexus status v2.0)                    │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        Slack Agent                               │
-│                  (Commands, Modals, Notifications)               │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Central Orchestrator                          │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    ReAct Engine                          │    │
-│  │  Thought → Action → Observation → Thought → Final Answer │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
-│  │ Vector Memory│  │  LLM Client  │  │   Agent Registry     │   │
-│  │  (ChromaDB)  │  │(Gemini/GPT)  │  │                      │   │
-│  └──────────────┘  └──────────────┘  └──────────────────────┘   │
-└──────────┬──────────────┬───────────────────┬───────────────────┘
-           │              │                   │
-     ┌─────┴─────┐  ┌─────┴─────┐      ┌─────┴─────┐
-     ▼           ▼  ▼           ▼      ▼           ▼
-┌─────────┐ ┌─────────┐ ┌─────────────┐ ┌──────────────┐
-│  Jira   │ │ Git/CI  │ │  Reporting  │ │  Scheduling  │
-│  Agent  │ │  Agent  │ │    Agent    │ │    Agent     │
-└────┬────┘ └────┬────┘ └──────┬──────┘ └──────────────┘
-     │           │             │
-     ▼           ▼             ▼
-┌─────────┐ ┌─────────┐ ┌───────────┐
-│  Jira   │ │ GitHub  │ │Confluence │
-│  Cloud  │ │ Jenkins │ │           │
-└─────────┘ └─────────┘ └───────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          Slack Workspace                             │
+│                     (User: /nexus status v2.0)                       │
+└─────────────────────────────┬───────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                          Slack Agent                                 │
+│              (Commands, Modals, DMs, Notifications)                  │
+└─────────────────────────────┬───────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+              ▼                               ▼
+┌─────────────────────────┐    ┌─────────────────────────────────────┐
+│   Central Orchestrator  │    │     Jira Hygiene Agent (NEW)        │
+│  ┌───────────────────┐  │    │  ┌───────────────────────────────┐  │
+│  │   ReAct Engine    │  │    │  │  Scheduled Checks (9AM M-F)   │  │
+│  │  Thought → Action │  │    │  │  Field Validation             │  │
+│  │    → Observe      │  │    │  │  Hygiene Scoring              │  │
+│  └───────────────────┘  │    │  │  Interactive Fix Modals       │  │
+│  ┌──────────┐ ┌──────┐  │    │  └───────────────────────────────┘  │
+│  │ Memory   │ │ LLM  │  │    └─────────────────┬───────────────────┘
+│  │(ChromaDB)│ │Client│  │                      │
+│  └──────────┘ └──────┘  │                      │
+└───────┬─────────────────┘                      │
+        │                                        │
+  ┌─────┴────────────┬──────────────┐           │
+  ▼                  ▼              ▼           │
+┌─────────┐  ┌─────────────┐  ┌──────────┐     │
+│  Jira   │◄─│   Git/CI    │  │Reporting │     │
+│  Agent  │  │    Agent    │  │  Agent   │     │
+└────┬────┘  └──────┬──────┘  └────┬─────┘     │
+     │              │              │            │
+     ▼              ▼              ▼            │
+┌─────────┐  ┌───────────┐  ┌───────────┐      │
+│  Jira   │  │  GitHub   │  │Confluence │      │
+│  Cloud  │◄─│  Jenkins  │  │           │      │
+└─────────┘  └───────────┘  └───────────┘      │
+     ▲                                          │
+     └──────────────────────────────────────────┘
 ```
 
 ---
@@ -94,8 +100,11 @@ docker-compose up -d
 ### 2. Verify Services
 
 ```bash
-# Check health
+# Check orchestrator health
 curl http://localhost:8080/health
+
+# Check hygiene agent health
+curl http://localhost:8005/health
 
 # View all services
 docker-compose ps
@@ -109,11 +118,20 @@ curl -X POST http://localhost:8080/query \
   -d '{"query": "Is the v2.0 release ready?"}'
 ```
 
-### 4. Access Dashboards
+### 4. Run a Hygiene Check
+
+```bash
+curl -X POST http://localhost:8005/run-check \
+  -H "Content-Type: application/json" \
+  -d '{"project_key": "PROJ", "notify": false}'
+```
+
+### 5. Access Dashboards
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
 | Orchestrator API | http://localhost:8080/docs | - |
+| Hygiene Agent API | http://localhost:8005/docs | - |
 | Report Preview | http://localhost:8083/preview | - |
 | Grafana | http://localhost:3000 | admin / nexus_admin |
 | Prometheus | http://localhost:9090 | - |
@@ -134,6 +152,15 @@ Once configured with Slack:
 /nexus help              # Show all commands
 ```
 
+### 🔧 Jira Hygiene Notifications
+
+Nexus proactively monitors Jira data quality:
+
+1. **Scheduled Checks**: Weekdays at 9:00 AM
+2. **DM Notifications**: Sent to assignees with violations
+3. **Interactive Fixes**: Click "Fix Tickets Now" to open a modal
+4. **Update Fields**: Labels, Fix Version, Story Points, Team - directly from Slack!
+
 ---
 
 ## 📁 Project Structure
@@ -141,28 +168,45 @@ Once configured with Slack:
 ```
 Nexus-Release-Readiness-Bot/
 ├── services/
-│   ├── orchestrator/          # Central brain (ReAct engine)
+│   ├── orchestrator/              # Central brain (ReAct engine)
 │   └── agents/
-│       ├── jira_agent/        # Jira integration
-│       ├── git_ci_agent/      # GitHub + Jenkins
-│       ├── reporting_agent/   # Report generation
-│       ├── slack_agent/       # Slack interface
-│       └── scheduling_agent/  # Future: Cron jobs
+│       ├── jira_agent/            # Jira integration
+│       ├── git_ci_agent/          # GitHub + Jenkins
+│       ├── reporting_agent/       # Report generation
+│       ├── slack_agent/           # Slack interface
+│       └── jira_hygiene_agent/    # 🆕 Proactive quality checks
 ├── shared/
-│   └── nexus_lib/             # Shared library
-│       ├── schemas/           # Pydantic models
-│       ├── middleware.py      # JWT auth, metrics
-│       ├── instrumentation.py # OTEL, Prometheus
-│       └── utils.py           # HTTP client, helpers
+│   └── nexus_lib/                 # Shared library
+│       ├── schemas/               # Pydantic models
+│       ├── middleware.py          # JWT auth, metrics
+│       ├── instrumentation.py     # OTEL, Prometheus
+│       └── utils.py               # HTTP client, helpers
 ├── infrastructure/
-│   ├── docker/                # Dockerfiles
-│   ├── k8s/nexus-stack/       # Helm chart
-│   ├── grafana/               # Dashboards
-│   └── terraform/             # Cloud infrastructure
-├── docs/                      # MkDocs documentation
-├── tests/                     # Unit & E2E tests
-└── demo/                      # Demo scripts
+│   ├── docker/                    # Dockerfiles
+│   ├── k8s/nexus-stack/           # Helm chart
+│   ├── grafana/                   # Dashboards
+│   └── terraform/                 # Cloud infrastructure
+├── docs/                          # MkDocs documentation
+├── tests/                         # Unit & E2E tests
+└── demo/                          # Demo scripts
 ```
+
+---
+
+## 🔌 Service Ports
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Orchestrator | 8080 | Central coordination |
+| Jira Agent | 8081 | Jira operations |
+| Git/CI Agent | 8082 | GitHub + Jenkins |
+| Reporting Agent | 8083 | Report generation |
+| Slack Agent | 8084 | Slack interface |
+| **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
+| PostgreSQL | 5432 | Database |
+| Redis | 6379 | Cache |
+| Prometheus | 9090 | Metrics |
+| Grafana | 3000 | Dashboards |
 
 ---
 
@@ -178,6 +222,8 @@ Nexus-Release-Readiness-Bot/
 | `MEMORY_BACKEND` | Vector store (chromadb/pgvector/mock) | mock |
 | `JIRA_MOCK_MODE` | Use mock Jira data | true |
 | `GITHUB_MOCK_MODE` | Use mock GitHub data | true |
+| `HYGIENE_SCHEDULE_HOUR` | Hour for hygiene checks (0-23) | 9 |
+| `HYGIENE_SCHEDULE_DAYS` | Days for checks (mon-fri/daily) | mon-fri |
 
 ### Production Configuration
 
@@ -202,6 +248,11 @@ http_request_duration_seconds{agent_type}
 # ReAct Engine
 nexus_react_iterations_count{task_type}
 
+# Hygiene Metrics (NEW)
+nexus_project_hygiene_score{project_key}
+nexus_hygiene_checks_total{project_key, trigger_type}
+nexus_hygiene_violations_total{project_key, violation_type}
+
 # Business Metrics
 nexus_release_decisions_total{decision}
 ```
@@ -212,6 +263,7 @@ Import `infrastructure/grafana/dashboard.json` for:
 - LLM economics (tokens, cost)
 - Agent latency (P95/P99)
 - ReAct loop analytics
+- Hygiene score tracking
 - Release decision tracking
 
 ---
@@ -227,6 +279,9 @@ pytest tests/unit/ -v
 
 # E2E tests only
 pytest tests/e2e/ -v
+
+# Hygiene logic tests
+pytest tests/unit/test_hygiene_logic.py -v
 
 # With coverage
 pytest tests/ --cov=shared --cov=services --cov-report=html
@@ -258,10 +313,11 @@ helm upgrade --install nexus . \
 - [x] Slack Block Kit interface
 - [x] Prometheus/Grafana observability
 - [x] Kubernetes Helm charts
+- [x] **Jira Hygiene Agent with interactive fixes**
 - [ ] Google Gemini live integration
-- [ ] Scheduling agent for cron workflows
 - [ ] Multi-tenant support
 - [ ] AI-powered recommendations
+- [ ] Slack App Home dashboard
 
 ---
 

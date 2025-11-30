@@ -1,266 +1,202 @@
-# Nexus Release Automation - Demo Walkthrough Script
+# Demo Script: Nexus Release Automation Walkthrough
 
-## 🎬 Video Overview
+**Goal:** Showcase the Nexus Multi-Agent System automating release readiness checks, proactive Jira hygiene management, and interactive reporting.
 
-**Duration:** 2-3 minutes  
-**Format:** Screen recording with voiceover  
-**Resolution:** 1920x1080  
+**Duration:** ~3 minutes
 
 ---
 
-## Scene 1: Introduction (0:00 - 0:20)
+## Scene 1: Initiating a Release Readiness Check via Slack (0:00 - 0:30)
 
-### Visual
-- Slack workspace with Nexus bot visible in sidebar
-- Clean, professional Slack theme
+**Visual:** Slack interface. User types `/nexus status release-1.2.0` in a channel.
 
-### Voiceover
+**Voiceover:**
+> "Release managers often need quick, comprehensive updates on release readiness. With Nexus, they simply use a Slack command. Here, we're asking for the status of `release-1.2.0`."
 
-> "Meet Nexus, your AI-powered release automation assistant. Nexus connects to your existing tools - Jira, GitHub, Jenkins, and Confluence - to provide intelligent release readiness assessments through natural conversation."
+**Action:** Show the "Thinking..." indicator appearing.
 
-### On-Screen Action
-1. Show Slack workspace
-2. Hover over Nexus bot in sidebar
+**Visual:** Nexus responds with a rich Block Kit message showing:
+- 🟢 **GO Decision** banner
+- Ticket completion: 95% (38/40)
+- Test coverage: 87%
+- Security risk score: 15/100
+- Build status: ✅ Passing
 
----
-
-## Scene 2: Triggering a Release Check (0:20 - 0:45)
-
-### Visual
-- Slack message input focused
-- Type the command slowly
-
-### Voiceover
-
-> "Let's check if our v2.0 release is ready for production. I'll simply ask Nexus using natural language."
-
-### On-Screen Action
-
-1. Type: `/nexus Is the v2.0 release ready to go?`
-2. Press Enter
-3. Show the immediate acknowledgment: "🧠 Nexus is thinking..."
-
-### Script Highlight
-```
-User types: /nexus Is the v2.0 release ready to go?
-Bot responds: 🧠 Processing your request...
-```
+**Voiceover:**
+> "Within seconds, Nexus coordinates multiple agents - querying Jira for ticket status, GitHub for code health, Jenkins for build results - and synthesizes a Go/No-Go decision."
 
 ---
 
-## Scene 3: The ReAct Reasoning Process (0:45 - 1:15)
+## Scene 2: Orchestrator ReAct Loop Visualization (0:30 - 1:00)
 
-### Visual
-- Split screen: Slack on left, Orchestrator logs on right
-- Terminal showing colored logs
-
-### Voiceover
-
-> "Behind the scenes, Nexus uses a ReAct reasoning engine. Watch as it thinks through what data to gather, takes actions to call specialized agents, and observes the results."
-
-### On-Screen Action (Terminal/Logs)
-
-Show logs appearing in real-time:
+**Visual:** Terminal or log view showing the ReAct loop trace.
 
 ```
-[ORCHESTRATOR] ReAct Loop Started
-[THOUGHT] I need to check Jira sprint status for release readiness
-[ACTION] get_sprint_stats → Jira Agent
-[OBSERVE] Received: 93.3% completion, 2 blocked tickets
+User: "Is the v1.2.0 release ready?"
 
-[THOUGHT] Good progress. Now checking security vulnerabilities
-[ACTION] get_security_scan → Git/CI Agent  
-[OBSERVE] Received: Risk score 25/100, 0 critical, 2 high
+🤔 Thought: I need to check Jira ticket completion first.
+🔧 Action: get_sprint_stats
+📊 Observation: {"completed": 38, "total": 40, "rate": 95%}
 
-[THOUGHT] Need to verify build pipeline status
-[ACTION] get_build_status → Git/CI Agent
-[OBSERVE] Received: Build #142 SUCCESS, 245 tests passed
+🤔 Thought: Good progress. Let me check security vulnerabilities.
+🔧 Action: get_security_scan  
+📊 Observation: {"risk_score": 15, "critical": 0, "high": 1}
 
-[FINAL] Synthesizing Go/No-Go decision...
+🤔 Thought: No critical issues. Checking CI pipeline.
+🔧 Action: get_build_status
+📊 Observation: {"status": "SUCCESS", "tests": {"passed": 245}}
+
+✅ Final Answer: The release is READY (GO).
 ```
 
-### Script Notes
-- Use syntax highlighting in logs
-- Add subtle animations as each step appears
-- Show the tool calls connecting to different agents
+**Voiceover:**
+> "Behind the scenes, the ReAct engine reasons through each step. It thinks about what data it needs, calls specialized agents to gather information, observes the results, and continues until it has enough context to make a decision. This reasoning is fully transparent and auditable."
 
 ---
 
-## Scene 4: Agent Execution (1:15 - 1:45)
+## Scene 3: Jira Hygiene Agent - Proactive Quality (1:00 - 1:45)
 
-### Visual
-- Focus on one agent: Jira Agent updating a ticket
-- Show the API call and response
+**Visual:** Clock showing 9:00 AM. Animation of the Hygiene Agent activating.
 
-### Voiceover
+**Voiceover:**
+> "But Nexus doesn't just wait for requests. The Jira Hygiene Agent runs proactively every weekday morning, scanning for data quality issues that could affect release assessments."
 
-> "Each specialized agent handles its domain. Here, the Jira Agent is fetching the complete ticket hierarchy for our release epic - from stories down to subtasks."
-
-### On-Screen Action
-
-1. Show Jira Agent logs:
-```
-[JIRA-AGENT] Fetching hierarchy for PROJ-100
-[JIRA-AGENT] Found 3 stories, 12 subtasks
-[JIRA-AGENT] Calculating completion metrics...
-```
-
-2. Show a brief view of a Jira ticket being accessed
-
-### Alternative: Show Block Kit Modal
-
-If demonstrating the update flow:
-1. User triggers `/jira-update`
-2. Modal opens with fields
-3. User fills in: "PROJ-105", Status: "Done", Comment: "Verified fix"
-4. Submit and show success message
-
----
-
-## Scene 5: The Final Report (1:45 - 2:15)
-
-### Visual
-- Full-screen: Release Readiness Report in Confluence
-- Slowly scroll through the report
-
-### Voiceover
-
-> "And here's the result - a beautiful, comprehensive release readiness report. The GO decision is clear, with detailed metrics, a checklist of criteria, and any risks identified. This report is automatically published to Confluence for team visibility."
-
-### On-Screen Action
-
-1. Show the report header with GO decision badge (green)
-2. Scroll past the stats grid:
-   - 93.3% Ticket Completion ✓
-   - 85.5% Test Coverage ✓
-   - 25/100 Security Risk ✓
-   - 95.5% Build Success ✓
-3. Show the checklist with checkmarks
-4. Show the risks section (2 high-severity vulns noted)
-5. Show the Confluence URL in the browser
-
-### Script Highlight
-```
-🟢 GO - Release Approved
-
-All critical criteria met:
-✅ Ticket completion >= 90%
-✅ Test coverage >= 80%  
-✅ No critical vulnerabilities
-✅ CI pipeline green
-```
-
----
-
-## Scene 6: Response in Slack (2:15 - 2:30)
-
-### Visual
-- Back to Slack
-- Rich Block Kit message with the summary
-
-### Voiceover
-
-> "The summary is delivered right back to Slack with rich formatting. Team members can see the decision at a glance, with links to the full report and any action items."
-
-### On-Screen Action
-
-Show the Slack message with:
-- Header: "✅ Release Readiness: v2.0"
-- Stats in organized sections
-- "View Full Report" button
-- Context footer with timestamp
-
----
-
-## Scene 7: Closing (2:30 - 2:45)
-
-### Visual
-- Grafana dashboard showing metrics
-- Zoom out to show all panels
-
-### Voiceover
-
-> "Nexus provides full observability into every operation - LLM usage, agent performance, and business metrics like release decisions. That's Nexus: intelligent release automation that gives you confidence to ship."
-
-### On-Screen Action
-
-1. Show Grafana dashboard
-2. Highlight key panels:
-   - LLM token usage
-   - Agent latency
-   - Go/No-Go decision count
-3. Fade to logo/end screen
-
----
-
-## End Card (2:45 - 3:00)
-
-### Visual
-- Nexus logo centered
-- GitHub URL below
-- "Get Started Today" CTA
-
-### Text on Screen
+**Visual:** Slack DM notification appears for a developer:
 
 ```
-NEXUS
-Multi-Agent Release Automation
+📋 Jira Ticket Hygiene Report
 
-github.com/IKRedHat/Nexus-Release-Readiness-Bot
+Hi Alice! 👋
 
-Get Started Today →
+Our automated hygiene check found 3 tickets assigned 
+to you that are missing required fields.
+
+Project Hygiene Score: 70.0%
+
+─────────────────────────────
+
+Tickets needing attention:
+• PROJ-123: Missing Labels, Story Points
+• PROJ-124: Missing Fix Version
+• PROJ-125: Missing Team/Contributors
+
+─────────────────────────────
+
+[🔧 Fix Tickets Now]  [📊 View Full Report]  [⏰ Remind Me Later]
 ```
 
----
-
-## Production Notes
-
-### Recording Setup
-
-1. **Screen Resolution:** 1920x1080
-2. **Font Size:** Increase terminal/IDE fonts to 16pt for readability
-3. **Theme:** Use dark theme for consistency
-4. **Browser:** Chrome with clean profile, no extensions visible
-
-### Audio
-
-- Record voiceover separately
-- Background music: Subtle, tech-forward (royalty-free)
-- Sound effects: Subtle keyboard clicks, notification sounds
-
-### Editing
-
-- Use smooth transitions between scenes
-- Add subtle zoom effects on important elements
-- Include lower-thirds for scene titles
-- Add progress indicator for video length
-
-### Assets Needed
-
-1. Nexus logo (SVG/PNG)
-2. Slack workspace with demo data
-3. Sample Jira tickets
-4. Configured Grafana dashboard
-5. Terminal with colored log output
+**Voiceover:**
+> "Developers receive friendly DMs listing exactly which tickets need attention, with actionable buttons to resolve issues immediately."
 
 ---
 
-## Demo Data Setup
+## Scene 4: Interactive Fix Modal (1:45 - 2:15)
 
-Before recording, ensure:
+**Visual:** User clicks "🔧 Fix Tickets Now" button. Modal opens.
 
-1. **Jira**: Create demo project "PROJ" with sample tickets
-2. **GitHub**: Have a repo with mock PR and passing CI
-3. **Slack**: Bot installed in demo workspace
-4. **Grafana**: Dashboard imported with sample data
-5. **Mock Mode**: Agents running in mock mode with realistic data
+```
+┌─────────────────────────────────────────────┐
+│  🔧 Fix Jira Ticket Hygiene                 │
+├─────────────────────────────────────────────┤
+│                                             │
+│  PROJ-123: Implement user authentication    │
+│  Missing: Labels, Story Points              │
+│                                             │
+│  🏷️ Labels                                  │
+│  ┌─────────────────────────────────────┐   │
+│  │ backend, security, api              │   │
+│  └─────────────────────────────────────┘   │
+│                                             │
+│  📊 Story Points                            │
+│  ┌─────────────────────────────────────┐   │
+│  │ 8                            ▼      │   │
+│  └─────────────────────────────────────┘   │
+│                                             │
+├─────────────────────────────────────────────┤
+│           [Cancel]  [Update Tickets]        │
+└─────────────────────────────────────────────┘
+```
+
+**Voiceover:**
+> "Without leaving Slack, developers can fill in missing fields right in the modal. Labels, Fix Versions, Story Points, Team assignments - all updated with a single click."
+
+**Visual:** User fills in fields and clicks "Update Tickets". Modal updates to show success.
+
+**Voiceover:**
+> "The updates flow through to Jira automatically, improving the hygiene score and ensuring accurate release assessments."
 
 ---
 
-## Key Messages to Convey
+## Scene 5: Confluence Report Publishing (2:15 - 2:45)
 
-1. ✅ **Natural Language** - Just ask in plain English
-2. ✅ **Intelligent Reasoning** - Shows its thinking process
-3. ✅ **Multi-Source Integration** - Connects all your tools
-4. ✅ **Beautiful Reports** - Professional, actionable output
-5. ✅ **Full Observability** - Know what's happening at all times
+**Visual:** User types `/nexus report v1.2.0`
+
+**Voiceover:**
+> "When it's time to document the release decision, Nexus generates beautiful, comprehensive reports."
+
+**Visual:** Confluence page opens showing the Release Readiness Report:
+- Executive summary with GO decision
+- Ticket statistics chart
+- Security scan results
+- Test coverage metrics
+- Blockers and risks section
+- Timestamp and audit trail
+
+**Voiceover:**
+> "The report is automatically published to Confluence, providing a permanent record for compliance and stakeholder communication."
+
+---
+
+## Scene 6: Observability Dashboard (2:45 - 3:00)
+
+**Visual:** Grafana dashboard showing:
+- Hygiene score trend (70% → 95% over 2 weeks)
+- LLM token usage graph
+- Agent response times
+- Release decisions pie chart (GO: 80%, CONDITIONAL: 15%, NO-GO: 5%)
+
+**Voiceover:**
+> "Finally, everything is observable. Track hygiene improvements over time, monitor LLM costs, analyze agent performance, and review release decision trends - all in real-time dashboards."
+
+---
+
+## Closing (3:00)
+
+**Visual:** Nexus logo with tagline.
+
+**Voiceover:**
+> "Nexus: Intelligent release automation that thinks, acts, and keeps your data clean. Try it today."
+
+---
+
+## Key Talking Points for Live Demo
+
+1. **Natural Language Understanding**: Emphasize that users don't need to learn complex syntax
+2. **Multi-Agent Coordination**: Show how one query triggers multiple specialized agents
+3. **Proactive Quality**: Highlight the shift-left approach of the Hygiene Agent
+4. **Zero Context Switching**: Fixing Jira issues without leaving Slack
+5. **Transparency**: The ReAct loop shows exactly how decisions are made
+6. **Observability**: Everything is measured and visualized
+
+## Demo Environment Setup
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Verify health
+curl http://localhost:8080/health
+curl http://localhost:8005/health
+
+# Trigger a hygiene check for demo
+curl -X POST http://localhost:8005/run-check \
+  -H "Content-Type: application/json" \
+  -d '{"project_key": "PROJ", "notify": true}'
+
+# Access Grafana (admin/nexus_admin)
+open http://localhost:3000
+```
+
+## Fallback Mock Data
+
+If live integrations aren't available, Nexus runs in mock mode providing realistic sample data for demonstrations.
