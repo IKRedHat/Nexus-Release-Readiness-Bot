@@ -411,6 +411,20 @@ sequenceDiagram
 
 ## Observability
 
+### Grafana Dashboard
+
+The Nexus Grafana dashboard provides real-time visibility into system health, LLM economics, and release metrics.
+
+![Grafana Dashboard](assets/mockups/grafana-dashboard.svg)
+
+**Dashboard Panels:**
+- **LLM Token Usage**: Track Gemini and OpenAI consumption
+- **LLM Cost**: Monitor daily and per-query costs
+- **Hygiene Score**: Project compliance percentage with trend
+- **Release Decisions**: GO/CONDITIONAL/NO-GO breakdown
+- **Agent Response Times**: P95 latency per agent
+- **ReAct Loop Analytics**: Iterations, duration, success rate
+
 ### Metrics (Prometheus)
 
 Key metrics exported by all services:

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750">
+  <defs>
+    <filter id="modalShadow" x="-10%" y="-5%" width="120%" height="115%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  
+  <!-- Dimmed background -->
+  <rect width="600" height="750" fill="#000" fill-opacity="0.6"/>
+  
+  <!-- Modal -->
+  <rect x="50" y="30" width="500" height="690" rx="12" fill="#1a1d21" filter="url(#modalShadow)"/>
+  
+  <!-- Modal header -->
+  <rect x="50" y="30" width="500" height="55" rx="12 12 0 0" fill="#222529"/>
+  <text x="70" y="65" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff">🔧 Fix Jira Ticket Hygiene</text>
+  <text x="510" y="65" font-family="Arial, sans-serif" font-size="20" fill="#ababad" style="cursor:pointer">✕</text>
+  
+  <!-- Intro text -->
+  <text x="70" y="110" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Update the missing fields for your tickets below. All changes will be</text>
+  <text x="70" y="128" font-family="Arial, sans-serif" font-size="13" fill="#ababad">synced directly to Jira.</text>
+  
+  <!-- Ticket 1 -->
+  <rect x="70" y="150" width="460" height="180" rx="8" fill="#2d3748"/>
+  
+  <text x="90" y="180" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">PROJ-123</text>
+  <text x="175" y="180" font-family="Arial, sans-serif" font-size="14" fill="#d1d2d3">Implement user authentication</text>
+  
+  <rect x="90" y="190" width="140" height="20" rx="4" fill="#4a154b"/>
+  <text x="100" y="205" font-family="Arial, sans-serif" font-size="11" fill="#e8def8">Missing: Labels, Story Points</text>
+  
+  <!-- Labels field -->
+  <text x="90" y="235" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#d1d2d3">🏷️ Labels</text>
+  <rect x="90" y="245" width="420" height="36" rx="6" fill="#1a1d21" stroke="#4a4a4d" stroke-width="1"/>
+  <text x="105" y="268" font-family="Arial, sans-serif" font-size="13" fill="#00d4aa">backend, security, api</text>
+  
+  <!-- Story Points field -->
+  <text x="90" y="300" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#d1d2d3">📊 Story Points</text>
+  <rect x="90" y="310" width="150" height="36" rx="6" fill="#1a1d21" stroke="#4a4a4d" stroke-width="1"/>
+  <text x="105" y="333" font-family="Arial, sans-serif" font-size="13" fill="#00d4aa">8</text>
+  <text x="220" y="333" font-family="Arial, sans-serif" font-size="14" fill="#ababad">▼</text>
+  
+  <!-- Ticket 2 -->
+  <rect x="70" y="360" width="460" height="145" rx="8" fill="#2d3748"/>
+  
+  <text x="90" y="390" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">PROJ-124</text>
+  <text x="175" y="390" font-family="Arial, sans-serif" font-size="14" fill="#d1d2d3">Fix login timeout issue</text>
+  
+  <rect x="90" y="400" width="110" height="20" rx="4" fill="#ff922b"/>
+  <text x="100" y="415" font-family="Arial, sans-serif" font-size="11" fill="#1a1d21">Missing: Fix Version</text>
+  
+  <!-- Fix Version field -->
+  <text x="90" y="450" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#d1d2d3">📦 Fix Version</text>
+  <rect x="90" y="460" width="420" height="36" rx="6" fill="#1a1d21" stroke="#4a4a4d" stroke-width="1"/>
+  <text x="105" y="483" font-family="Arial, sans-serif" font-size="13" fill="#00d4aa">v2.0.0</text>
+  
+  <!-- Ticket 3 -->
+  <rect x="70" y="525" width="460" height="100" rx="8" fill="#2d3748"/>
+  
+  <text x="90" y="555" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">PROJ-125</text>
+  <text x="175" y="555" font-family="Arial, sans-serif" font-size="14" fill="#d1d2d3">Add password reset flow</text>
+  
+  <rect x="90" y="565" width="140" height="20" rx="4" fill="#5c7cfa"/>
+  <text x="100" y="580" font-family="Arial, sans-serif" font-size="11" fill="#fff">Missing: Team/Contributors</text>
+  
+  <!-- Team field -->
+  <text x="90" y="605" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#d1d2d3">👥 Team</text>
+  <rect x="90" y="588" width="420" height="30" rx="6" fill="#1a1d21" stroke="#4a4a4d" stroke-width="1"/>
+  <text x="105" y="608" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Platform Team</text>
+  
+  <!-- Footer buttons -->
+  <line x1="50" y1="650" x2="550" y2="650" stroke="#3f3f46" stroke-width="1"/>
+  
+  <rect x="330" y="670" width="90" height="36" rx="6" fill="none" stroke="#4a4a4d" stroke-width="1"/>
+  <text x="360" y="693" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">Cancel</text>
+  
+  <rect x="435" y="670" width="100" height="36" rx="6" fill="#007a5a"/>
+  <text x="450" y="693" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#fff">Update All</text>
+  
+  <!-- Helper text -->
+  <text x="70" y="695" font-family="Arial, sans-serif" font-size="11" fill="#666">Changes will be applied to Jira immediately</text>
+</svg>
+

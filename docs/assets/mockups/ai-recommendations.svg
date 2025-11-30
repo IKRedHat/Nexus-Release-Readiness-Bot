@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 550">
+  <defs>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Slack message background -->
+  <rect width="650" height="550" fill="#1a1d21"/>
+  
+  <!-- Channel header -->
+  <rect x="0" y="0" width="650" height="50" fill="#222529" stroke="#3f3f46" stroke-width="0 0 1 0"/>
+  <text x="20" y="32" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#d1d2d3">💡 AI Recommendations - PROJ</text>
+  
+  <!-- Message container -->
+  <rect x="20" y="70" width="610" height="460" rx="8" fill="#222529" filter="url(#cardShadow)"/>
+  
+  <!-- Bot avatar and name -->
+  <circle cx="45" cy="100" r="18" fill="#4a154b"/>
+  <text x="38" y="107" font-family="Arial" font-size="16" fill="#fff">🚀</text>
+  <text x="75" y="98" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d1d2d3">Nexus Bot</text>
+  <text x="155" y="98" font-family="Arial, sans-serif" font-size="11" fill="#ababad">APP</text>
+  <text x="185" y="98" font-family="Arial, sans-serif" font-size="11" fill="#666">Just now</text>
+  
+  <!-- Header -->
+  <text x="75" y="135" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fff">💡 AI-Powered Recommendations</text>
+  <text x="75" y="160" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Based on analysis of your release patterns, hygiene trends, and current blockers.</text>
+  
+  <!-- Critical Recommendation -->
+  <rect x="75" y="180" width="530" height="85" rx="8" fill="#2d1b1b" stroke="#ff6b6b" stroke-width="1"/>
+  <circle cx="100" cy="205" r="12" fill="#ff6b6b"/>
+  <text x="93" y="210" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff">!</text>
+  <text x="125" y="205" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ff6b6b">CRITICAL</text>
+  <text x="200" y="205" font-family="Arial, sans-serif" font-size="11" fill="#ababad">BLOCKERS_RESOLUTION</text>
+  
+  <text x="100" y="230" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">Address 2 blocking issues before release</text>
+  <text x="100" y="250" font-family="Arial, sans-serif" font-size="12" fill="#d1d2d3">→ PROJ-145: API timeout under load</text>
+  <text x="100" y="268" font-family="Arial, sans-serif" font-size="12" fill="#d1d2d3">→ PROJ-147: Database connection pool exhaustion</text>
+  
+  <!-- High Recommendation -->
+  <rect x="75" y="280" width="530" height="70" rx="8" fill="#2d2415" stroke="#ff922b" stroke-width="1"/>
+  <circle cx="100" cy="305" r="12" fill="#ff922b"/>
+  <text x="95" y="310" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff">▲</text>
+  <text x="125" y="305" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ff922b">HIGH</text>
+  <text x="175" y="305" font-family="Arial, sans-serif" font-size="11" fill="#ababad">HYGIENE_IMPROVEMENT</text>
+  
+  <text x="100" y="330" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">Improve hygiene score from 78% to 90%+</text>
+  <text x="100" y="348" font-family="Arial, sans-serif" font-size="12" fill="#d1d2d3">5 tickets missing required fields (Story Points: 3, Labels: 2)</text>
+  
+  <!-- Medium Recommendation -->
+  <rect x="75" y="365" width="530" height="70" rx="8" fill="#2d2a15" stroke="#ffd43b" stroke-width="1"/>
+  <circle cx="100" cy="390" r="12" fill="#ffd43b"/>
+  <text x="95" y="395" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1d21">●</text>
+  <text x="125" y="390" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ffd43b">MEDIUM</text>
+  <text x="190" y="390" font-family="Arial, sans-serif" font-size="11" fill="#ababad">RELEASE_TIMING</text>
+  
+  <text x="100" y="415" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">Consider releasing Tuesday instead of Friday</text>
+  <text x="100" y="433" font-family="Arial, sans-serif" font-size="12" fill="#d1d2d3">Historical data: Tuesday releases have 95% success vs Friday's 78%</text>
+  
+  <!-- Low Recommendation -->
+  <rect x="75" y="450" width="530" height="55" rx="8" fill="#1a2d1a" stroke="#00d4aa" stroke-width="1"/>
+  <circle cx="100" cy="475" r="12" fill="#00d4aa"/>
+  <text x="95" y="480" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1d21">○</text>
+  <text x="125" y="475" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#00d4aa">LOW</text>
+  <text x="165" y="475" font-family="Arial, sans-serif" font-size="11" fill="#ababad">PROCESS_IMPROVEMENT</text>
+  
+  <text x="100" y="498" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">Add automated release readiness checks to CI</text>
+  
+  <!-- Summary footer -->
+  <text x="75" y="535" font-family="Arial, sans-serif" font-size="11" fill="#666">📊 Analysis based on 45 releases, 14-day hygiene trend, and current sprint data</text>
+</svg>
+

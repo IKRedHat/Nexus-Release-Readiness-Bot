@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900">
+  <defs>
+    <linearGradient id="slackBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1d21"/>
+      <stop offset="100%" style="stop-color:#1a1d21"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Slack sidebar -->
+  <rect x="0" y="0" width="70" height="900" fill="#1a1d21"/>
+  <rect x="70" y="0" width="180" height="900" fill="#19171d"/>
+  
+  <!-- Sidebar icons -->
+  <circle cx="35" cy="35" r="18" fill="#4a154b"/>
+  <text x="28" y="42" font-family="Arial" font-size="16" fill="#fff">N</text>
+  
+  <circle cx="35" cy="85" r="16" fill="#3d3c40" stroke="#4a4a4d" stroke-width="1"/>
+  <text x="28" y="92" font-family="Arial" font-size="14" fill="#999">🏠</text>
+  
+  <!-- Channel list header -->
+  <text x="85" y="35" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#fff">Nexus Bot</text>
+  <text x="85" y="55" font-family="Arial, sans-serif" font-size="12" fill="#ababad">▼ 3 members</text>
+  
+  <text x="85" y="95" font-family="Arial, sans-serif" font-size="13" fill="#bcabbc">Channels</text>
+  <text x="90" y="120" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3"># general</text>
+  <text x="90" y="145" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3"># releases</text>
+  <text x="90" y="170" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3"># alerts</text>
+  
+  <text x="85" y="210" font-family="Arial, sans-serif" font-size="13" fill="#bcabbc">Apps</text>
+  <rect x="85" y="220" width="155" height="28" rx="4" fill="#1264a3"/>
+  <text x="95" y="239" font-family="Arial, sans-serif" font-size="13" fill="#fff">🚀 Nexus Bot</text>
+  
+  <!-- Main content area -->
+  <rect x="250" y="0" width="550" height="900" fill="#1a1d21"/>
+  
+  <!-- Header -->
+  <rect x="250" y="0" width="550" height="55" fill="#1a1d21" stroke="#3f3f46" stroke-width="0 0 1 0"/>
+  <text x="270" y="35" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#d1d2d3">🚀 Nexus Release Automation</text>
+  <text x="700" y="35" font-family="Arial, sans-serif" font-size="12" fill="#ababad">Home</text>
+  
+  <!-- Content -->
+  <!-- Welcome section -->
+  <rect x="270" y="75" width="510" height="80" rx="8" fill="#222529"/>
+  <text x="290" y="105" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fff">Good morning, Alice! 👋</text>
+  <text x="290" y="130" font-family="Arial, sans-serif" font-size="14" fill="#ababad">Here's your release management dashboard for today.</text>
+  <text x="290" y="148" font-family="Arial, sans-serif" font-size="12" fill="#666">📅 Monday, December 2, 2024 | Last updated: 9:30 AM</text>
+  
+  <!-- Quick Actions -->
+  <text x="270" y="185" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d1d2d3">⚡ Quick Actions</text>
+  
+  <rect x="270" y="200" width="120" height="36" rx="6" fill="#007a5a" filter="url(#shadow)"/>
+  <text x="285" y="223" font-family="Arial, sans-serif" font-size="13" fill="#fff">📊 Release Status</text>
+  
+  <rect x="400" y="200" width="120" height="36" rx="6" fill="#4a154b" filter="url(#shadow)"/>
+  <text x="413" y="223" font-family="Arial, sans-serif" font-size="13" fill="#fff">🔧 Hygiene Check</text>
+  
+  <rect x="530" y="200" width="100" height="36" rx="6" fill="#1264a3" filter="url(#shadow)"/>
+  <text x="548" y="223" font-family="Arial, sans-serif" font-size="13" fill="#fff">📝 Report</text>
+  
+  <rect x="640" y="200" width="70" height="36" rx="6" fill="#36373d" stroke="#555" stroke-width="1"/>
+  <text x="662" y="223" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">❓ Help</text>
+  
+  <!-- Release Status Card -->
+  <rect x="270" y="260" width="510" height="170" rx="8" fill="#222529"/>
+  <text x="290" y="290" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d1d2d3">📈 Release Status Overview</text>
+  <line x1="270" y1="305" x2="780" y2="305" stroke="#3f3f46" stroke-width="1"/>
+  
+  <!-- Status Grid -->
+  <text x="300" y="335" font-family="Arial, sans-serif" font-size="12" fill="#ababad">Current Version</text>
+  <text x="300" y="355" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fff">v2.0.0</text>
+  
+  <text x="430" y="335" font-family="Arial, sans-serif" font-size="12" fill="#ababad">Decision</text>
+  <rect x="430" y="343" width="100" height="22" rx="4" fill="#ffd43b"/>
+  <text x="448" y="359" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1d21">🟡 CONDITIONAL</text>
+  
+  <text x="560" y="335" font-family="Arial, sans-serif" font-size="12" fill="#ababad">Completion</text>
+  <text x="560" y="360" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#00d4aa">87%</text>
+  
+  <text x="650" y="335" font-family="Arial, sans-serif" font-size="12" fill="#ababad">Blockers</text>
+  <text x="650" y="360" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ff6b6b">2</text>
+  
+  <!-- Bottom row -->
+  <rect x="290" y="385" width="150" height="30" rx="4" fill="#2d3748"/>
+  <text x="305" y="405" font-family="Arial, sans-serif" font-size="12" fill="#00d4aa">✅ Build: Passing</text>
+  
+  <rect x="455" y="385" width="140" height="30" rx="4" fill="#2d3748"/>
+  <text x="470" y="405" font-family="Arial, sans-serif" font-size="12" fill="#ffd43b">🔒 Security: 75/100</text>
+  
+  <rect x="610" y="385" width="140" height="30" rx="4" fill="#2d3748"/>
+  <text x="625" y="405" font-family="Arial, sans-serif" font-size="12" fill="#5c7cfa">🧪 Tests: 98.5%</text>
+  
+  <!-- Hygiene Card -->
+  <rect x="270" y="450" width="510" height="130" rx="8" fill="#222529"/>
+  <text x="290" y="480" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d1d2d3">🔧 Jira Hygiene</text>
+  <rect x="660" y="460" width="100" height="28" rx="4" fill="#36373d" stroke="#555" stroke-width="1"/>
+  <text x="680" y="479" font-family="Arial, sans-serif" font-size="11" fill="#d1d2d3">View Details</text>
+  
+  <line x1="270" y1="495" x2="780" y2="495" stroke="#3f3f46" stroke-width="1"/>
+  
+  <text x="290" y="525" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Score:</text>
+  <text x="340" y="525" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffd43b">🟡 78% - Good</text>
+  
+  <!-- Progress bar -->
+  <rect x="290" y="540" width="400" height="10" rx="5" fill="#3f3f46"/>
+  <rect x="290" y="540" width="312" height="10" rx="5" fill="#ffd43b"/>
+  
+  <text x="290" y="570" font-family="Arial, sans-serif" font-size="12" fill="#ff922b">⚠️ You have 3 ticket(s) needing attention</text>
+  
+  <rect x="660" y="525" width="100" height="36" rx="6" fill="#007a5a"/>
+  <text x="680" y="548" font-family="Arial, sans-serif" font-size="12" fill="#fff">🔧 Fix Now</text>
+  
+  <!-- AI Recommendations Card -->
+  <rect x="270" y="600" width="510" height="170" rx="8" fill="#222529"/>
+  <text x="290" y="630" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d1d2d3">💡 AI Recommendations</text>
+  <rect x="660" y="610" width="100" height="28" rx="4" fill="#36373d" stroke="#555" stroke-width="1"/>
+  <text x="690" y="629" font-family="Arial, sans-serif" font-size="11" fill="#d1d2d3">View All</text>
+  
+  <line x1="270" y1="645" x2="780" y2="645" stroke="#3f3f46" stroke-width="1"/>
+  
+  <!-- Recommendations -->
+  <circle cx="300" cy="675" r="8" fill="#ff6b6b"/>
+  <text x="320" y="680" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">Address 2 blocking issues before release</text>
+  
+  <circle cx="300" cy="710" r="8" fill="#ff922b"/>
+  <text x="320" y="715" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">Improve hygiene score from 78% to 90%+</text>
+  
+  <circle cx="300" cy="745" r="8" fill="#ffd43b"/>
+  <text x="320" y="750" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">Consider releasing Tuesday instead of Friday</text>
+  
+  <!-- Footer -->
+  <rect x="270" y="790" width="510" height="40" rx="8" fill="#1a1d21" stroke="#3f3f46" stroke-width="1"/>
+  <text x="400" y="815" font-family="Arial, sans-serif" font-size="12" fill="#666">🤖 Powered by Nexus v2.0 | /nexus help for commands</text>
+  
+  <!-- Recent Activity (mini) -->
+  <text x="270" y="860" font-family="Arial, sans-serif" font-size="12" fill="#666">📋 Recent: Release check completed (2h ago) • Fixed 2 violations (5h ago)</text>
+</svg>
+
