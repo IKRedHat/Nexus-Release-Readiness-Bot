@@ -225,6 +225,85 @@ jiraHygieneAgent:
     JIRA_API_TOKEN: ""
 
 # ============================================================================
+# Analytics Service Configuration
+# ============================================================================
+analytics:
+  enabled: true
+  replicas: 2
+  
+  image:
+    repository: nexus/analytics
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8086
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  
+  env:
+    AGGREGATION_INTERVAL: "60"
+    RETENTION_DAYS: "90"
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8086"
+    prometheus.io/path: "/metrics"
+
+# ============================================================================
+# Webhook Service Configuration
+# ============================================================================
+webhooks:
+  enabled: true
+  replicas: 2
+  
+  image:
+    repository: nexus/webhooks
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8087
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  
+  env:
+    WEBHOOK_MAX_RETRIES: "5"
+    WEBHOOK_INITIAL_DELAY: "5"
+    WEBHOOK_MAX_DELAY: "3600"
+    WEBHOOK_RATE_LIMIT: "60"
+    WEBHOOK_TIMEOUT: "30"
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8087"
+    prometheus.io/path: "/metrics"
+
+# ============================================================================
 # Ingress Configuration
 # ============================================================================
 ingress:
@@ -246,6 +325,14 @@ ingress:
           pathType: Prefix
           service: slack-agent
           port: 8084
+        - path: /analytics
+          pathType: Prefix
+          service: analytics
+          port: 8086
+        - path: /webhooks
+          pathType: Prefix
+          service: webhooks
+          port: 8087
   
   tls:
     - secretName: nexus-tls

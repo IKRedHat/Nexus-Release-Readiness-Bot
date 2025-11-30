@@ -190,6 +190,87 @@ services:
       timeout: 10s
       retries: 3
 
+  jira-hygiene-agent:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: jira_hygiene_agent
+        AGENT_PORT: 8085
+    ports:
+      - "8085:8085"
+    environment:
+      - NEXUS_ENV=development
+      - JIRA_MOCK_MODE=true
+      - SLACK_AGENT_URL=http://slack-agent:8084
+      - HYGIENE_CHECK_SCHEDULE=0 9 * * 1-5
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      - slack-agent
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================================================
+  # Advanced Services
+  # ===========================================================================
+
+  analytics:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.analytics
+    ports:
+      - "8086:8086"
+    environment:
+      - NEXUS_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://nexus:nexus_secret@postgres:5432/nexus
+      - PROMETHEUS_URL=http://prometheus:9090
+      - ORCHESTRATOR_URL=http://orchestrator:8080
+      - JIRA_AGENT_URL=http://jira-agent:8081
+      - GIT_CI_AGENT_URL=http://git-ci-agent:8082
+      - HYGIENE_AGENT_URL=http://jira-hygiene-agent:8085
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  webhooks:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.webhooks
+    ports:
+      - "8087:8087"
+    environment:
+      - NEXUS_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://nexus:nexus_secret@postgres:5432/nexus
+      - WEBHOOK_MAX_RETRIES=5
+      - WEBHOOK_INITIAL_DELAY=5
+      - WEBHOOK_RATE_LIMIT=60
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   redis_data:
   postgres_data:

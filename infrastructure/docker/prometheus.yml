@@ -48,3 +48,24 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 10s
 
+  # Jira Hygiene Agent
+  - job_name: 'nexus-jira-hygiene-agent'
+    static_configs:
+      - targets: ['jira-hygiene-agent:8085']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Analytics Service
+  - job_name: 'nexus-analytics'
+    static_configs:
+      - targets: ['analytics:8086']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Webhook Service
+  - job_name: 'nexus-webhooks'
+    static_configs:
+      - targets: ['webhooks:8087']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+

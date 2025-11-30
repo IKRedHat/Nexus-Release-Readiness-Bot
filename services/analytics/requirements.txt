@@ -1,0 +1,15 @@
+# Analytics Service Dependencies
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.5.0
+prometheus_client>=0.19.0
+httpx>=0.25.0
+pandas>=2.1.0
+numpy>=1.26.0
+redis>=5.0.0
+sqlalchemy>=2.0.0
+asyncpg>=0.29.0
+python-dateutil>=2.8.0
+apscheduler>=3.10.0
+nexus_lib>=1.0.0
+
