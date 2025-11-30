@@ -1,0 +1,100 @@
+# Configuration for the labeler action
+# https://github.com/actions/labeler
+
+# ============================================================================
+# Component Labels
+# ============================================================================
+
+orchestrator:
+  - changed-files:
+      - any-glob-to-any-file: 'services/orchestrator/**/*'
+
+jira-agent:
+  - changed-files:
+      - any-glob-to-any-file: 'services/agents/jira_agent/**/*'
+
+hygiene-agent:
+  - changed-files:
+      - any-glob-to-any-file: 'services/agents/jira_hygiene_agent/**/*'
+
+slack-agent:
+  - changed-files:
+      - any-glob-to-any-file: 'services/agents/slack_agent/**/*'
+
+git-ci-agent:
+  - changed-files:
+      - any-glob-to-any-file: 'services/agents/git_ci_agent/**/*'
+
+reporting-agent:
+  - changed-files:
+      - any-glob-to-any-file: 'services/agents/reporting_agent/**/*'
+
+shared-lib:
+  - changed-files:
+      - any-glob-to-any-file: 'shared/**/*'
+
+# ============================================================================
+# Type Labels
+# ============================================================================
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**/*'
+          - '*.md'
+          - 'mkdocs.yml'
+
+infrastructure:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'infrastructure/**/*'
+          - 'docker-compose.yml'
+          - 'Dockerfile*'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**/*'
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: 'tests/**/*'
+
+scripts:
+  - changed-files:
+      - any-glob-to-any-file: 'scripts/**/*'
+
+# ============================================================================
+# Priority Labels
+# ============================================================================
+
+critical:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'shared/nexus_lib/schemas/**/*'
+          - 'shared/nexus_lib/middleware.py'
+          - 'shared/nexus_lib/auth/**/*'
+          - 'SECURITY.md'
+
+# ============================================================================
+# Technology Labels
+# ============================================================================
+
+python:
+  - changed-files:
+      - any-glob-to-any-file: '**/*.py'
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/Dockerfile*'
+          - 'docker-compose*.yml'
+
+kubernetes:
+  - changed-files:
+      - any-glob-to-any-file: 'infrastructure/k8s/**/*'
+
+terraform:
+  - changed-files:
+      - any-glob-to-any-file: 'infrastructure/terraform/**/*'
+
