@@ -1,0 +1,79 @@
+# CODEOWNERS file for Nexus Release Automation
+# These owners will be automatically requested for review on PRs
+
+# Default owners for everything in the repo
+*                                   @IKRedHat
+
+# ============================================================================
+# Core Components
+# ============================================================================
+
+# Orchestrator - Central brain
+/services/orchestrator/             @IKRedHat
+
+# Shared Library - Critical shared code
+/shared/                            @IKRedHat
+
+# ============================================================================
+# Agents
+# ============================================================================
+
+# Jira Agent
+/services/agents/jira_agent/        @IKRedHat
+
+# Jira Hygiene Agent
+/services/agents/jira_hygiene_agent/ @IKRedHat
+
+# Git/CI Agent
+/services/agents/git_ci_agent/      @IKRedHat
+
+# Reporting Agent
+/services/agents/reporting_agent/   @IKRedHat
+
+# Slack Agent
+/services/agents/slack_agent/       @IKRedHat
+
+# ============================================================================
+# Infrastructure
+# ============================================================================
+
+# Docker configurations
+/infrastructure/docker/             @IKRedHat
+
+# Kubernetes / Helm
+/infrastructure/k8s/                @IKRedHat
+
+# Terraform
+/infrastructure/terraform/          @IKRedHat
+
+# Grafana dashboards
+/infrastructure/grafana/            @IKRedHat
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+/docs/                              @IKRedHat
+/README.md                          @IKRedHat
+/CONTRIBUTING.md                    @IKRedHat
+
+# ============================================================================
+# CI/CD & GitHub
+# ============================================================================
+
+/.github/                           @IKRedHat
+
+# ============================================================================
+# Security-sensitive files
+# ============================================================================
+
+/SECURITY.md                        @IKRedHat
+/.github/workflows/                 @IKRedHat
+/infrastructure/terraform/          @IKRedHat
+
+# ============================================================================
+# Tests
+# ============================================================================
+
+/tests/                             @IKRedHat
+
