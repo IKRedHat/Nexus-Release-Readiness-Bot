@@ -441,13 +441,28 @@ helm upgrade --install nexus . \
 
 ## 🤝 Contributing
 
-Contributions welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
+Contributions welcome! We value every contribution, whether it's code, documentation, bug reports, or feature suggestions.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing`)
-5. Open a Pull Request
+### Quick Start for Contributors
+
+1. Read our [Contributing Guide](CONTRIBUTING.md)
+2. Check open [issues](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues) (look for `good first issue`)
+3. Fork the repository
+4. Create your feature branch (`git checkout -b feature/amazing`)
+5. Make your changes and commit (`git commit -m 'feat: add amazing feature'`)
+6. Push and open a Pull Request
+
+### Community Guidelines
+
+- 📜 [Code of Conduct](CODE_OF_CONDUCT.md) - How we treat each other
+- 🔒 [Security Policy](SECURITY.md) - How to report vulnerabilities
+- 👥 [Contributors](CONTRIBUTORS.md) - Our amazing contributors
+
+### Templates
+
+- 🐛 [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md)
+- 💡 [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)
+- 📝 [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md)
 
 ---
 
