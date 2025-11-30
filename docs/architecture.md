@@ -582,3 +582,296 @@ Structured JSON logging with correlation IDs:
 2. **Shift Left**: Catches issues before release readiness checks
 3. **User Experience**: Interactive fixes reduce friction
 4. **Automation**: Scheduled checks remove manual effort
+
+---
+
+## LLM Integration Layer
+
+Nexus provides a production-ready LLM abstraction layer supporting multiple providers.
+
+### Supported Providers
+
+| Provider | Models | Features |
+|----------|--------|----------|
+| **Google Gemini** | gemini-2.0-flash, gemini-1.5-pro | Streaming, function calling, 1M context |
+| **OpenAI** | gpt-4o, gpt-4-turbo, gpt-3.5-turbo | Streaming, function calling |
+| **Mock** | - | Development/testing without API costs |
+
+### LLM Client Architecture
+
+```mermaid
+flowchart TB
+    subgraph Factory["LLM Factory"]
+        Config[LLMConfig]
+        Create[create_llm_client]
+    end
+    
+    subgraph Clients["LLM Clients"]
+        Gemini[GeminiClient]
+        OpenAI[OpenAIClient]
+        Mock[MockClient]
+    end
+    
+    subgraph Features["Features"]
+        Gen[generate]
+        Chat[chat]
+        Stream[stream]
+        Embed[embed]
+    end
+    
+    Config --> Create
+    Create --> Gemini
+    Create --> OpenAI
+    Create --> Mock
+    
+    Gemini --> Features
+    OpenAI --> Features
+    Mock --> Features
+```
+
+### Configuration
+
+```python
+from nexus_lib.llm import create_llm_client, LLMConfig
+
+# From environment (recommended)
+client = create_llm_client()  # Uses LLM_PROVIDER, LLM_MODEL, LLM_API_KEY
+
+# Explicit configuration
+config = LLMConfig(
+    provider="google",
+    model="gemini-2.0-flash",
+    api_key="your-api-key",
+    temperature=0.7,
+    max_tokens=4096,
+)
+client = create_llm_client(**config.dict())
+```
+
+### Usage Example
+
+```python
+# Simple generation
+response = await client.generate(
+    prompt="Is the v2.0 release ready?",
+    system_prompt="You are a release automation assistant."
+)
+print(response.content)
+print(f"Tokens: {response.usage.total_tokens}")
+print(f"Cost: ${response.usage.cost_estimate:.4f}")
+
+# Streaming
+async for chunk in client.stream("Summarize the release status"):
+    print(chunk, end="")
+```
+
+---
+
+## Multi-Tenancy Architecture
+
+Nexus supports multi-tenant deployments for enterprise use cases.
+
+### Tenant Isolation Model
+
+```mermaid
+flowchart TB
+    subgraph Request["Incoming Request"]
+        Headers[X-Tenant-ID / X-Tenant-Slug]
+        Subdomain[tenant.nexus.example.com]
+        APIKey[Authorization: Bearer key]
+    end
+    
+    subgraph Middleware["Tenant Middleware"]
+        Resolve[Tenant Resolution]
+        Validate[Status Validation]
+        Context[Set Context]
+    end
+    
+    subgraph Tenant["Tenant Context"]
+        Config[Tenant Config]
+        Limits[Resource Limits]
+        Features[Feature Flags]
+    end
+    
+    subgraph Services["Isolated Services"]
+        Jira[Jira Settings]
+        Slack[Slack Settings]
+        LLM[LLM Settings]
+    end
+    
+    Request --> Middleware
+    Middleware --> Tenant
+    Tenant --> Services
+```
+
+### Tenant Plans
+
+| Plan | API Requests | LLM Tokens/Day | Users | Projects |
+|------|--------------|----------------|-------|----------|
+| **Free** | 500/day | 50K | 3 | 2 |
+| **Starter** | 2,000/day | 200K | 10 | 5 |
+| **Professional** | 10,000/day | 1M | 50 | 20 |
+| **Enterprise** | 100,000/day | 10M | 500 | 100 |
+
+### Tenant Resolution Strategies
+
+1. **Header**: `X-Tenant-ID` or `X-Tenant-Slug`
+2. **Subdomain**: `acme.nexus.example.com`
+3. **Path Prefix**: `/t/acme/api/...`
+4. **API Key**: Tenant association via Bearer token
+
+### Configuration Isolation
+
+Each tenant has isolated configuration for:
+
+```python
+class TenantConfig:
+    # Jira settings
+    jira_url: str
+    jira_api_token: str
+    jira_projects: List[str]
+    
+    # GitHub settings
+    github_token: str
+    github_org: str
+    
+    # Slack settings
+    slack_bot_token: str
+    slack_workspace_id: str
+    
+    # LLM settings (optional per-tenant override)
+    llm_api_key: Optional[str]
+    
+    # Feature flags
+    features: Dict[str, bool] = {
+        "react_engine": True,
+        "hygiene_agent": True,
+        "ai_recommendations": True,
+    }
+```
+
+---
+
+## AI Recommendations Engine
+
+The recommendation engine analyzes patterns to provide intelligent suggestions.
+
+### Recommendation Flow
+
+```mermaid
+flowchart LR
+    subgraph Data["Data Sources"]
+        Releases[Release History]
+        Hygiene[Hygiene Scores]
+        Velocity[Sprint Velocity]
+        Risks[Risk Factors]
+    end
+    
+    subgraph Analyzers["Pattern Analyzers"]
+        RelAnalyzer[Release Analyzer]
+        HygAnalyzer[Hygiene Analyzer]
+        VelAnalyzer[Velocity Analyzer]
+        RiskAnalyzer[Risk Analyzer]
+    end
+    
+    subgraph Engine["Recommendation Engine"]
+        Aggregate[Aggregate Findings]
+        Prioritize[Prioritize]
+        Format[Format Output]
+    end
+    
+    Data --> Analyzers
+    Analyzers --> Engine
+    Engine --> Recommendations[Recommendations]
+```
+
+### Recommendation Types
+
+| Type | Priority Levels | Example |
+|------|-----------------|---------|
+| `RELEASE_TIMING` | Medium | "Consider releasing Tuesday instead of Friday" |
+| `HYGIENE_IMPROVEMENT` | High | "5 tickets missing Story Points" |
+| `VELOCITY_OPTIMIZATION` | Medium | "Velocity dropped 30% - check blockers" |
+| `RISK_MITIGATION` | Critical | "2 critical vulnerabilities blocking release" |
+| `BLOCKERS_RESOLUTION` | Critical | "3 blocking issues need immediate attention" |
+| `PROCESS_IMPROVEMENT` | Low | "Automate release readiness checks" |
+
+### Analyzers
+
+#### Release Pattern Analyzer
+- Analyzes day-of-week success rates
+- Identifies risky release windows
+- Tracks failure patterns
+
+#### Hygiene Pattern Analyzer
+- Detects score trends (improving/declining)
+- Identifies most common violations
+- Tracks compliance over time
+
+#### Velocity Analyzer
+- Calculates predictability score
+- Detects velocity drops
+- Identifies capacity issues
+
+#### Risk Analyzer
+- Assesses blocker impact
+- Evaluates security vulnerabilities
+- Calculates overall risk score
+
+---
+
+## Slack App Home Dashboard
+
+The App Home provides a rich dashboard when users open the Nexus app.
+
+### Dashboard Layout
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🚀 Nexus Release Automation                                 │
+│  Good morning! Here's your release management dashboard.     │
+│  📅 Monday, December 2, 2024 | Last updated: 9:30 AM        │
+├─────────────────────────────────────────────────────────────┤
+│  ⚡ Quick Actions                                            │
+│  [📊 Release Status] [🔧 Hygiene Check] [📝 Report] [❓ Help] │
+├─────────────────────────────────────────────────────────────┤
+│  📈 Release Status Overview                                  │
+│  ┌──────────────┬──────────────┬──────────────┐             │
+│  │ Version      │ Decision     │ Completion   │             │
+│  │ v2.0.0       │ 🟡 CONDITIONAL│ 87%         │             │
+│  ├──────────────┼──────────────┼──────────────┤             │
+│  │ Build Status │ Security     │ Blockers     │             │
+│  │ ✅ Passing   │ 75/100       │ 2            │             │
+│  └──────────────┴──────────────┴──────────────┘             │
+├─────────────────────────────────────────────────────────────┤
+│  🔧 Jira Hygiene                          [View Details]     │
+│  🟡 78% - Good                                               │
+│  ████████░░ 78%                                              │
+│  ⚠️ You have 3 ticket(s) needing attention    [Fix Now]     │
+├─────────────────────────────────────────────────────────────┤
+│  📋 Recent Activity                                          │
+│  ✅ Release readiness check completed (2h ago)               │
+│  🔧 Fixed 2 hygiene violations (5h ago)                      │
+│  📝 Generated v1.9 release report (1d ago)                   │
+├─────────────────────────────────────────────────────────────┤
+│  💡 AI Recommendations                       [View All]      │
+│  🟠 Address blocking issues before release                   │
+│  🟡 Improve hygiene score to 90%+                           │
+│  🟢 Consider releasing mid-week                              │
+├─────────────────────────────────────────────────────────────┤
+│  🤖 Powered by Nexus | /nexus help for commands              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Event Handling
+
+The App Home responds to:
+- `app_home_opened` - Rebuilds and publishes the view
+- Button actions - Quick actions, fix hygiene, view details
+
+### Why App Home?
+
+1. **At-a-Glance Status**: See release health without commands
+2. **Reduced Friction**: One-click actions
+3. **Personalization**: User-specific hygiene issues
+4. **Discoverability**: Surfaces AI recommendations proactively

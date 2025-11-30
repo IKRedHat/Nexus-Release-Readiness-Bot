@@ -7,10 +7,13 @@ Welcome to the Nexus Release Automation System! This guide will help you underst
 Nexus is your AI-powered release automation assistant. It connects to your existing tools (Jira, GitHub, Jenkins, Confluence) and provides intelligent insights about your release readiness through natural language interactions.
 
 **Key Capabilities:**
-- 🧠 **Intelligent Queries** - Ask questions in natural language
+- 🧠 **Intelligent Queries** - Ask questions in natural language (powered by Google Gemini or OpenAI)
 - 📊 **Release Assessments** - Automated Go/No-Go decisions
 - 🔧 **Jira Hygiene** - Proactive data quality management
 - 📝 **Rich Reports** - Beautiful Confluence reports
+- 💡 **AI Recommendations** - Pattern-based intelligent suggestions
+- 🏠 **App Home Dashboard** - Rich Slack dashboard with widgets
+- 🏢 **Multi-Tenant** - Enterprise-ready organization isolation
 
 ## Getting Started
 
@@ -79,6 +82,102 @@ Generate and optionally publish release readiness reports.
 - **Release Readiness**: Comprehensive Go/No-Go assessment
 - **Sprint Summary**: Current sprint progress and metrics
 - **Security Scan**: Vulnerability assessment report
+
+---
+
+## 🏠 App Home Dashboard
+
+When you open the Nexus app in Slack, you'll see a personalized dashboard with quick actions and real-time status widgets.
+
+### What You'll See
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🚀 Nexus Release Automation                                 │
+│  Good morning, Alice! Here's your release management dashboard│
+│  📅 Monday, December 2, 2024 | Last updated: 9:30 AM        │
+├─────────────────────────────────────────────────────────────┤
+│  ⚡ Quick Actions                                            │
+│  [📊 Release Status] [🔧 Hygiene Check] [📝 Report] [❓ Help] │
+├─────────────────────────────────────────────────────────────┤
+│  📈 Release Status Overview                                  │
+│  Current Version: v2.0.0                                     │
+│  Decision: 🟡 CONDITIONAL | Completion: 87%                  │
+│  Build: ✅ Passing | Security: 75/100 | Blockers: 2         │
+├─────────────────────────────────────────────────────────────┤
+│  🔧 Jira Hygiene                          [View Details]     │
+│  Score: 🟡 78% - Good                                        │
+│  ⚠️ You have 3 ticket(s) needing attention    [Fix Now]     │
+├─────────────────────────────────────────────────────────────┤
+│  💡 AI Recommendations                       [View All]      │
+│  🔴 Address 2 blocking issues before release                 │
+│  🟠 Improve hygiene score from 78% to 90%+                   │
+│  🟡 Consider releasing Tuesday instead of Friday             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Quick Actions
+
+Click any button to instantly:
+- **📊 Release Status**: Get the current release readiness assessment
+- **🔧 Hygiene Check**: Run a hygiene check on your project
+- **📝 Generate Report**: Create a release readiness report
+- **❓ Help**: View available commands
+
+### Hygiene Widget
+
+The hygiene widget shows:
+- Your project's current hygiene score
+- Number of tickets needing your attention
+- **Fix Now** button to open the hygiene fix modal
+
+### AI Recommendations Widget
+
+The top 3 recommendations based on:
+- Release timing patterns
+- Hygiene trends
+- Blocker analysis
+
+---
+
+## 💡 AI Recommendations
+
+Nexus analyzes historical patterns to provide intelligent recommendations for improving your release process.
+
+### Viewing Recommendations
+
+**From Slack:**
+```
+/nexus recommendations
+```
+
+**From App Home:**
+Click **"View All"** in the AI Recommendations widget.
+
+### Recommendation Types
+
+| Type | Icon | Example |
+|------|------|---------|
+| **Blocker Resolution** | 🔴 | "2 blocking issues need immediate attention" |
+| **Risk Mitigation** | 🔴 | "Critical vulnerability CVE-2024-1234 detected" |
+| **Hygiene Improvement** | 🟠 | "5 tickets missing Story Points" |
+| **Release Timing** | 🟡 | "Consider releasing Tuesday - lower failure rate" |
+| **Velocity Optimization** | 🟡 | "Velocity dropped 30% - review blockers" |
+| **Process Improvement** | 🟢 | "Add automated release checks to CI" |
+
+### Priority Levels
+
+- **Critical (🔴)**: Requires immediate attention - blocks release
+- **High (🟠)**: Should be addressed before release
+- **Medium (🟡)**: Consider addressing for improvement
+- **Low (🟢)**: Nice to have - improves long-term process
+
+### Recommendation Sources
+
+1. **Release Pattern Analyzer**: Day-of-week success rates, failure patterns
+2. **Hygiene Pattern Analyzer**: Score trends, common violations
+3. **Velocity Analyzer**: Predictability, capacity issues
+4. **Risk Analyzer**: Blockers, vulnerabilities, risk scores
 
 ---
 

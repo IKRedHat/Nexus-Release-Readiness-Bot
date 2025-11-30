@@ -2,12 +2,15 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10+-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![LLM](https://img.shields.io/badge/LLM-Gemini%202.0-4285F4)
 
 **Intelligent Multi-Agent System for Automated Release Readiness Assessments**
+
+*Now with Google Gemini 2.0, AI Recommendations, Multi-Tenancy, and Slack App Home!*
 
 [Documentation](docs/index.md) • [User Guide](docs/user_guide.md) • [Architecture](docs/architecture.md) • [Demo](demo/feature_walkthrough_script.md)
 
@@ -21,7 +24,11 @@ Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning 
 
 ### ✨ Key Features
 
-- 🧠 **Intelligent Orchestration** - LLM-powered ReAct engine that reasons and acts
+- 🤖 **Google Gemini Integration** - Production-ready LLM with streaming and function calling
+- 🧠 **Intelligent Orchestration** - ReAct engine that reasons and acts with transparent traces
+- 💡 **AI Recommendations** - Pattern-based intelligent suggestions for release optimization
+- 🏠 **Slack App Home** - Rich dashboard with quick actions and real-time widgets
+- 🏢 **Multi-Tenant Support** - Enterprise-ready organization isolation with plan tiers
 - 🔗 **Multi-Tool Integration** - Jira, GitHub, Jenkins, Confluence, Slack
 - 📊 **Rich Reports** - Beautiful HTML reports with Go/No-Go decisions
 - 💬 **Natural Language** - Ask questions in plain English via Slack
@@ -36,45 +43,47 @@ Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          Slack Workspace                             │
-│                     (User: /nexus status v2.0)                       │
+│            (User: /nexus status v2.0 | App Home Dashboard)           │
 └─────────────────────────────┬───────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          Slack Agent                                 │
-│              (Commands, Modals, DMs, Notifications)                  │
+│         (Commands, Modals, DMs, App Home, Notifications)             │
 └─────────────────────────────┬───────────────────────────────────────┘
                               │
               ┌───────────────┴───────────────┐
               │                               │
               ▼                               ▼
-┌─────────────────────────┐    ┌─────────────────────────────────────┐
-│   Central Orchestrator  │    │     Jira Hygiene Agent (NEW)        │
-│  ┌───────────────────┐  │    │  ┌───────────────────────────────┐  │
-│  │   ReAct Engine    │  │    │  │  Scheduled Checks (9AM M-F)   │  │
-│  │  Thought → Action │  │    │  │  Field Validation             │  │
-│  │    → Observe      │  │    │  │  Hygiene Scoring              │  │
-│  └───────────────────┘  │    │  │  Interactive Fix Modals       │  │
-│  ┌──────────┐ ┌──────┐  │    │  └───────────────────────────────┘  │
-│  │ Memory   │ │ LLM  │  │    └─────────────────┬───────────────────┘
-│  │(ChromaDB)│ │Client│  │                      │
-│  └──────────┘ └──────┘  │                      │
-└───────┬─────────────────┘                      │
-        │                                        │
-  ┌─────┴────────────┬──────────────┐           │
-  ▼                  ▼              ▼           │
-┌─────────┐  ┌─────────────┐  ┌──────────┐     │
-│  Jira   │◄─│   Git/CI    │  │Reporting │     │
-│  Agent  │  │    Agent    │  │  Agent   │     │
-└────┬────┘  └──────┬──────┘  └────┬─────┘     │
-     │              │              │            │
-     ▼              ▼              ▼            │
-┌─────────┐  ┌───────────┐  ┌───────────┐      │
-│  Jira   │  │  GitHub   │  │Confluence │      │
-│  Cloud  │◄─│  Jenkins  │  │           │      │
-└─────────┘  └───────────┘  └───────────┘      │
-     ▲                                          │
-     └──────────────────────────────────────────┘
+┌─────────────────────────────────┐    ┌─────────────────────────────┐
+│     Central Orchestrator        │    │  Jira Hygiene Agent         │
+│  ┌───────────────────────────┐  │    │  ┌───────────────────────┐  │
+│  │   ReAct Engine + Gemini   │  │    │  │  Scheduled Checks     │  │
+│  │  Thought → Action → Obs   │  │    │  │  Field Validation     │  │
+│  └───────────────────────────┘  │    │  │  Hygiene Scoring      │  │
+│  ┌──────────┐ ┌───────────────┐ │    │  │  Interactive Modals   │  │
+│  │ Memory   │ │ AI Recommend. │ │    │  └───────────────────────┘  │
+│  │(ChromaDB)│ │    Engine     │ │    └─────────────────┬───────────┘
+│  └──────────┘ └───────────────┘ │                      │
+│  ┌──────────────────────────────┤                      │
+│  │ Multi-Tenant Middleware     ││                      │
+│  └─────────────────────────────┘│                      │
+└───────┬─────────────────────────┘                      │
+        │                                                │
+  ┌─────┴────────────┬──────────────┐                   │
+  ▼                  ▼              ▼                   │
+┌─────────┐  ┌─────────────┐  ┌──────────┐             │
+│  Jira   │◄─│   Git/CI    │  │Reporting │             │
+│  Agent  │  │    Agent    │  │  Agent   │             │
+└────┬────┘  └──────┬──────┘  └────┬─────┘             │
+     │              │              │                    │
+     ▼              ▼              ▼                    │
+┌─────────┐  ┌───────────┐  ┌───────────┐              │
+│  Jira   │  │  GitHub   │  │Confluence │              │
+│  Cloud  │◄─│  Jenkins  │  │           │              │
+└─────────┘  └───────────┘  └───────────┘              │
+     ▲                                                  │
+     └──────────────────────────────────────────────────┘
 ```
 
 ---
@@ -139,6 +148,34 @@ curl -X POST http://localhost:8005/run-check \
 
 ---
 
+## 🆕 What's New in v2.0
+
+### 🤖 Google Gemini Integration
+- Production-ready LLM client with Gemini 2.0 Flash
+- Streaming, function calling, and embeddings support
+- Automatic token usage and cost tracking
+- Fallback to mock mode for development
+
+### 💡 AI Recommendations Engine
+- Pattern-based intelligent suggestions
+- Release timing optimization
+- Hygiene improvement recommendations
+- Blocker and risk assessment
+
+### 🏠 Slack App Home Dashboard
+- Rich personalized dashboard on app open
+- Quick action buttons for common tasks
+- Real-time release status widget
+- AI recommendations preview
+
+### 🏢 Multi-Tenant Support
+- Enterprise-ready organization isolation
+- Plan tiers (Free, Starter, Professional, Enterprise)
+- Per-tenant resource limits and configuration
+- Feature flags per organization
+
+---
+
 ## 💬 Slack Commands
 
 Once configured with Slack:
@@ -178,7 +215,10 @@ Nexus-Release-Readiness-Bot/
 ├── shared/
 │   └── nexus_lib/                 # Shared library
 │       ├── schemas/               # Pydantic models
-│       ├── middleware.py          # JWT auth, metrics
+│       ├── llm/                   # 🆕 LLM clients (Gemini, OpenAI)
+│       ├── multitenancy/          # 🆕 Tenant isolation
+│       ├── recommendations/       # 🆕 AI recommendations engine
+│       ├── middleware.py          # JWT auth, metrics, tenant
 │       ├── instrumentation.py     # OTEL, Prometheus
 │       └── utils.py               # HTTP client, helpers
 ├── infrastructure/
@@ -218,8 +258,12 @@ Nexus-Release-Readiness-Bot/
 |----------|-------------|---------|
 | `NEXUS_ENV` | Environment (development/production) | development |
 | `LLM_PROVIDER` | LLM provider (google/openai/mock) | mock |
+| `LLM_MODEL` | Model name (gemini-2.0-flash, gpt-4o) | gemini-2.0-flash |
 | `LLM_API_KEY` | API key for LLM | - |
+| `LLM_TEMPERATURE` | Generation temperature | 0.7 |
 | `MEMORY_BACKEND` | Vector store (chromadb/pgvector/mock) | mock |
+| `MULTI_TENANT_ENABLED` | Enable multi-tenancy | false |
+| `RECOMMENDATIONS_ENABLED` | Enable AI recommendations | true |
 | `JIRA_MOCK_MODE` | Use mock Jira data | true |
 | `GITHUB_MOCK_MODE` | Use mock GitHub data | true |
 | `HYGIENE_SCHEDULE_HOUR` | Hour for hygiene checks (0-23) | 9 |

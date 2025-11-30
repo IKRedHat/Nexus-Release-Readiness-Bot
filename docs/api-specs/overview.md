@@ -573,3 +573,227 @@ Slack requests are verified using the signing secret.
 | Query endpoints | 100 req/min |
 | Tool execution | 50 req/min |
 | Hygiene checks | 10 req/min |
+
+---
+
+## Multi-Tenancy API
+
+All endpoints support multi-tenant operation when enabled.
+
+### Tenant Headers
+
+```http
+X-Tenant-ID: tenant-uuid-here
+# or
+X-Tenant-Slug: acme-corp
+```
+
+### Tenant Resolution
+
+Requests are resolved to tenants via:
+1. **Header**: `X-Tenant-ID` or `X-Tenant-Slug`
+2. **Subdomain**: `acme.nexus.example.com`
+3. **API Key**: Tenant association via Bearer token
+
+### Tenant Context
+
+All requests include tenant context:
+
+```python
+class TenantContext:
+    tenant_id: str
+    slug: str
+    name: str
+    plan: TenantPlan          # free, starter, professional, enterprise
+    status: TenantStatus      # active, suspended, pending
+    limits: TenantLimits
+    config: TenantConfig
+```
+
+### Rate Limits by Plan
+
+| Plan | API Requests | LLM Tokens/Day | Storage |
+|------|--------------|----------------|---------|
+| Free | 500/day | 50,000 | 100MB |
+| Starter | 2,000/day | 200,000 | 1GB |
+| Professional | 10,000/day | 1,000,000 | 10GB |
+| Enterprise | 100,000/day | 10,000,000 | 100GB |
+
+---
+
+## AI Recommendations API
+
+### Get Recommendations
+
+```http
+GET /recommendations
+# or
+GET /recommendations?project_key=PROJ
+```
+
+Response:
+```json
+{
+  "recommendations": [
+    {
+      "id": "rec-abc123",
+      "type": "BLOCKERS_RESOLUTION",
+      "priority": "critical",
+      "title": "Address blocking issues before release",
+      "description": "2 blocking issues are preventing release readiness",
+      "action_items": [
+        "Resolve PROJ-145: API timeout issue",
+        "Resolve PROJ-147: Database connection failure"
+      ],
+      "metadata": {
+        "blocker_count": 2,
+        "affected_version": "v2.0.0"
+      },
+      "created_at": "2024-01-15T10:30:00Z"
+    },
+    {
+      "id": "rec-def456",
+      "type": "HYGIENE_IMPROVEMENT",
+      "priority": "high",
+      "title": "Improve hygiene score from 78% to 90%+",
+      "description": "5 tickets are missing required fields",
+      "action_items": [
+        "Add Story Points to 3 tickets",
+        "Add Labels to 2 tickets"
+      ],
+      "metadata": {
+        "current_score": 78,
+        "target_score": 90,
+        "violations": {
+          "Story Points": 3,
+          "Labels": 2
+        }
+      }
+    },
+    {
+      "id": "rec-ghi789",
+      "type": "RELEASE_TIMING",
+      "priority": "medium",
+      "title": "Consider releasing Tuesday instead of Friday",
+      "description": "Historical data shows higher success rates on Tuesdays",
+      "action_items": [
+        "Schedule release for Tuesday afternoon",
+        "Avoid Friday deployments"
+      ],
+      "metadata": {
+        "tuesday_success_rate": 95,
+        "friday_success_rate": 78
+      }
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "by_priority": {
+      "critical": 1,
+      "high": 1,
+      "medium": 1,
+      "low": 0
+    }
+  },
+  "generated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+### Recommendation Types
+
+| Type | Description |
+|------|-------------|
+| `RELEASE_TIMING` | Optimal release day/time suggestions |
+| `HYGIENE_IMPROVEMENT` | Jira data quality improvements |
+| `VELOCITY_OPTIMIZATION` | Sprint velocity recommendations |
+| `RISK_MITIGATION` | Security and risk reduction |
+| `BLOCKERS_RESOLUTION` | Critical blocker handling |
+| `PROCESS_IMPROVEMENT` | Long-term process enhancements |
+
+---
+
+## LLM API (Internal)
+
+The LLM client is used internally by the orchestrator.
+
+### Configuration
+
+Environment variables:
+```bash
+LLM_PROVIDER=google           # google, openai, mock
+LLM_MODEL=gemini-2.0-flash    # Model name
+LLM_API_KEY=your-api-key      # API key
+LLM_TEMPERATURE=0.7           # Generation temperature
+LLM_MAX_TOKENS=4096           # Max output tokens
+```
+
+### Supported Providers
+
+| Provider | Models | Features |
+|----------|--------|----------|
+| **Google Gemini** | gemini-2.0-flash, gemini-1.5-pro | Streaming, function calling |
+| **OpenAI** | gpt-4o, gpt-4-turbo | Streaming, function calling |
+| **Mock** | - | Development/testing |
+
+### Usage Metrics
+
+```
+nexus_llm_tokens_total{model_name, type}      # input/output tokens
+nexus_llm_latency_seconds{model_name}         # Request latency
+nexus_llm_cost_dollars_total{model_name}      # Estimated cost
+nexus_llm_requests_total{model_name, status}  # Success/failure count
+```
+
+---
+
+## Slack App Home API
+
+### Event Handler
+
+```http
+POST /slack/events
+Content-Type: application/json
+
+{
+  "type": "event_callback",
+  "event": {
+    "type": "app_home_opened",
+    "user": "U0123456789",
+    "tab": "home"
+  }
+}
+```
+
+### App Home View Structure
+
+```json
+{
+  "type": "home",
+  "blocks": [
+    {"type": "header", "text": {"type": "plain_text", "text": "🚀 Nexus Release Automation"}},
+    {"type": "section", "text": {"type": "mrkdwn", "text": "Good morning! Here's your dashboard."}},
+    {"type": "divider"},
+    {"type": "section", "text": {"type": "mrkdwn", "text": "*⚡ Quick Actions*"}},
+    {
+      "type": "actions",
+      "elements": [
+        {"type": "button", "text": {"type": "plain_text", "text": "📊 Release Status"}, "action_id": "quick_release_status"},
+        {"type": "button", "text": {"type": "plain_text", "text": "🔧 Hygiene Check"}, "action_id": "quick_hygiene_check"},
+        {"type": "button", "text": {"type": "plain_text", "text": "📝 Generate Report"}, "action_id": "quick_generate_report"}
+      ]
+    },
+    {"type": "divider"},
+    {"type": "section", "text": {"type": "mrkdwn", "text": "*📈 Release Status*\n🟡 CONDITIONAL | 87% complete | 2 blockers"}}
+  ]
+}
+```
+
+### Quick Action Handlers
+
+| Action ID | Description |
+|-----------|-------------|
+| `quick_release_status` | Opens release status modal |
+| `quick_hygiene_check` | Triggers hygiene check for user's projects |
+| `quick_generate_report` | Opens report generation modal |
+| `open_hygiene_fix_modal` | Opens hygiene fix modal |
+| `view_all_recommendations` | Shows all AI recommendations |

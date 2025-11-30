@@ -1,7 +1,7 @@
 # Nexus Release Automation System
 
 <div style="text-align: center; margin-bottom: 2em;">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.10+-green" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
 </div>
@@ -15,6 +15,7 @@
 - Python 3.10+
 - Docker & Docker Compose
 - Kubernetes (for production deployment)
+- Google Cloud API key (for Gemini) or OpenAI API key
 
 ### Local Development
 
@@ -40,7 +41,7 @@ docker-compose up -d
 # Check health
 curl http://localhost:8080/health
 
-# Run a query
+# Run a query (uses Gemini or mock LLM)
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
   -d '{"query": "What is the release readiness status for v2.0?"}'
@@ -49,6 +50,9 @@ curl -X POST http://localhost:8080/query \
 curl -X POST http://localhost:8005/run-check \
   -H "Content-Type: application/json" \
   -d '{"project_key": "PROJ", "notify": false}'
+
+# Get AI recommendations
+curl http://localhost:8080/recommendations
 ```
 
 ## 🏗️ Architecture Overview
@@ -57,15 +61,32 @@ curl -X POST http://localhost:8005/run-check \
 flowchart TB
     subgraph Slack["Slack Workspace"]
         User[User] --> SlackApp[Nexus Bot]
+        SlackApp --> AppHome[App Home Dashboard]
     end
     
     subgraph Nexus["Nexus System"]
         SlackApp --> SlackAgent[Slack Agent]
         SlackAgent --> Orchestrator[Central Orchestrator]
         
+        subgraph LLMLayer["LLM Layer"]
+            LLMFactory[LLM Factory]
+            Gemini[Google Gemini]
+            OpenAI[OpenAI GPT]
+        end
+        
         Orchestrator --> ReAct[ReAct Engine]
         ReAct --> Memory[(Vector Memory)]
-        ReAct --> LLM[LLM Provider]
+        ReAct --> LLMFactory
+        LLMFactory --> Gemini
+        LLMFactory --> OpenAI
+        
+        subgraph AILayer["AI Layer"]
+            RecEngine[Recommendation Engine]
+            Analyzers[Pattern Analyzers]
+        end
+        
+        Orchestrator --> RecEngine
+        RecEngine --> Analyzers
         
         Orchestrator --> JiraAgent[Jira Agent]
         Orchestrator --> GitAgent[Git/CI Agent]
@@ -73,6 +94,11 @@ flowchart TB
         
         HygieneAgent[Jira Hygiene Agent] --> JiraAgent
         HygieneAgent --> SlackAgent
+        
+        subgraph MultiTenant["Multi-Tenancy"]
+            TenantMW[Tenant Middleware]
+            TenantRepo[Tenant Repository]
+        end
     end
     
     subgraph External["External Systems"]
@@ -85,17 +111,36 @@ flowchart TB
 
 ## 🎯 Key Features
 
-### 🤖 Intelligent Orchestration
-The ReAct (Reasoning + Acting) engine uses LLMs to understand natural language queries, plan multi-step workflows, and coordinate specialized agents.
+### 🤖 Google Gemini Integration
+Production-ready LLM client with full Gemini 2.0 support:
+- **Async Generation**: Non-blocking API calls
+- **Streaming**: Real-time token streaming
+- **Function Calling**: Native tool use support
+- **Cost Tracking**: Token usage and cost estimation
+- **Fallback**: Automatic fallback to mock mode
 
-### 📊 Comprehensive Assessments
-Automatically gathers data from:
-- **Jira**: Ticket status, sprint progress, blockers
-- **GitHub**: PR status, branch health, security scans
-- **Jenkins**: Build status, test results, artifacts
-- **Confluence**: Publishes rich HTML reports
+### 🏢 Multi-Tenant Support
+Enterprise-ready organization isolation:
+- **Tenant Plans**: Free, Starter, Professional, Enterprise
+- **Resource Limits**: Per-tenant API, LLM, and storage limits
+- **Configuration Isolation**: Separate Jira, GitHub, Slack settings per tenant
+- **Feature Flags**: Enable/disable features per organization
 
-### 🔧 Proactive Jira Hygiene (NEW)
+### 💡 AI-Powered Recommendations
+Intelligent suggestions based on historical patterns:
+- **Release Timing**: Best days to release, failure patterns
+- **Hygiene Improvement**: Trend detection, violation patterns
+- **Velocity Optimization**: Predictability scoring
+- **Risk Mitigation**: Blocker and vulnerability assessment
+
+### 🏠 Slack App Home Dashboard
+Rich interactive dashboard when opening the app:
+- **Quick Actions**: One-click status, hygiene, reports
+- **Release Overview**: Current status, blockers, scores
+- **Hygiene Widget**: Score with fix button
+- **AI Recommendations**: Top suggestions preview
+
+### 🔧 Proactive Jira Hygiene
 The Jira Hygiene Agent ensures data quality:
 - **Scheduled Checks**: Weekdays at 9:00 AM
 - **Field Validation**: Labels, Fix Version, Story Points, Team
@@ -114,6 +159,7 @@ Full visibility into system performance:
 Natural Slack interface with:
 - `/nexus status` - Check release readiness
 - `/jira-update` - Update tickets via modal
+- App Home dashboard with widgets
 - Hygiene notifications with fix buttons
 - Block Kit rich messages
 
@@ -131,10 +177,11 @@ Natural Slack interface with:
 | Component | Technology |
 |-----------|------------|
 | Backend | Python 3.11, FastAPI, Pydantic |
-| LLM | Google Gemini, OpenAI GPT (configurable) |
+| LLM | Google Gemini 2.0, OpenAI GPT-4 (configurable) |
 | Vector Store | ChromaDB, PostgreSQL + pgvector |
 | Messaging | Slack Bolt SDK |
 | Scheduling | APScheduler |
+| Multi-tenancy | Custom middleware with tenant isolation |
 | Observability | Prometheus, Grafana, Jaeger, OpenTelemetry |
 | Infrastructure | Docker, Kubernetes, Helm |
 
@@ -142,12 +189,19 @@ Natural Slack interface with:
 
 | Service | Port | Description |
 |---------|------|-------------|
-| Orchestrator | 8080 | Central brain |
+| Orchestrator | 8080 | Central brain with Gemini/GPT |
 | Jira Agent | 8081 | Jira operations |
 | Git/CI Agent | 8082 | GitHub + Jenkins |
 | Reporting Agent | 8083 | Reports |
-| Slack Agent | 8084 | Slack interface |
+| Slack Agent | 8084 | Slack interface + App Home |
 | **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
+
+## 🆕 What's New in v2.0
+
+- ✅ **Google Gemini 2.0 Flash** - Production LLM integration
+- ✅ **Multi-tenant Architecture** - Enterprise organization isolation
+- ✅ **AI Recommendations Engine** - Intelligent pattern-based suggestions
+- ✅ **Slack App Home** - Rich dashboard with widgets
 
 ## 🤝 Contributing
 
