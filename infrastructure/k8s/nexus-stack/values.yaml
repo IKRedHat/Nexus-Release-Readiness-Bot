@@ -1,5 +1,317 @@
+# ============================================================================
+# Nexus Stack - Helm Values
+# ============================================================================
+
 global:
-  env: production
+  environment: production
   imageTag: latest
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+# ============================================================================
+# Orchestrator Configuration
+# ============================================================================
 orchestrator:
+  enabled: true
   replicas: 2
+  
+  image:
+    repository: nexus/orchestrator
+    tag: ""  # Uses global.imageTag if empty
+    pullPolicy: ""
+  
+  service:
+    type: ClusterIP
+    port: 8080
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  env:
+    NEXUS_ENV: production
+    LLM_PROVIDER: google
+    MEMORY_BACKEND: pgvector
+    MAX_REACT_ITERATIONS: "10"
+  
+  secrets:
+    # These should be provided via external secret management
+    NEXUS_JWT_SECRET: ""
+    LLM_API_KEY: ""
+    POSTGRES_PASSWORD: ""
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ============================================================================
+# Jira Agent Configuration
+# ============================================================================
+jiraAgent:
+  enabled: true
+  replicas: 1
+  
+  image:
+    repository: nexus/jira-agent
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8081
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    JIRA_MOCK_MODE: "false"
+  
+  secrets:
+    JIRA_URL: ""
+    JIRA_USERNAME: ""
+    JIRA_API_TOKEN: ""
+
+# ============================================================================
+# Git/CI Agent Configuration
+# ============================================================================
+gitCiAgent:
+  enabled: true
+  replicas: 1
+  
+  image:
+    repository: nexus/git-ci-agent
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8082
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    GITHUB_MOCK_MODE: "false"
+    JENKINS_MOCK_MODE: "false"
+  
+  secrets:
+    GITHUB_TOKEN: ""
+    JENKINS_URL: ""
+    JENKINS_USERNAME: ""
+    JENKINS_API_TOKEN: ""
+
+# ============================================================================
+# Reporting Agent Configuration
+# ============================================================================
+reportingAgent:
+  enabled: true
+  replicas: 1
+  
+  image:
+    repository: nexus/reporting-agent
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8083
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    CONFLUENCE_MOCK_MODE: "false"
+  
+  secrets:
+    CONFLUENCE_URL: ""
+    CONFLUENCE_USERNAME: ""
+    CONFLUENCE_API_TOKEN: ""
+
+# ============================================================================
+# Slack Agent Configuration
+# ============================================================================
+slackAgent:
+  enabled: true
+  replicas: 1
+  
+  image:
+    repository: nexus/slack-agent
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8084
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    SLACK_MOCK_MODE: "false"
+  
+  secrets:
+    SLACK_BOT_TOKEN: ""
+    SLACK_SIGNING_SECRET: ""
+    SLACK_APP_TOKEN: ""
+
+# ============================================================================
+# Jira Hygiene Agent Configuration
+# ============================================================================
+jiraHygieneAgent:
+  enabled: true
+  replicas: 1
+  
+  image:
+    repository: nexus/jira-hygiene-agent
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8005
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    JIRA_MOCK_MODE: "false"
+    # Hygiene check schedule (weekdays at 9:00 AM)
+    HYGIENE_SCHEDULE_HOUR: "9"
+    HYGIENE_SCHEDULE_MINUTE: "0"
+    HYGIENE_SCHEDULE_DAYS: "mon-fri"
+    HYGIENE_TIMEZONE: "UTC"
+    # Projects to check (comma-separated, empty = all)
+    HYGIENE_PROJECTS: ""
+  
+  secrets:
+    JIRA_URL: ""
+    JIRA_USERNAME: ""
+    JIRA_API_TOKEN: ""
+
+# ============================================================================
+# Ingress Configuration
+# ============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  
+  hosts:
+    - host: nexus.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: orchestrator
+          port: 8080
+        - path: /slack
+          pathType: Prefix
+          service: slack-agent
+          port: 8084
+  
+  tls:
+    - secretName: nexus-tls
+      hosts:
+        - nexus.example.com
+
+# ============================================================================
+# Redis Configuration (using Bitnami chart)
+# ============================================================================
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: ""  # Should be set via secrets
+  master:
+    persistence:
+      size: 1Gi
+
+# ============================================================================
+# PostgreSQL Configuration (using Bitnami chart with pgvector)
+# ============================================================================
+postgresql:
+  enabled: true
+  auth:
+    database: nexus
+    username: nexus
+    password: ""  # Should be set via secrets
+  primary:
+    persistence:
+      size: 10Gi
+    initdb:
+      scripts:
+        init-pgvector.sql: |
+          CREATE EXTENSION IF NOT EXISTS vector;
+
+# ============================================================================
+# Observability
+# ============================================================================
+observability:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 15s
+  
+  tracing:
+    enabled: true
+    endpoint: "http://jaeger-collector:4317"
+    insecure: true
+
+# ============================================================================
+# Pod Disruption Budgets
+# ============================================================================
+podDisruptionBudget:
+  orchestrator:
+    enabled: true
+    minAvailable: 1
+  agents:
+    enabled: true
+    minAvailable: 0
+
+# ============================================================================
+# Network Policies
+# ============================================================================
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []

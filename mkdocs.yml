@@ -1,5 +1,82 @@
-site_name: Nexus Automation
+site_name: Nexus Release Automation
+site_description: Multi-Agent Release Readiness Assessment System
+site_author: Nexus Team
+site_url: https://nexus-docs.example.com
+
+repo_name: IKRedHat/Nexus-Release-Readiness-Bot
+repo_url: https://github.com/IKRedHat/Nexus-Release-Readiness-Bot
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
 nav:
   - Home: index.md
-  - User Guide: user_guide.md
-  - Architecture: architecture.md
+  - User Guide:
+    - Getting Started: user_guide.md
+    - Slack Commands: user_guide.md#slack-commands
+    - Understanding Reports: user_guide.md#understanding-reports
+  - Architecture:
+    - Overview: architecture.md
+    - ReAct Engine: architecture.md#react-reasoning-engine
+    - Agent Contracts: architecture.md#agent-contracts
+  - API Reference:
+    - Overview: api-specs/overview.md
+    - Orchestrator API: api-specs/orchestrator.md
+    - Jira Agent API: api-specs/jira-agent.md
+    - Git/CI Agent API: api-specs/git-ci-agent.md
+  - Operations:
+    - Deployment: runbooks/deployment.md
+    - Monitoring: runbooks/monitoring.md
+    - Troubleshooting: runbooks/troubleshooting.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+
+plugins:
+  - search
+  - autorefs
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/IKRedHat/Nexus-Release-Readiness-Bot
+  generator: false

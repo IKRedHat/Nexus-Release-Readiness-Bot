@@ -1,6 +1,28 @@
 apiVersion: v2
 name: nexus-stack
-description: Deploy Nexus Multi-Agent System
+description: Nexus Multi-Agent Release Automation System - Helm Chart
+
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
+
+keywords:
+  - release-automation
+  - multi-agent
+  - devops
+  - jira
+  - slack
+
+maintainers:
+  - name: Nexus Team
+    email: nexus@example.com
+
+dependencies:
+  - name: redis
+    version: "18.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+  - name: postgresql
+    version: "13.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled

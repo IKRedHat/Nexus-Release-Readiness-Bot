@@ -1,0 +1,50 @@
+# Prometheus Configuration for Nexus Stack
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'nexus-monitor'
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Nexus Orchestrator
+  - job_name: 'nexus-orchestrator'
+    static_configs:
+      - targets: ['orchestrator:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Jira Agent
+  - job_name: 'nexus-jira-agent'
+    static_configs:
+      - targets: ['jira-agent:8081']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Git/CI Agent
+  - job_name: 'nexus-git-ci-agent'
+    static_configs:
+      - targets: ['git-ci-agent:8082']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Reporting Agent
+  - job_name: 'nexus-reporting-agent'
+    static_configs:
+      - targets: ['reporting-agent:8083']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Slack Agent
+  - job_name: 'nexus-slack-agent'
+    static_configs:
+      - targets: ['slack-agent:8084']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+

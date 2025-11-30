@@ -1,0 +1,23 @@
+# Nexus Git/CI Agent Dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+
+# GitHub API
+PyGithub>=2.1.0
+
+# Jenkins API
+python-jenkins>=1.8.0
+
+# Shared library dependencies
+httpx>=0.25.0
+tenacity>=8.2.0
+PyJWT>=2.8.0
+
+# Observability
+prometheus-client>=0.18.0
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+opentelemetry-exporter-otlp-proto-grpc>=1.21.0
+opentelemetry-instrumentation-fastapi>=0.42b0
+

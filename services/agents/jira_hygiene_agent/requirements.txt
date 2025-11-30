@@ -1,11 +1,16 @@
-# Nexus Slack Agent Dependencies
+# Nexus Jira Hygiene Agent Dependencies
+
+# Web Framework
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.0.0
+pydantic-settings>=2.0.0
 
-# Slack SDK (optional - for advanced features)
-slack-bolt>=1.18.0
-slack-sdk>=3.23.0
+# Jira API
+atlassian-python-api>=3.41.0
+
+# Scheduling
+APScheduler>=3.10.0
 
 # Shared library dependencies
 httpx>=0.25.0
@@ -18,4 +23,7 @@ opentelemetry-api>=1.21.0
 opentelemetry-sdk>=1.21.0
 opentelemetry-exporter-otlp-proto-grpc>=1.21.0
 opentelemetry-instrumentation-fastapi>=0.42b0
+
+# Timezone support
+pytz>=2023.3
 

@@ -1,0 +1,382 @@
+{{/*
+Jira Agent Deployment
+*/}}
+{{- if .Values.jiraAgent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-jira-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: jira-agent
+spec:
+  replicas: {{ .Values.jiraAgent.replicas }}
+  selector:
+    matchLabels:
+      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: jira-agent
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+      labels:
+        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: jira-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: jira-agent
+          image: "{{ .Values.jiraAgent.image.repository }}:{{ .Values.jiraAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8081
+          env:
+            {{- range $key, $value := .Values.jiraAgent.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ include "nexus-stack.fullname" . }}-jira-agent-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.jiraAgent.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-jira-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: jira-agent
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: http
+      name: http
+  selector:
+    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: jira-agent
+{{- end }}
+---
+{{/*
+Git/CI Agent Deployment
+*/}}
+{{- if .Values.gitCiAgent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-git-ci-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: git-ci-agent
+spec:
+  replicas: {{ .Values.gitCiAgent.replicas }}
+  selector:
+    matchLabels:
+      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: git-ci-agent
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
+      labels:
+        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: git-ci-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: git-ci-agent
+          image: "{{ .Values.gitCiAgent.image.repository }}:{{ .Values.gitCiAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8082
+          env:
+            {{- range $key, $value := .Values.gitCiAgent.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ include "nexus-stack.fullname" . }}-git-ci-agent-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            {{- toYaml .Values.gitCiAgent.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-git-ci-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: git-ci-agent
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: http
+      name: http
+  selector:
+    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: git-ci-agent
+{{- end }}
+---
+{{/*
+Reporting Agent Deployment
+*/}}
+{{- if .Values.reportingAgent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-reporting-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: reporting-agent
+spec:
+  replicas: {{ .Values.reportingAgent.replicas }}
+  selector:
+    matchLabels:
+      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: reporting-agent
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8083"
+        prometheus.io/path: "/metrics"
+      labels:
+        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: reporting-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: reporting-agent
+          image: "{{ .Values.reportingAgent.image.repository }}:{{ .Values.reportingAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8083
+          env:
+            {{- range $key, $value := .Values.reportingAgent.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ include "nexus-stack.fullname" . }}-reporting-agent-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            {{- toYaml .Values.reportingAgent.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-reporting-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: reporting-agent
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8083
+      targetPort: http
+      name: http
+  selector:
+    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: reporting-agent
+{{- end }}
+---
+{{/*
+Slack Agent Deployment
+*/}}
+{{- if .Values.slackAgent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-slack-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: slack-agent
+spec:
+  replicas: {{ .Values.slackAgent.replicas }}
+  selector:
+    matchLabels:
+      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: slack-agent
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8084"
+        prometheus.io/path: "/metrics"
+      labels:
+        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: slack-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: slack-agent
+          image: "{{ .Values.slackAgent.image.repository }}:{{ .Values.slackAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8084
+          env:
+            {{- range $key, $value := .Values.slackAgent.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: ORCHESTRATOR_URL
+              value: "http://{{ include "nexus-stack.fullname" . }}-orchestrator:8080"
+          envFrom:
+            - secretRef:
+                name: {{ include "nexus-stack.fullname" . }}-slack-agent-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            {{- toYaml .Values.slackAgent.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-slack-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: slack-agent
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8084
+      targetPort: http
+      name: http
+  selector:
+    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: slack-agent
+{{- end }}
+---
+{{/*
+Jira Hygiene Agent Deployment
+*/}}
+{{- if .Values.jiraHygieneAgent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-jira-hygiene-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: jira-hygiene-agent
+spec:
+  replicas: {{ .Values.jiraHygieneAgent.replicas }}
+  selector:
+    matchLabels:
+      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: jira-hygiene-agent
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8005"
+        prometheus.io/path: "/metrics"
+      labels:
+        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: jira-hygiene-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: jira-hygiene-agent
+          image: "{{ .Values.jiraHygieneAgent.image.repository }}:{{ .Values.jiraHygieneAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8005
+          env:
+            {{- range $key, $value := .Values.jiraHygieneAgent.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: SLACK_AGENT_URL
+              value: "http://{{ include "nexus-stack.fullname" . }}-slack-agent:8084"
+          envFrom:
+            - secretRef:
+                name: {{ include "nexus-stack.fullname" . }}-jira-hygiene-agent-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.jiraHygieneAgent.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nexus-stack.fullname" . }}-jira-hygiene-agent
+  labels:
+    {{- include "nexus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: jira-hygiene-agent
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8005
+      targetPort: http
+      name: http
+  selector:
+    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: jira-hygiene-agent
+{{- end }}
+
