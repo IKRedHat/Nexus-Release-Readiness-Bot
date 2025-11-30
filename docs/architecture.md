@@ -4,7 +4,7 @@ This document describes the architecture of the Nexus Release Automation System,
 
 ## System Overview
 
-Nexus is a multi-agent system that uses a ReAct (Reasoning + Acting) architecture to orchestrate specialized agents for release readiness assessments.
+Nexus is a multi-agent system that uses a ReAct (Reasoning + Acting) architecture to orchestrate specialized agents for release readiness assessments and proactive quality management.
 
 ```mermaid
 flowchart TB
@@ -28,6 +28,7 @@ flowchart TB
         JiraAgent[Jira Agent<br/>Port 8081]
         GitAgent[Git/CI Agent<br/>Port 8082]
         ReportAgent[Reporting Agent<br/>Port 8083]
+        HygieneAgent[Jira Hygiene Agent<br/>Port 8005]
     end
     
     subgraph External["External Systems"]
@@ -55,6 +56,10 @@ flowchart TB
     Orchestrator --> GitAgent
     Orchestrator --> ReportAgent
     
+    HygieneAgent --> JiraAgent
+    HygieneAgent --> SlackAgent
+    HygieneAgent --> Jira
+    
     JiraAgent --> Jira
     GitAgent --> GitHub
     GitAgent --> Jenkins
@@ -63,6 +68,36 @@ flowchart TB
     All --> Prometheus
     Prometheus --> Grafana
     All --> Jaeger
+```
+
+---
+
+## High-Level Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Slack
+    participant SlackAgent
+    participant Orchestrator
+    participant Agents
+    participant External
+    
+    User->>Slack: /nexus status v2.0
+    Slack->>SlackAgent: Command payload
+    SlackAgent->>Orchestrator: AgentTaskRequest
+    
+    loop ReAct Loop
+        Orchestrator->>Orchestrator: Thought (reasoning)
+        Orchestrator->>Agents: Action (tool call)
+        Agents->>External: API request
+        External-->>Agents: Response
+        Agents-->>Orchestrator: Observation
+    end
+    
+    Orchestrator-->>SlackAgent: Final response
+    SlackAgent-->>Slack: Block Kit message
+    Slack-->>User: Rich formatted result
 ```
 
 ---
@@ -180,27 +215,29 @@ class AgentTaskResponse(BaseModel):
 
 ## Specialized Agents
 
-### Jira Agent
+### Jira Agent (Port 8081)
 
-Handles all Jira-related operations.
+Handles all Jira-related operations including ticket fetching, updates, and hierarchy traversal.
 
 **Capabilities:**
 - Fetch ticket details and hierarchies
 - Search using JQL
-- Update ticket status
+- Update ticket status and fields
 - Add comments
 - Get sprint statistics
 
 **Endpoints:**
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/issue/{key}` | GET | Fetch single ticket |
 | `/hierarchy/{key}` | GET | Fetch epic → stories → subtasks |
 | `/search` | GET | JQL search |
 | `/update` | POST | Update status/add comment |
+| `/update-ticket` | POST | Update multiple fields (for hygiene fixes) |
 | `/sprint-stats/{project}` | GET | Sprint metrics |
 
-### Git/CI Agent
+### Git/CI Agent (Port 8082)
 
 Manages GitHub and Jenkins interactions.
 
@@ -212,6 +249,7 @@ Manages GitHub and Jenkins interactions.
 - Run security scans
 
 **Endpoints:**
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/repo/{name}/health` | GET | Repository health |
@@ -220,7 +258,7 @@ Manages GitHub and Jenkins interactions.
 | `/build/{job}/status` | GET | Build status |
 | `/security/{repo}` | GET | Security scan |
 
-### Reporting Agent
+### Reporting Agent (Port 8083)
 
 Generates and publishes reports.
 
@@ -231,6 +269,7 @@ Generates and publishes reports.
 - Calculate Go/No-Go decisions
 
 **Endpoints:**
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/generate` | POST | Generate HTML report |
@@ -238,15 +277,135 @@ Generates and publishes reports.
 | `/publish` | POST | Publish to Confluence |
 | `/preview` | GET | Preview sample report |
 
-### Slack Agent
+### Slack Agent (Port 8084)
 
-Handles Slack workspace interactions.
+Handles Slack workspace interactions with rich interactive experiences.
 
 **Capabilities:**
 - Process slash commands
 - Open Block Kit modals
-- Send rich messages
+- Send rich messages and DMs
 - Handle button interactions
+- Support hygiene fix modals
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/slack/commands` | POST | Slash command handler |
+| `/slack/interactions` | POST | Button/modal interactions |
+| `/slack/events` | POST | Events API handler |
+| `/notify` | POST | Send channel notification |
+| `/send-dm` | POST | Send direct message by email |
+
+### Jira Hygiene Agent (Port 8005) 🆕
+
+Proactive quality gatekeeper that monitors and enforces Jira data hygiene through scheduled checks and interactive notifications.
+
+```mermaid
+flowchart LR
+    subgraph Schedule["Scheduled Trigger"]
+        Cron[APScheduler<br/>Weekdays 9AM]
+    end
+    
+    subgraph Hygiene["Jira Hygiene Agent"]
+        Fetch[Fetch Active Tickets]
+        Validate[Validate Fields]
+        Score[Calculate Score]
+        Group[Group by Assignee]
+    end
+    
+    subgraph Notify["Notification Flow"]
+        DM[Slack DM with Buttons]
+        Modal[Fix Modal]
+        Update[Update Jira]
+    end
+    
+    Cron --> Fetch
+    Fetch --> Validate
+    Validate --> Score
+    Score --> Group
+    Group --> DM
+    DM --> Modal
+    Modal --> Update
+```
+
+**Capabilities:**
+- **Scheduled Hygiene Checks**: Runs automatically on weekdays at 9:00 AM
+- **Field Validation**: Checks for missing Labels, Fix Version, Affected Version, Story Points, Team
+- **Hygiene Scoring**: Calculates `nexus_project_hygiene_score` (0-100%)
+- **Interactive Notifications**: Sends Slack DMs with "Fix Tickets Now" button
+- **Modal-Based Fixes**: Users can fix violations directly from Slack without leaving the app
+
+**Validation Rules:**
+
+| Field | Jira Field ID | Why It Matters |
+|-------|---------------|----------------|
+| Labels | `labels` | Categorization and filtering |
+| Fix Version | `fixVersions` | Release planning |
+| Affected Version | `versions` | Impact analysis |
+| Story Points | `customfield_10016` | Capacity planning |
+| Team/Contributors | `customfield_10001` | Ownership tracking |
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check with scheduler status |
+| `/run-check` | POST | Manual trigger for hygiene check |
+| `/status` | GET | Configuration and scheduler info |
+| `/violations/{project}` | GET | Get violations for a project |
+| `/execute` | POST | Orchestrator integration |
+
+**Prometheus Metrics:**
+
+```
+# Hygiene Score (0-100%)
+nexus_project_hygiene_score{project_key}
+
+# Check Counters
+nexus_hygiene_checks_total{project_key, trigger_type}
+nexus_hygiene_violations_total{project_key, violation_type}
+
+# Ticket Counts
+nexus_hygiene_tickets_checked{project_key}
+nexus_hygiene_compliant_tickets{project_key}
+```
+
+---
+
+## Interactive Hygiene Fix Flow
+
+```mermaid
+sequenceDiagram
+    participant Scheduler
+    participant HygieneAgent
+    participant Jira
+    participant SlackAgent
+    participant User
+    participant JiraAgent
+    
+    Scheduler->>HygieneAgent: Trigger Check (9AM)
+    HygieneAgent->>Jira: Fetch Active Tickets
+    Jira-->>HygieneAgent: Tickets Data
+    
+    HygieneAgent->>HygieneAgent: Validate Fields
+    HygieneAgent->>HygieneAgent: Calculate Score
+    HygieneAgent->>HygieneAgent: Group by Assignee
+    
+    HygieneAgent->>SlackAgent: POST /send-dm
+    SlackAgent->>User: DM with Fix Button
+    
+    User->>SlackAgent: Click "Fix Tickets Now"
+    SlackAgent->>User: Open Modal
+    
+    User->>SlackAgent: Submit Modal
+    SlackAgent->>JiraAgent: POST /update-ticket
+    JiraAgent->>Jira: Update Fields
+    Jira-->>JiraAgent: Success
+    JiraAgent-->>SlackAgent: Confirmation
+    SlackAgent->>User: Success DM
+```
 
 ---
 
@@ -269,6 +428,11 @@ nexus_tool_latency_seconds{tool_name}
 # ReAct Loop
 nexus_react_iterations_count{task_type}
 nexus_react_loop_duration_seconds{task_type}
+
+# Hygiene (NEW)
+nexus_project_hygiene_score{project_key}
+nexus_hygiene_checks_total{project_key, trigger_type}
+nexus_hygiene_violations_total{project_key, violation_type}
 
 # Business
 nexus_release_decisions_total{decision}
@@ -294,11 +458,12 @@ Structured JSON logging with correlation IDs:
 {
   "timestamp": "2024-01-15T10:30:00Z",
   "level": "INFO",
-  "service": "orchestrator",
+  "service": "jira-hygiene-agent",
   "request_id": "req-abc123",
-  "message": "ReAct loop completed",
-  "iterations": 4,
-  "duration_ms": 2500
+  "message": "Hygiene check completed",
+  "hygiene_score": 85.0,
+  "tickets_checked": 45,
+  "violations_found": 7
 }
 ```
 
@@ -331,42 +496,61 @@ Structured JSON logging with correlation IDs:
 ### Development (Docker Compose)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Docker Network                        │
-├─────────────┬─────────────┬─────────────┬──────────────┤
-│ Orchestrator│  Jira Agent │ Git/CI Agent│Report Agent  │
-│   :8080     │    :8081    │    :8082    │   :8083      │
-├─────────────┴─────────────┴─────────────┴──────────────┤
-│                    Slack Agent :8084                    │
-├─────────────┬─────────────┬─────────────┬──────────────┤
-│  PostgreSQL │    Redis    │  Prometheus │   Grafana    │
-│    :5432    │    :6379    │    :9090    │   :3000      │
-└─────────────┴─────────────┴─────────────┴──────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        Docker Network                            │
+├─────────────┬─────────────┬─────────────┬─────────────┬────────┤
+│ Orchestrator│  Jira Agent │ Git/CI Agent│Report Agent │Hygiene │
+│   :8080     │    :8081    │    :8082    │   :8083     │ :8005  │
+├─────────────┴─────────────┴─────────────┴─────────────┴────────┤
+│                    Slack Agent :8084                             │
+├─────────────┬─────────────┬─────────────┬──────────────────────┤
+│  PostgreSQL │    Redis    │  Prometheus │       Grafana        │
+│    :5432    │    :6379    │    :9090    │       :3000          │
+└─────────────┴─────────────┴─────────────┴──────────────────────┘
 ```
 
 ### Production (Kubernetes)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Ingress (NGINX)                       │
-├───────────────────────┬─────────────────────────────────┤
-│        /api/*         │           /slack/*              │
-├───────────────────────┴─────────────────────────────────┤
-│                                                          │
-│  ┌─────────────────┐    ┌─────────────────────────────┐ │
-│  │  Orchestrator   │    │    Agent Deployments        │ │
-│  │  (2+ replicas)  │────│  - Jira Agent               │ │
-│  │       HPA       │    │  - Git/CI Agent             │ │
-│  └─────────────────┘    │  - Reporting Agent          │ │
-│           │             │  - Slack Agent              │ │
-│           │             └─────────────────────────────┘ │
-│           │                                              │
-│  ┌─────────────────┐    ┌─────────────────────────────┐ │
-│  │   PostgreSQL    │    │   Redis (Cache/Pubsub)      │ │
-│  │   (pgvector)    │    │                             │ │
-│  └─────────────────┘    └─────────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                      Ingress (NGINX)                             │
+├───────────────────────┬─────────────────────────────────────────┤
+│        /api/*         │              /slack/*                    │
+├───────────────────────┴─────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────┐    ┌─────────────────────────────────────┐ │
+│  │  Orchestrator   │    │       Agent Deployments             │ │
+│  │  (2+ replicas)  │────│  - Jira Agent                       │ │
+│  │       HPA       │    │  - Git/CI Agent                     │ │
+│  └─────────────────┘    │  - Reporting Agent                  │ │
+│           │             │  - Slack Agent                       │ │
+│           │             │  - Jira Hygiene Agent (NEW)         │ │
+│           │             └─────────────────────────────────────┘ │
+│           │                                                      │
+│  ┌─────────────────┐    ┌─────────────────────────────────────┐ │
+│  │   PostgreSQL    │    │     Redis (Cache/Pubsub)            │ │
+│  │   (pgvector)    │    │                                     │ │
+│  └─────────────────┘    └─────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Port Assignments
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Orchestrator | 8080 | Central coordination |
+| Jira Agent | 8081 | Jira operations |
+| Git/CI Agent | 8082 | GitHub + Jenkins |
+| Reporting Agent | 8083 | Report generation |
+| Slack Agent | 8084 | Slack interface |
+| **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
+| PostgreSQL | 5432 | Database |
+| Redis | 6379 | Cache |
+| Prometheus | 9090 | Metrics |
+| Grafana | 3000 | Dashboards |
+| Jaeger | 16686 | Tracing UI |
 
 ---
 
@@ -391,3 +575,10 @@ Structured JSON logging with correlation IDs:
 1. **Context Retention**: Learn from past interactions
 2. **Semantic Search**: Find relevant historical data
 3. **RAG Enhancement**: Better LLM responses with context
+
+### Why Proactive Hygiene Agent?
+
+1. **Data Quality**: Ensures Jira data is complete for accurate assessments
+2. **Shift Left**: Catches issues before release readiness checks
+3. **User Experience**: Interactive fixes reduce friction
+4. **Automation**: Scheduled checks remove manual effort
