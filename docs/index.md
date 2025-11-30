@@ -1,7 +1,7 @@
 # Nexus Release Automation System
 
 <div style="text-align: center; margin-bottom: 2em;">
-  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.1.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.10+-green" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
 </div>
@@ -29,7 +29,9 @@ docker-compose up -d
 
 # Access services
 # - Orchestrator: http://localhost:8080
-# - Jira Hygiene Agent: http://localhost:8005
+# - Jira Hygiene Agent: http://localhost:8085
+# - Analytics Dashboard: http://localhost:8086
+# - Webhook Service: http://localhost:8087
 # - Grafana: http://localhost:3000 (admin/nexus_admin)
 # - Prometheus: http://localhost:9090
 # - Jaeger: http://localhost:16686
@@ -47,12 +49,20 @@ curl -X POST http://localhost:8080/query \
   -d '{"query": "What is the release readiness status for v2.0?"}'
 
 # Trigger a hygiene check
-curl -X POST http://localhost:8005/run-check \
+curl -X POST http://localhost:8085/run-check \
   -H "Content-Type: application/json" \
   -d '{"project_key": "PROJ", "notify": false}'
 
 # Get AI recommendations
 curl http://localhost:8080/recommendations
+
+# Get analytics KPIs
+curl http://localhost:8086/api/v1/kpis?time_range=7d
+
+# Create a webhook subscription
+curl -X POST http://localhost:8087/api/v1/subscriptions \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Webhook", "url": "https://example.com/hook", "events": ["release.completed"]}'
 ```
 
 ## 🏗️ Architecture Overview

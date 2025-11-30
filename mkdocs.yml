@@ -53,6 +53,9 @@ nav:
     - Orchestrator API: api-specs/orchestrator.md
     - Jira Agent API: api-specs/jira-agent.md
     - Git/CI Agent API: api-specs/git-ci-agent.md
+  - Advanced Features:
+    - Analytics Dashboard: analytics.md
+    - Webhook Integrations: webhooks.md
   - CI/CD:
     - Overview: ci-cd/index.md
     - CI Workflow: ci-cd/ci-workflow.md

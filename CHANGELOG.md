@@ -8,18 +8,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- GitHub Actions CI/CD workflows
-- Dependabot configuration for automated dependency updates
-- Comprehensive contribution guidelines
-- Issue and PR templates
-- Code of Conduct
-- Security policy
+- Nothing yet
+
+---
+
+## [2.1.0] - 2025-11-30
+
+### Added
+
+#### 📊 Advanced Analytics Dashboard
+- Comprehensive KPI dashboard with DORA metrics
+- Real-time metrics aggregation from all agents
+- Time series analysis with flexible granularity
+- Trend detection and historical comparisons
+- Predictive analytics for release dates and quality scores
+- Resource planning predictions
+- Anomaly detection with severity levels
+- Team performance tracking and comparison
+- AI-powered insights and recommendations
+- Industry benchmarking (DORA metrics)
+- Prometheus metrics export for Grafana integration
+
+#### 🔔 Webhook Integration Service
+- Enterprise-grade webhook system for external integrations
+- 25+ event types across releases, builds, deployments, security
+- HMAC-SHA256 signature verification for security
+- Automatic retry with exponential backoff (up to 5 attempts)
+- Per-subscriber rate limiting
+- Event filtering by project, team, and severity
+- Delivery tracking and history
+- Manual retry capability for failed deliveries
+- Test endpoint for webhook validation
+- Comprehensive statistics and monitoring
 
 ### Changed
-- Updated README with better quick start instructions
+- Updated architecture to include Analytics and Webhook services
+- Enhanced Docker Compose with new services (ports 8086, 8087)
+- Extended Prometheus configuration for new service metrics
+- Updated Kubernetes Helm chart with analytics and webhook deployments
+- Updated documentation navigation with Advanced Features section
 
-### Removed
-- Legacy MVP scaffold scripts
+### Infrastructure
+- New Dockerfiles for Analytics and Webhook services
+- Updated docker-compose.yml with all services
+- Extended prometheus.yml scrape configurations
+- New Kubernetes values for analytics and webhooks
+- Ingress routes for /analytics and /webhooks
 
 ---
 
