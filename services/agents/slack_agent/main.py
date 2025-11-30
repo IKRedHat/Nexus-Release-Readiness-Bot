@@ -1232,6 +1232,16 @@ async def handle_event(request: Request):
             handle_command_async("/nexus", text, {"id": user}, channel, "")
         )
     
+    elif event_type == "app_home_opened":
+        # User opened the App Home tab
+        user_id = event.get("user")
+        logger.info(f"App Home opened by user: {user_id}")
+        
+        # Build and publish App Home view in background
+        asyncio.create_task(
+            publish_app_home(user_id)
+        )
+    
     return JSONResponse({"ok": True})
 
 
@@ -1273,6 +1283,36 @@ async def send_notification(
 
 
 from pydantic import BaseModel as PydanticBaseModel
+
+# Import App Home builder
+from app_home import AppHomeBuilder
+
+
+async def publish_app_home(user_id: str):
+    """
+    Build and publish the App Home view for a user
+    """
+    try:
+        builder = AppHomeBuilder()
+        view = await builder.build_home_view(user_id)
+        await builder.close()
+        
+        # Publish via Slack API
+        result = await slack_client.http_client.post(
+            "/views.publish",
+            json_body={
+                "user_id": user_id,
+                "view": view
+            }
+        )
+        
+        if result.get("ok"):
+            logger.info(f"Published App Home for user {user_id}")
+        else:
+            logger.warning(f"Failed to publish App Home: {result.get('error')}")
+            
+    except Exception as e:
+        logger.error(f"Error publishing App Home: {e}")
 
 
 class SendDMRequest(PydanticBaseModel):
