@@ -1,0 +1,202 @@
+# ============================================================================
+# Nexus Multi-Agent System - Docker Compose Development Stack
+# ============================================================================
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # Core Infrastructure
+  # ===========================================================================
+  
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ===========================================================================
+  # Observability Stack
+  # ===========================================================================
+  
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: nexus_admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../grafana:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.51
+    ports:
+      - "16686:16686"  # UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  # ===========================================================================
+  # Nexus Services
+  # ===========================================================================
+  
+  orchestrator:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.orchestrator
+    ports:
+      - "8080:8080"
+    environment:
+      - NEXUS_ENV=development
+      - NEXUS_JWT_SECRET=dev-secret-key
+      - MEMORY_BACKEND=pgvector
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=nexus
+      - POSTGRES_USER=nexus
+      - POSTGRES_PASSWORD=nexus_secret
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - JIRA_AGENT_URL=http://jira-agent:8081
+      - GIT_CI_AGENT_URL=http://git-ci-agent:8082
+      - REPORTING_AGENT_URL=http://reporting-agent:8083
+      - SLACK_AGENT_URL=http://slack-agent:8084
+      - LLM_PROVIDER=mock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  jira-agent:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: jira_agent
+        AGENT_PORT: 8081
+    ports:
+      - "8081:8081"
+    environment:
+      - NEXUS_ENV=development
+      - JIRA_MOCK_MODE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  git-ci-agent:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: git_ci_agent
+        AGENT_PORT: 8082
+    ports:
+      - "8082:8082"
+    environment:
+      - NEXUS_ENV=development
+      - GITHUB_MOCK_MODE=true
+      - JENKINS_MOCK_MODE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  reporting-agent:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: reporting_agent
+        AGENT_PORT: 8083
+    ports:
+      - "8083:8083"
+    environment:
+      - NEXUS_ENV=development
+      - CONFLUENCE_MOCK_MODE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  slack-agent:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: slack_agent
+        AGENT_PORT: 8084
+    ports:
+      - "8084:8084"
+    environment:
+      - NEXUS_ENV=development
+      - SLACK_MOCK_MODE=true
+      - ORCHESTRATOR_URL=http://orchestrator:8080
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      - orchestrator
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: nexus-network
+

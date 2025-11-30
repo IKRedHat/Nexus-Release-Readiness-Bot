@@ -1,0 +1,156 @@
+# ============================================================================
+# Nexus Multi-Agent Release Automation System
+# Quick Start Development Stack
+# ============================================================================
+#
+# Usage:
+#   docker-compose up -d      # Start all services
+#   docker-compose logs -f    # View logs
+#   docker-compose down       # Stop all services
+#
+# Access:
+#   Orchestrator API: http://localhost:8080
+#   Grafana:          http://localhost:3000 (admin/nexus_admin)
+#   Prometheus:       http://localhost:9090
+#   Jaeger UI:        http://localhost:16686
+#
+version: '3.8'
+
+services:
+  # Central Orchestrator - The Brain
+  orchestrator:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.orchestrator
+    ports:
+      - "8080:8080"
+    environment:
+      - NEXUS_ENV=development
+      - NEXUS_JWT_SECRET=dev-secret-change-in-prod
+      - NEXUS_REQUIRE_AUTH=false
+      - MEMORY_BACKEND=mock
+      - LLM_PROVIDER=mock
+      - JIRA_AGENT_URL=http://jira-agent:8081
+      - GIT_CI_AGENT_URL=http://git-ci-agent:8082
+      - REPORTING_AGENT_URL=http://reporting-agent:8083
+      - SLACK_AGENT_URL=http://slack-agent:8084
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - jira-agent
+      - git-ci-agent
+      - reporting-agent
+
+  # Jira Agent
+  jira-agent:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: jira_agent
+        AGENT_PORT: 8081
+    ports:
+      - "8081:8081"
+    environment:
+      - NEXUS_ENV=development
+      - JIRA_MOCK_MODE=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Git/CI Agent
+  git-ci-agent:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: git_ci_agent
+        AGENT_PORT: 8082
+    ports:
+      - "8082:8082"
+    environment:
+      - NEXUS_ENV=development
+      - GITHUB_MOCK_MODE=true
+      - JENKINS_MOCK_MODE=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Reporting Agent
+  reporting-agent:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: reporting_agent
+        AGENT_PORT: 8083
+    ports:
+      - "8083:8083"
+    environment:
+      - NEXUS_ENV=development
+      - CONFLUENCE_MOCK_MODE=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Slack Agent
+  slack-agent:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: slack_agent
+        AGENT_PORT: 8084
+    ports:
+      - "8084:8084"
+    environment:
+      - NEXUS_ENV=development
+      - SLACK_MOCK_MODE=true
+      - ORCHESTRATOR_URL=http://orchestrator:8080
+    depends_on:
+      - orchestrator
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Jira Hygiene Agent
+  jira-hygiene-agent:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      args:
+        AGENT_NAME: jira_hygiene_agent
+        AGENT_PORT: 8005
+    ports:
+      - "8005:8005"
+    environment:
+      - NEXUS_ENV=development
+      - JIRA_MOCK_MODE=true
+      - SLACK_AGENT_URL=http://slack-agent:8084
+      - HYGIENE_SCHEDULE_HOUR=9
+      - HYGIENE_SCHEDULE_MINUTE=0
+      - HYGIENE_SCHEDULE_DAYS=mon-fri
+      - HYGIENE_TIMEZONE=UTC
+    depends_on:
+      - slack-agent
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: nexus-dev
+

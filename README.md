@@ -1,206 +1,292 @@
+# 🚀 Nexus Release Automation System
+
 <div align="center">
 
-Nexus: Multi-Agent Release Automation System
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Python](https://img.shields.io/badge/python-3.10+-green)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
-<p>
-<b>Nexus</b> is a cutting-edge, multi-agent automation system designed to revolutionize software Release Management.
-Built on a <b>Managed Compute Platform (MCP)</b> architecture, Nexus uses a Central Orchestrator powered by the
-<b>ReAct (Reasoning and Acting)</b> framework to coordinate specialized agents, automating everything from weekly status nudges to complex Go/No-Go decision reports.
-</p>
+**Intelligent Multi-Agent System for Automated Release Readiness Assessments**
+
+[Documentation](docs/index.md) • [User Guide](docs/user_guide.md) • [Architecture](docs/architecture.md) • [Demo](demo/feature_walkthrough_script.md)
 
 </div>
 
-📑 Table of Contents
+---
 
-System Architecture
+## 🎯 Overview
 
-Key Features
+Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning + Acting)** architecture to coordinate specialized agents. It connects to your existing tools—Jira, GitHub, Jenkins, and Confluence—to provide intelligent **Go/No-Go release decisions** through natural language interactions.
 
-Repository Structure
+### ✨ Key Features
 
-Quick Start
+- 🧠 **Intelligent Orchestration** - LLM-powered ReAct engine that reasons and acts
+- 🔗 **Multi-Tool Integration** - Jira, GitHub, Jenkins, Confluence, Slack
+- 📊 **Rich Reports** - Beautiful HTML reports with Go/No-Go decisions
+- 💬 **Natural Language** - Ask questions in plain English via Slack
+- 📈 **Full Observability** - Prometheus metrics, Grafana dashboards, OpenTelemetry tracing
+- 🔐 **Production Ready** - JWT auth, Kubernetes deployment, Helm charts
 
-Roadmap
+---
 
-Contributing
+## 🏗️ Architecture
 
-License
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Slack Workspace                          │
+│                    (User: /nexus status v2.0)                    │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        Slack Agent                               │
+│                  (Commands, Modals, Notifications)               │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Central Orchestrator                          │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                    ReAct Engine                          │    │
+│  │  Thought → Action → Observation → Thought → Final Answer │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │ Vector Memory│  │  LLM Client  │  │   Agent Registry     │   │
+│  │  (ChromaDB)  │  │(Gemini/GPT)  │  │                      │   │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘   │
+└──────────┬──────────────┬───────────────────┬───────────────────┘
+           │              │                   │
+     ┌─────┴─────┐  ┌─────┴─────┐      ┌─────┴─────┐
+     ▼           ▼  ▼           ▼      ▼           ▼
+┌─────────┐ ┌─────────┐ ┌─────────────┐ ┌──────────────┐
+│  Jira   │ │ Git/CI  │ │  Reporting  │ │  Scheduling  │
+│  Agent  │ │  Agent  │ │    Agent    │ │    Agent     │
+└────┬────┘ └────┬────┘ └──────┬──────┘ └──────────────┘
+     │           │             │
+     ▼           ▼             ▼
+┌─────────┐ ┌─────────┐ ┌───────────┐
+│  Jira   │ │ GitHub  │ │Confluence │
+│  Cloud  │ │ Jenkins │ │           │
+└─────────┘ └─────────┘ └───────────┘
+```
 
-🧠 System Architecture
+---
 
-<p>Nexus operates on a <b>hub-and-spoke model</b>. The Central Orchestrator acts as the "brain," delegating tasks to specialized agents that interface with external tools.</p>
+## 🚀 Quick Start
 
-<table>
-<thead>
-<tr>
-<th align="left">Component</th>
-<th align="left">Responsibility</th>
-<th align="left">Tech Stack</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><b>Central Orchestrator</b></td>
-<td>ReAct planning engine, context management, and routing.</td>
-<td>Python (FastAPI), Gemini API</td>
-</tr>
-<tr>
-<td><b>Slack Agent</b></td>
-<td>Conversational interface, slash commands, and interactive modals.</td>
-<td>Slack Bolt SDK</td>
-</tr>
-<tr>
-<td><b>Jira Agent</b></td>
-<td>Ticket management, hierarchical summaries (Task → Epic).</td>
-<td>Jira Cloud API</td>
-</tr>
-<tr>
-<td><b>Git/CI Agent</b></td>
-<td>Build triggers, branch management, and security scanning.</td>
-<td>GitHub/Jenkins APIs</td>
-</tr>
-<tr>
-<td><b>Reporting Agent</b></td>
-<td>Generates Confluence Go/No-Go reports and aggregates evidence.</td>
-<td>Confluence API</td>
-</tr>
-<tr>
-<td><b>Data Layer</b></td>
-<td>RAG Memory (Vector DB) and State Management.</td>
-<td>PostgreSQL, Vector DB</td>
-</tr>
-</tbody>
-</table>
+### Prerequisites
 
-✨ Key Features
+- Python 3.10+
+- Docker & Docker Compose
+- (Optional) Kubernetes for production
 
-1. 💬 Conversational Core
+### 1. Clone and Start
 
-<ul>
-<li><b>Slack-First Workflow:</b> Developers interact entirely via Slack using commands like <code>/jira update</code> or <code>/jenkins build</code>.</li>
-<li><b>Interactive Modals:</b> Update ticket status and add comments seamlessly without context switching.</li>
-</ul>
-
-2. 🤖 Intelligent Automation
-
-<ul>
-<li><b>ReAct Planning:</b> The Orchestrator dynamically determines the correct sequence of agents to call based on natural language queries.
-
-
-
-
-<i>Example: "Check the status of the payment service release and look for any blockers"</i>
-</li>
-<li><b>RAG-Powered Search:</b> Provides answers grounded in historical data from Jira and Confluence.
-
-
-
-
-<i>Example: "Why did the Q3 release fail?"</i>
-</li>
-</ul>
-
-3. 📊 Automated Reporting
-
-<ul>
-<li><b>Hierarchical Summaries:</b> Uses LLMs to summarize child tasks into Epic descriptions and Epics into Strategic updates.</li>
-<li><b>One-Click Go/No-Go:</b> Automatically compiles security scores, test results, and outstanding blockers into a Confluence decision document.</li>
-</ul>
-
-📂 Repository Structure
-
-<p>This project follows a <b>Monorepo</b> pattern for easier dependency management and synchronized deployments.</p>
-
-<pre>
-nexus-automation/
-├── .github/workflows/          <span style="color: #888;"># CI/CD Pipelines</span>
-├── infrastructure/             <span style="color: #888;"># Terraform & Docker configuration</span>
-│   ├── terraform/              <span style="color: #888;"># Cloud provisioning (Cloud Run, SQL)</span>
-│   └── docker/                 <span style="color: #888;"># Dockerfiles for Orchestrator & Agents</span>
-├── services/                   <span style="color: #888;"># Microservices Source Code</span>
-│   ├── orchestrator/           <span style="color: #888;"># Central Intelligence (FastAPI + ReAct)</span>
-│   └── agents/                 <span style="color: #888;"># Specialized Tool Agents (Jira, Git, Slack, etc.)</span>
-├── shared/nexus_lib/           <span style="color: #888;"># Shared Schemas & API Contracts</span>
-├── tests/e2e/                  <span style="color: #888;"># Integration Tests</span>
-└── scripts/                    <span style="color: #888;"># Setup and Utility Scripts</span>
-</pre>
-
-🚀 Quick Start
-
-Follow these steps to get the system running locally.
-
-Prerequisites
-
-Python 3.11+
-
-Docker & Docker Compose
-
-Git
-
-1. Installation
-
-Clone the repository and enter the directory:
-
-git clone [https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git)
+```bash
+git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
 cd Nexus-Release-Readiness-Bot
 
+# Start with Docker Compose
+docker-compose up -d
+```
 
-2. Setup & Code Injection
+### 2. Verify Services
 
-Initialize the project structure and inject the MVP functional code:
+```bash
+# Check health
+curl http://localhost:8080/health
 
-# 1. Create folder structure
-chmod +x setup_repo.sh
-./setup_repo.sh
+# View all services
+docker-compose ps
+```
 
-# 2. Inject MVP functional code (Orchestrator, Shared Libs, Terraform)
-chmod +x install_nexus_code.sh
-./install_nexus_code.sh
+### 3. Try a Query
 
+```bash
+curl -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Is the v2.0 release ready?"}'
+```
 
-3. Run Local Demo
+### 4. Access Dashboards
 
-Test the ReAct Engine logic locally without deploying to the cloud:
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Orchestrator API | http://localhost:8080/docs | - |
+| Report Preview | http://localhost:8083/preview | - |
+| Grafana | http://localhost:3000 | admin / nexus_admin |
+| Prometheus | http://localhost:9090 | - |
+| Jaeger | http://localhost:16686 | - |
 
-chmod +x run_mvp_demo.sh
-./run_mvp_demo.sh
+---
 
+## 💬 Slack Commands
 
-What this does:
+Once configured with Slack:
 
-Sets up a local virtual environment.
+```
+/nexus status v2.0       # Check release readiness
+/nexus ticket PROJ-123   # Get ticket details
+/nexus blockers          # List all blockers
+/jira-update             # Update ticket via modal
+/nexus report            # Generate release report
+/nexus help              # Show all commands
+```
 
-Starts the Central Orchestrator service in the background.
+---
 
-Simulates user commands (e.g., /jira status, /search-rm) via CURL.
+## 📁 Project Structure
 
-Displays the ReAct plan generated by the Orchestrator.
+```
+Nexus-Release-Readiness-Bot/
+├── services/
+│   ├── orchestrator/          # Central brain (ReAct engine)
+│   └── agents/
+│       ├── jira_agent/        # Jira integration
+│       ├── git_ci_agent/      # GitHub + Jenkins
+│       ├── reporting_agent/   # Report generation
+│       ├── slack_agent/       # Slack interface
+│       └── scheduling_agent/  # Future: Cron jobs
+├── shared/
+│   └── nexus_lib/             # Shared library
+│       ├── schemas/           # Pydantic models
+│       ├── middleware.py      # JWT auth, metrics
+│       ├── instrumentation.py # OTEL, Prometheus
+│       └── utils.py           # HTTP client, helpers
+├── infrastructure/
+│   ├── docker/                # Dockerfiles
+│   ├── k8s/nexus-stack/       # Helm chart
+│   ├── grafana/               # Dashboards
+│   └── terraform/             # Cloud infrastructure
+├── docs/                      # MkDocs documentation
+├── tests/                     # Unit & E2E tests
+└── demo/                      # Demo scripts
+```
 
-🗺️ Roadmap
+---
 
-[x] Phase 0: Foundation (Current) - Infrastructure setup, Auth, and API Contracts.
+## 🔧 Configuration
 
-[ ] Phase 1: Conversational Core - Full Slack integration and basic Jira updates.
+### Environment Variables
 
-[ ] Phase 2: Intelligence - Vector DB implementation and ReAct grounded search.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXUS_ENV` | Environment (development/production) | development |
+| `LLM_PROVIDER` | LLM provider (google/openai/mock) | mock |
+| `LLM_API_KEY` | API key for LLM | - |
+| `MEMORY_BACKEND` | Vector store (chromadb/pgvector/mock) | mock |
+| `JIRA_MOCK_MODE` | Use mock Jira data | true |
+| `GITHUB_MOCK_MODE` | Use mock GitHub data | true |
 
-[ ] Phase 3: Automation - Scheduling agent and automated Confluence reporting.
+### Production Configuration
 
-🤝 Contributing
+See [Deployment Runbook](docs/runbooks/deployment.md) for production setup.
 
-We welcome contributions! Please follow these steps:
+---
 
-Fork the repository.
+## 📊 Observability
 
-Create a feature branch (git checkout -b feature/amazing-feature).
+### Prometheus Metrics
 
-Commit your changes (git commit -m 'Add some amazing feature').
+```
+# LLM Usage
+nexus_llm_tokens_total{model_name, type}
+nexus_llm_latency_seconds{model_name}
+nexus_llm_cost_dollars_total{model_name}
 
-Push to the branch (git push origin feature/amazing-feature).
+# Agent Performance
+nexus_tool_usage_total{tool_name, status}
+http_request_duration_seconds{agent_type}
 
-Open a Pull Request.
+# ReAct Engine
+nexus_react_iterations_count{task_type}
 
-📄 License
+# Business Metrics
+nexus_release_decisions_total{decision}
+```
 
-Distributed under the MIT License. See LICENSE for more information.
+### Grafana Dashboard
 
+Import `infrastructure/grafana/dashboard.json` for:
+- LLM economics (tokens, cost)
+- Agent latency (P95/P99)
+- ReAct loop analytics
+- Release decision tracking
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Unit tests only
+pytest tests/unit/ -v
+
+# E2E tests only
+pytest tests/e2e/ -v
+
+# With coverage
+pytest tests/ --cov=shared --cov=services --cov-report=html
+```
+
+---
+
+## 🚢 Kubernetes Deployment
+
+```bash
+# Add Helm dependencies
+cd infrastructure/k8s/nexus-stack
+helm dependency update
+
+# Deploy
+helm upgrade --install nexus . \
+  --namespace nexus \
+  --create-namespace \
+  --values production-values.yaml
+```
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Core ReAct Engine
+- [x] Jira, GitHub, Jenkins integrations
+- [x] Confluence report publishing
+- [x] Slack Block Kit interface
+- [x] Prometheus/Grafana observability
+- [x] Kubernetes Helm charts
+- [ ] Google Gemini live integration
+- [ ] Scheduling agent for cron workflows
+- [ ] Multi-tenant support
+- [ ] AI-powered recommendations
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file.
+
+---
+
+<div align="center">
+
+**Built with ❤️ by the Nexus Team**
+
+[⬆ Back to top](#-nexus-release-automation-system)
+
+</div>
