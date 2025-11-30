@@ -303,8 +303,12 @@ nexus_release_decisions_total{decision}
 
 ### Grafana Dashboard
 
-Import `infrastructure/grafana/dashboard.json` for:
-- LLM economics (tokens, cost)
+Import `infrastructure/grafana/dashboard.json` for comprehensive observability:
+
+![Grafana Dashboard](docs/assets/mockups/grafana-dashboard.svg)
+
+**Panels include:**
+- LLM economics (tokens, cost per provider)
 - Agent latency (P95/P99)
 - ReAct loop analytics
 - Hygiene score tracking

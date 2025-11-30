@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4aa"/>
+      <stop offset="100%" style="stop-color:#00a884"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5c7cfa"/>
+      <stop offset="100%" style="stop-color:#4263eb"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff922b"/>
+      <stop offset="100%" style="stop-color:#fd7e14"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#9775fa"/>
+      <stop offset="100%" style="stop-color:#7950f2"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="800" fill="url(#bgGrad)"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1200" height="50" fill="#0f0f23"/>
+  <text x="20" y="32" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ff6b35">📊 Nexus Release Automation - Grafana Dashboard</text>
+  <text x="1050" y="32" font-family="Arial, sans-serif" font-size="12" fill="#888">Last 24 hours ▼</text>
+  
+  <!-- Row 1: Key Metrics -->
+  <!-- LLM Token Usage -->
+  <rect x="20" y="70" width="280" height="160" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="35" y="95" font-family="Arial, sans-serif" font-size="14" fill="#aaa">LLM Token Usage</text>
+  <text x="35" y="145" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="url(#greenGrad)">124.5K</text>
+  <text x="35" y="170" font-family="Arial, sans-serif" font-size="12" fill="#00d4aa">↑ 12% from yesterday</text>
+  <text x="35" y="215" font-family="Arial, sans-serif" font-size="11" fill="#666">Gemini: 98.2K | OpenAI: 26.3K</text>
+  
+  <!-- LLM Cost -->
+  <rect x="320" y="70" width="280" height="160" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="335" y="95" font-family="Arial, sans-serif" font-size="14" fill="#aaa">LLM Cost (24h)</text>
+  <text x="335" y="145" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="url(#blueGrad)">$4.87</text>
+  <text x="335" y="170" font-family="Arial, sans-serif" font-size="12" fill="#5c7cfa">↓ 8% from yesterday</text>
+  <text x="335" y="215" font-family="Arial, sans-serif" font-size="11" fill="#666">Avg per query: $0.012</text>
+  
+  <!-- Hygiene Score -->
+  <rect x="620" y="70" width="280" height="160" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="635" y="95" font-family="Arial, sans-serif" font-size="14" fill="#aaa">Project Hygiene Score</text>
+  <text x="635" y="145" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="url(#orangeGrad)">87%</text>
+  <text x="635" y="170" font-family="Arial, sans-serif" font-size="12" fill="#ff922b">↑ 5% from last week</text>
+  <!-- Progress bar -->
+  <rect x="635" y="195" width="250" height="12" rx="6" fill="#2d3f50"/>
+  <rect x="635" y="195" width="217" height="12" rx="6" fill="url(#orangeGrad)"/>
+  
+  <!-- Release Decisions -->
+  <rect x="920" y="70" width="260" height="160" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="935" y="95" font-family="Arial, sans-serif" font-size="14" fill="#aaa">Release Decisions</text>
+  <circle cx="1050" cy="150" r="50" fill="none" stroke="#2d3f50" stroke-width="8"/>
+  <circle cx="1050" cy="150" r="50" fill="none" stroke="#00d4aa" stroke-width="8" stroke-dasharray="220 314" transform="rotate(-90 1050 150)"/>
+  <text x="1035" y="158" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff">70%</text>
+  <text x="945" y="215" font-family="Arial, sans-serif" font-size="11" fill="#00d4aa">● GO: 14</text>
+  <text x="1010" y="215" font-family="Arial, sans-serif" font-size="11" fill="#ffd43b">● COND: 4</text>
+  <text x="1090" y="215" font-family="Arial, sans-serif" font-size="11" fill="#ff6b6b">● NO: 2</text>
+  
+  <!-- Row 2: Charts -->
+  <!-- Token Usage Over Time -->
+  <rect x="20" y="250" width="580" height="250" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="35" y="275" font-family="Arial, sans-serif" font-size="14" fill="#aaa">Token Usage Over Time</text>
+  <!-- Chart grid -->
+  <line x1="60" y1="300" x2="60" y2="470" stroke="#2d3f50" stroke-width="1"/>
+  <line x1="60" y1="470" x2="580" y2="470" stroke="#2d3f50" stroke-width="1"/>
+  <!-- Grid lines -->
+  <line x1="60" y1="340" x2="580" y2="340" stroke="#2d3f50" stroke-width="0.5" stroke-dasharray="4"/>
+  <line x1="60" y1="380" x2="580" y2="380" stroke="#2d3f50" stroke-width="0.5" stroke-dasharray="4"/>
+  <line x1="60" y1="420" x2="580" y2="420" stroke="#2d3f50" stroke-width="0.5" stroke-dasharray="4"/>
+  <!-- Gemini line -->
+  <polyline points="60,420 120,400 180,380 240,350 300,370 360,340 420,320 480,350 540,330" fill="none" stroke="#00d4aa" stroke-width="2"/>
+  <!-- OpenAI line -->
+  <polyline points="60,460 120,450 180,455 240,445 300,450 360,440 420,445 480,435 540,440" fill="none" stroke="#5c7cfa" stroke-width="2"/>
+  <!-- Legend -->
+  <rect x="450" y="280" width="12" height="12" fill="#00d4aa"/>
+  <text x="468" y="290" font-family="Arial, sans-serif" font-size="11" fill="#aaa">Gemini</text>
+  <rect x="520" y="280" width="12" height="12" fill="#5c7cfa"/>
+  <text x="538" y="290" font-family="Arial, sans-serif" font-size="11" fill="#aaa">OpenAI</text>
+  <!-- X-axis labels -->
+  <text x="60" y="488" font-family="Arial, sans-serif" font-size="10" fill="#666">00:00</text>
+  <text x="180" y="488" font-family="Arial, sans-serif" font-size="10" fill="#666">06:00</text>
+  <text x="300" y="488" font-family="Arial, sans-serif" font-size="10" fill="#666">12:00</text>
+  <text x="420" y="488" font-family="Arial, sans-serif" font-size="10" fill="#666">18:00</text>
+  <text x="540" y="488" font-family="Arial, sans-serif" font-size="10" fill="#666">Now</text>
+  
+  <!-- Agent Response Times -->
+  <rect x="620" y="250" width="560" height="250" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="635" y="275" font-family="Arial, sans-serif" font-size="14" fill="#aaa">Agent Response Times (P95)</text>
+  <!-- Bar chart -->
+  <rect x="680" y="320" width="40" height="120" rx="4" fill="url(#greenGrad)"/>
+  <text x="688" y="455" font-family="Arial, sans-serif" font-size="10" fill="#aaa">Jira</text>
+  <text x="685" y="310" font-family="Arial, sans-serif" font-size="11" fill="#00d4aa">245ms</text>
+  
+  <rect x="760" y="350" width="40" height="90" rx="4" fill="url(#blueGrad)"/>
+  <text x="762" y="455" font-family="Arial, sans-serif" font-size="10" fill="#aaa">Git/CI</text>
+  <text x="758" y="340" font-family="Arial, sans-serif" font-size="11" fill="#5c7cfa">189ms</text>
+  
+  <rect x="840" y="380" width="40" height="60" rx="4" fill="url(#purpleGrad)"/>
+  <text x="838" y="455" font-family="Arial, sans-serif" font-size="10" fill="#aaa">Report</text>
+  <text x="838" y="370" font-family="Arial, sans-serif" font-size="11" fill="#9775fa">125ms</text>
+  
+  <rect x="920" y="340" width="40" height="100" rx="4" fill="url(#orangeGrad)"/>
+  <text x="920" y="455" font-family="Arial, sans-serif" font-size="10" fill="#aaa">Hygiene</text>
+  <text x="918" y="330" font-family="Arial, sans-serif" font-size="11" fill="#ff922b">210ms</text>
+  
+  <rect x="1000" y="300" width="40" height="140" rx="4" fill="#ff6b6b"/>
+  <text x="1002" y="455" font-family="Arial, sans-serif" font-size="10" fill="#aaa">Orch</text>
+  <text x="998" y="290" font-family="Arial, sans-serif" font-size="11" fill="#ff6b6b">312ms</text>
+  
+  <rect x="1080" y="360" width="40" height="80" rx="4" fill="#20c997"/>
+  <text x="1082" y="455" font-family="Arial, sans-serif" font-size="10" fill="#aaa">Slack</text>
+  <text x="1080" y="350" font-family="Arial, sans-serif" font-size="11" fill="#20c997">156ms</text>
+  
+  <!-- Row 3: More panels -->
+  <!-- Hygiene Score Trend -->
+  <rect x="20" y="520" width="380" height="260" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="35" y="545" font-family="Arial, sans-serif" font-size="14" fill="#aaa">Hygiene Score Trend (14 days)</text>
+  <!-- Area chart -->
+  <polygon points="60,740 60,700 120,680 180,660 240,640 300,620 360,600" fill="url(#orangeGrad)" fill-opacity="0.3"/>
+  <polyline points="60,700 120,680 180,660 240,640 300,620 360,600" fill="none" stroke="#ff922b" stroke-width="2"/>
+  <!-- Y-axis labels -->
+  <text x="40" y="605" font-family="Arial, sans-serif" font-size="10" fill="#666">90%</text>
+  <text x="40" y="665" font-family="Arial, sans-serif" font-size="10" fill="#666">70%</text>
+  <text x="40" y="725" font-family="Arial, sans-serif" font-size="10" fill="#666">50%</text>
+  <!-- Annotation -->
+  <circle cx="360" cy="600" r="5" fill="#ff922b"/>
+  <text x="280" y="585" font-family="Arial, sans-serif" font-size="11" fill="#ff922b">Current: 87%</text>
+  
+  <!-- Violations by Type -->
+  <rect x="420" y="520" width="380" height="260" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="435" y="545" font-family="Arial, sans-serif" font-size="14" fill="#aaa">Violations by Field Type</text>
+  <!-- Horizontal bars -->
+  <text x="445" y="590" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Story Points</text>
+  <rect x="545" y="575" width="180" height="20" rx="4" fill="#ff6b6b"/>
+  <text x="735" y="590" font-family="Arial, sans-serif" font-size="12" fill="#ff6b6b">23</text>
+  
+  <text x="445" y="630" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Labels</text>
+  <rect x="545" y="615" width="140" height="20" rx="4" fill="#ffd43b"/>
+  <text x="695" y="630" font-family="Arial, sans-serif" font-size="12" fill="#ffd43b">18</text>
+  
+  <text x="445" y="670" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Fix Version</text>
+  <rect x="545" y="655" width="100" height="20" rx="4" fill="#ff922b"/>
+  <text x="655" y="670" font-family="Arial, sans-serif" font-size="12" fill="#ff922b">12</text>
+  
+  <text x="445" y="710" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Team</text>
+  <rect x="545" y="695" width="60" height="20" rx="4" fill="#5c7cfa"/>
+  <text x="615" y="710" font-family="Arial, sans-serif" font-size="12" fill="#5c7cfa">7</text>
+  
+  <text x="445" y="750" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Affected Ver.</text>
+  <rect x="545" y="735" width="40" height="20" rx="4" fill="#9775fa"/>
+  <text x="595" y="750" font-family="Arial, sans-serif" font-size="12" fill="#9775fa">5</text>
+  
+  <!-- ReAct Loop Stats -->
+  <rect x="820" y="520" width="360" height="260" rx="8" fill="#1e2a3a" stroke="#2d3f50" stroke-width="1"/>
+  <text x="835" y="545" font-family="Arial, sans-serif" font-size="14" fill="#aaa">ReAct Loop Analytics</text>
+  
+  <text x="845" y="585" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Avg Iterations</text>
+  <text x="1050" y="585" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#00d4aa">3.2</text>
+  
+  <text x="845" y="625" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Avg Duration</text>
+  <text x="1040" y="625" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#5c7cfa">1.8s</text>
+  
+  <text x="845" y="665" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Success Rate</text>
+  <text x="1030" y="665" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#00d4aa">98.5%</text>
+  
+  <text x="845" y="705" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Tool Calls (24h)</text>
+  <text x="1050" y="705" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff922b">847</text>
+  
+  <text x="845" y="745" font-family="Arial, sans-serif" font-size="12" fill="#aaa">Queries Processed</text>
+  <text x="1050" y="745" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#9775fa">203</text>
+</svg>
+

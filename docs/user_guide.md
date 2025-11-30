@@ -59,6 +59,8 @@ Display available commands and usage examples.
 
 Opens a modal dialog to update Jira ticket status.
 
+![Jira Update Modal](assets/mockups/slack-jira-update-modal.svg)
+
 **Fields:**
 - **Ticket Key**: Enter the Jira ticket key (e.g., PROJ-123)
 - **New Status**: Select from available transitions
@@ -91,30 +93,14 @@ When you open the Nexus app in Slack, you'll see a personalized dashboard with q
 
 ### What You'll See
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  🚀 Nexus Release Automation                                 │
-│  Good morning, Alice! Here's your release management dashboard│
-│  📅 Monday, December 2, 2024 | Last updated: 9:30 AM        │
-├─────────────────────────────────────────────────────────────┤
-│  ⚡ Quick Actions                                            │
-│  [📊 Release Status] [🔧 Hygiene Check] [📝 Report] [❓ Help] │
-├─────────────────────────────────────────────────────────────┤
-│  📈 Release Status Overview                                  │
-│  Current Version: v2.0.0                                     │
-│  Decision: 🟡 CONDITIONAL | Completion: 87%                  │
-│  Build: ✅ Passing | Security: 75/100 | Blockers: 2         │
-├─────────────────────────────────────────────────────────────┤
-│  🔧 Jira Hygiene                          [View Details]     │
-│  Score: 🟡 78% - Good                                        │
-│  ⚠️ You have 3 ticket(s) needing attention    [Fix Now]     │
-├─────────────────────────────────────────────────────────────┤
-│  💡 AI Recommendations                       [View All]      │
-│  🔴 Address 2 blocking issues before release                 │
-│  🟠 Improve hygiene score from 78% to 90%+                   │
-│  🟡 Consider releasing Tuesday instead of Friday             │
-└─────────────────────────────────────────────────────────────┘
-```
+![Slack App Home Dashboard](assets/mockups/slack-app-home.svg)
+
+The dashboard includes:
+- **Welcome Message**: Personalized greeting with current date
+- **Quick Actions**: One-click buttons for common tasks
+- **Release Status**: Current version, decision, completion percentage
+- **Hygiene Score**: Visual progress bar with fix button
+- **AI Recommendations**: Top 3 actionable suggestions
 
 ### Quick Actions
 
@@ -143,6 +129,8 @@ The top 3 recommendations based on:
 ## 💡 AI Recommendations
 
 Nexus analyzes historical patterns to provide intelligent recommendations for improving your release process.
+
+![AI Recommendations](assets/mockups/ai-recommendations.svg)
 
 ### Viewing Recommendations
 
@@ -206,31 +194,22 @@ Nexus proactively monitors your Jira data quality through the **Jira Hygiene Age
 
 When tickets assigned to you have missing fields, you'll receive a DM like this:
 
-```
-📋 Jira Ticket Hygiene Report
+![Hygiene Notification DM](assets/mockups/slack-hygiene-notification.svg)
 
-Hi Alice! 👋
-
-Our automated hygiene check found 3 tickets assigned to 
-you that are missing required fields.
-
-Project Hygiene Score: 70.0%
-
-────────────────────────────────────
-
-Tickets needing attention:
-• PROJ-123: Missing Labels, Story Points
-• PROJ-124: Missing Fix Version
-• PROJ-125: Missing Team/Contributors
-
-────────────────────────────────────
-
-[🔧 Fix Tickets Now]  [📊 View Full Report]  [⏰ Remind Me Later]
-```
+The notification includes:
+- Personalized greeting
+- Count of tickets needing attention
+- Current project hygiene score
+- List of specific tickets with their missing fields
+- Interactive action buttons
 
 ### Fixing Violations from Slack
 
 Click **"🔧 Fix Tickets Now"** to open an interactive modal:
+
+![Hygiene Fix Modal](assets/mockups/slack-hygiene-modal.svg)
+
+**How it works:**
 
 1. **Modal Opens**: Shows all tickets with their missing fields
 2. **Fill In Values**: Enter the missing information for each ticket
@@ -238,43 +217,8 @@ Click **"🔧 Fix Tickets Now"** to open an interactive modal:
    - Fix Version: `v2.0.0`
    - Story Points: Select from dropdown (1, 2, 3, 5, 8, 13, 21)
    - Team: `Platform Team`
-3. **Submit**: Click "Update Tickets"
+3. **Submit**: Click "Update All"
 4. **Confirmation**: Receive a confirmation DM when updates complete
-
-**Example Modal:**
-
-```
-┌─────────────────────────────────────────────┐
-│  🔧 Fix Jira Ticket Hygiene                 │
-├─────────────────────────────────────────────┤
-│                                             │
-│  PROJ-123: Implement user authentication    │
-│  Missing: Labels, Story Points              │
-│                                             │
-│  🏷️ Labels                                  │
-│  ┌─────────────────────────────────────┐   │
-│  │ e.g., backend, api, security        │   │
-│  └─────────────────────────────────────┘   │
-│                                             │
-│  📊 Story Points                            │
-│  ┌─────────────────────────────────────┐   │
-│  │ Select story points          ▼      │   │
-│  └─────────────────────────────────────┘   │
-│                                             │
-│  ─────────────────────────────────────────  │
-│                                             │
-│  PROJ-124: Fix login timeout issue          │
-│  Missing: Fix Version                       │
-│                                             │
-│  📦 Fix Version                             │
-│  ┌─────────────────────────────────────┐   │
-│  │ e.g., v2.0.0, 2024-Q1               │   │
-│  └─────────────────────────────────────┘   │
-│                                             │
-├─────────────────────────────────────────────┤
-│           [Cancel]  [Update Tickets]        │
-└─────────────────────────────────────────────┘
-```
 
 ### Snoozing Reminders
 
@@ -299,7 +243,9 @@ Hygiene Score = (Compliant Tickets / Total Tickets) × 100%
 
 ### Release Readiness Report
 
-The release readiness report provides a comprehensive assessment:
+The release readiness report provides a comprehensive assessment and is automatically published to Confluence.
+
+![Confluence Release Report](assets/mockups/confluence-report.svg)
 
 #### 1. Decision Banner
 

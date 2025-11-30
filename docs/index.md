@@ -140,6 +140,8 @@ Rich interactive dashboard when opening the app:
 - **Hygiene Widget**: Score with fix button
 - **AI Recommendations**: Top suggestions preview
 
+![Slack App Home Preview](assets/mockups/slack-app-home.svg)
+
 ### 🔧 Proactive Jira Hygiene
 The Jira Hygiene Agent ensures data quality:
 - **Scheduled Checks**: Weekdays at 9:00 AM

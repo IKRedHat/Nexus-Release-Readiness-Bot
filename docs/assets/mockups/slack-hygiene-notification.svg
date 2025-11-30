@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450">
+  <defs>
+    <filter id="msgShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Slack message background -->
+  <rect width="600" height="450" fill="#1a1d21"/>
+  
+  <!-- Channel header -->
+  <rect x="0" y="0" width="600" height="50" fill="#222529" stroke="#3f3f46" stroke-width="0 0 1 0"/>
+  <text x="20" y="32" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#d1d2d3">Direct Message with Nexus Bot</text>
+  
+  <!-- Message container -->
+  <rect x="20" y="70" width="560" height="360" rx="8" fill="#222529" filter="url(#msgShadow)"/>
+  
+  <!-- Bot avatar and name -->
+  <circle cx="45" cy="100" r="18" fill="#4a154b"/>
+  <text x="38" y="107" font-family="Arial" font-size="16" fill="#fff">🚀</text>
+  <text x="75" y="98" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d1d2d3">Nexus Bot</text>
+  <text x="155" y="98" font-family="Arial, sans-serif" font-size="11" fill="#ababad">APP</text>
+  <text x="185" y="98" font-family="Arial, sans-serif" font-size="11" fill="#666">9:00 AM</text>
+  
+  <!-- Message header -->
+  <text x="75" y="130" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#fff">📋 Jira Ticket Hygiene Report</text>
+  
+  <!-- Greeting -->
+  <text x="75" y="160" font-family="Arial, sans-serif" font-size="14" fill="#d1d2d3">Hi Alice! 👋</text>
+  
+  <text x="75" y="185" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Our automated hygiene check found</text>
+  <text x="296" y="185" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ff922b">3 tickets</text>
+  <text x="360" y="185" font-family="Arial, sans-serif" font-size="13" fill="#ababad">assigned to you</text>
+  <text x="75" y="205" font-family="Arial, sans-serif" font-size="13" fill="#ababad">that are missing required fields.</text>
+  
+  <!-- Hygiene Score -->
+  <rect x="75" y="225" width="180" height="28" rx="6" fill="#2d3748"/>
+  <text x="90" y="244" font-family="Arial, sans-serif" font-size="12" fill="#ffd43b">📊 Project Hygiene Score: 70.0%</text>
+  
+  <!-- Divider -->
+  <line x1="75" y1="270" x2="540" y2="270" stroke="#3f3f46" stroke-width="1"/>
+  
+  <!-- Tickets list -->
+  <text x="75" y="295" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#d1d2d3">Tickets needing attention:</text>
+  
+  <text x="85" y="320" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">•</text>
+  <text x="100" y="320" font-family="Arial, sans-serif" font-size="13" fill="#1264a3" text-decoration="underline">PROJ-123</text>
+  <text x="168" y="320" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Missing</text>
+  <text x="220" y="320" font-family="Arial, sans-serif" font-size="13" fill="#ff6b6b">Labels, Story Points</text>
+  
+  <text x="85" y="345" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">•</text>
+  <text x="100" y="345" font-family="Arial, sans-serif" font-size="13" fill="#1264a3" text-decoration="underline">PROJ-124</text>
+  <text x="168" y="345" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Missing</text>
+  <text x="220" y="345" font-family="Arial, sans-serif" font-size="13" fill="#ff922b">Fix Version</text>
+  
+  <text x="85" y="370" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">•</text>
+  <text x="100" y="370" font-family="Arial, sans-serif" font-size="13" fill="#1264a3" text-decoration="underline">PROJ-125</text>
+  <text x="168" y="370" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Missing</text>
+  <text x="220" y="370" font-family="Arial, sans-serif" font-size="13" fill="#5c7cfa">Team/Contributors</text>
+  
+  <!-- Action buttons -->
+  <rect x="75" y="395" width="130" height="32" rx="6" fill="#007a5a"/>
+  <text x="95" y="416" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff">🔧 Fix Tickets Now</text>
+  
+  <rect x="215" y="395" width="120" height="32" rx="6" fill="#36373d" stroke="#555" stroke-width="1"/>
+  <text x="232" y="416" font-family="Arial, sans-serif" font-size="12" fill="#d1d2d3">📊 View Full Report</text>
+  
+  <rect x="345" y="395" width="125" height="32" rx="6" fill="#36373d" stroke="#555" stroke-width="1"/>
+  <text x="358" y="416" font-family="Arial, sans-serif" font-size="12" fill="#d1d2d3">⏰ Remind Me Later</text>
+</svg>
+
