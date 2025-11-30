@@ -38,20 +38,37 @@ nav:
   - User Guide:
     - Getting Started: user_guide.md
     - Slack Commands: user_guide.md#slack-commands
+    - App Home Dashboard: user_guide.md#-app-home-dashboard
+    - AI Recommendations: user_guide.md#-ai-recommendations
+    - Jira Hygiene: user_guide.md#-jira-hygiene-notifications
     - Understanding Reports: user_guide.md#understanding-reports
   - Architecture:
     - Overview: architecture.md
     - ReAct Engine: architecture.md#react-reasoning-engine
     - Agent Contracts: architecture.md#agent-contracts
+    - LLM Integration: architecture.md#llm-integration-layer
+    - Multi-Tenancy: architecture.md#multi-tenancy-architecture
   - API Reference:
     - Overview: api-specs/overview.md
     - Orchestrator API: api-specs/orchestrator.md
     - Jira Agent API: api-specs/jira-agent.md
     - Git/CI Agent API: api-specs/git-ci-agent.md
+  - CI/CD:
+    - Overview: ci-cd/index.md
+    - CI Workflow: ci-cd/ci-workflow.md
+    - Release Workflow: ci-cd/release-workflow.md
+    - Dependabot: ci-cd/dependabot.md
+    - Troubleshooting: ci-cd/troubleshooting.md
   - Operations:
     - Deployment: runbooks/deployment.md
+    - GitHub Setup: GITHUB_SETUP.md
     - Monitoring: runbooks/monitoring.md
     - Troubleshooting: runbooks/troubleshooting.md
+  - Contributing:
+    - Guide: ../CONTRIBUTING.md
+    - Code of Conduct: ../CODE_OF_CONDUCT.md
+    - Security Policy: ../SECURITY.md
+    - Changelog: ../CHANGELOG.md
 
 markdown_extensions:
   - pymdownx.highlight:
