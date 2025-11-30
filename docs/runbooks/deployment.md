@@ -41,14 +41,49 @@ This runbook provides step-by-step instructions for deploying Nexus to various e
 
 ## Local Development
 
-### 1. Clone Repository
+### Automated Setup (Recommended)
+
+Use the one-click setup script for the fastest setup:
+
+```bash
+# Clone repository
+git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
+cd Nexus-Release-Readiness-Bot
+
+# Run automated setup
+./scripts/setup.sh
+```
+
+The setup script automatically:
+- Checks all prerequisites (Python, Docker, etc.)
+- Creates Python virtual environment
+- Installs all dependencies
+- Configures environment variables
+- Builds and starts Docker services
+- Verifies everything is working
+
+**Setup Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--help` | Show all available options |
+| `--dev` | Install development tools (pytest, black, mypy) |
+| `--skip-docker` | Skip Docker services (Python setup only) |
+| `--skip-venv` | Skip virtual environment creation |
+| `--clean` | Remove existing setup before installing |
+
+### Manual Setup
+
+If you prefer manual setup:
+
+#### 1. Clone Repository
 
 ```bash
 git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
 cd Nexus-Release-Readiness-Bot
 ```
 
-### 2. Set Up Python Environment
+#### 2. Set Up Python Environment
 
 ```bash
 # Create virtual environment
@@ -65,7 +100,7 @@ pip install -r services/agents/jira_hygiene_agent/requirements.txt
 # ... repeat for other agents
 ```
 
-### 3. Run Services Locally
+#### 3. Run Services Locally
 
 ```bash
 # Terminal 1: Orchestrator
@@ -81,6 +116,19 @@ cd services/agents/jira_hygiene_agent
 uvicorn main:app --reload --port 8005
 
 # ... repeat for other agents
+```
+
+### Development Helper Scripts
+
+Use the dev helper for common tasks:
+
+```bash
+./scripts/dev.sh start        # Start Docker services
+./scripts/dev.sh stop         # Stop Docker services
+./scripts/dev.sh logs         # View logs
+./scripts/dev.sh health       # Check service health
+./scripts/dev.sh test         # Run tests
+./scripts/dev.sh query "..."  # Send query to orchestrator
 ```
 
 ---

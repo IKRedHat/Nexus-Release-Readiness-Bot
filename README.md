@@ -90,18 +90,45 @@ Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning 
 
 ## 🚀 Quick Start
 
+### One-Click Setup (Recommended)
+
+The easiest way to get started is using our automated setup script:
+
+```bash
+git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
+cd Nexus-Release-Readiness-Bot
+
+# Run the one-click setup
+./scripts/setup.sh
+```
+
+The setup script automatically:
+- ✅ Checks all prerequisites (Python, Docker, etc.)
+- ✅ Creates Python virtual environment
+- ✅ Installs all dependencies
+- ✅ Configures environment variables
+- ✅ Builds and starts Docker services
+- ✅ Verifies everything is working
+
+**Setup Options:**
+```bash
+./scripts/setup.sh --help        # Show all options
+./scripts/setup.sh --dev         # Include dev tools (pytest, black, etc.)
+./scripts/setup.sh --skip-docker # Python setup only (no Docker)
+./scripts/setup.sh --clean       # Fresh install (removes existing setup)
+```
+
 ### Prerequisites
 
 - Python 3.10+
 - Docker & Docker Compose
 - (Optional) Kubernetes for production
 
-### 1. Clone and Start
+### Manual Setup
+
+If you prefer manual setup:
 
 ```bash
-git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
-cd Nexus-Release-Readiness-Bot
-
 # Start with Docker Compose
 docker-compose up -d
 ```
@@ -226,6 +253,11 @@ Nexus-Release-Readiness-Bot/
 │   ├── k8s/nexus-stack/           # Helm chart
 │   ├── grafana/                   # Dashboards
 │   └── terraform/                 # Cloud infrastructure
+├── scripts/                       # 🆕 Automation scripts
+│   ├── setup.sh                   # One-click setup
+│   ├── dev.sh                     # Development helper
+│   ├── verify.sh                  # Health verification
+│   └── uninstall.sh               # Clean uninstall
 ├── docs/                          # MkDocs documentation
 ├── tests/                         # Unit & E2E tests
 └── demo/                          # Demo scripts
@@ -316,6 +348,38 @@ Import `infrastructure/grafana/dashboard.json` for comprehensive observability:
 
 ---
 
+## 🛠️ Development Scripts
+
+We provide helper scripts for common development tasks:
+
+```bash
+# Development helper (run from project root)
+./scripts/dev.sh <command>
+
+# Available commands:
+./scripts/dev.sh start        # Start all Docker services
+./scripts/dev.sh stop         # Stop all Docker services
+./scripts/dev.sh restart      # Restart all Docker services
+./scripts/dev.sh logs         # Follow Docker logs
+./scripts/dev.sh logs <svc>   # Follow specific service logs
+./scripts/dev.sh status       # Show service status
+./scripts/dev.sh health       # Run health checks
+./scripts/dev.sh test         # Run all tests
+./scripts/dev.sh test-unit    # Run unit tests only
+./scripts/dev.sh lint         # Run linters
+./scripts/dev.sh format       # Format code with black/isort
+./scripts/dev.sh query "..."  # Send a query to orchestrator
+./scripts/dev.sh hygiene PROJ # Run hygiene check
+./scripts/dev.sh rebuild      # Rebuild and restart services
+./scripts/dev.sh clean        # Remove containers and volumes
+```
+
+### Quick Health Check
+
+```bash
+./scripts/verify.sh    # Check all service health
+```
+
 ## 🧪 Testing
 
 ```bash
@@ -333,6 +397,9 @@ pytest tests/unit/test_hygiene_logic.py -v
 
 # With coverage
 pytest tests/ --cov=shared --cov=services --cov-report=html
+
+# Or use the dev script
+./scripts/dev.sh test
 ```
 
 ---
