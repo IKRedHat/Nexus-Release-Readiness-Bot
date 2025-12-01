@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10+-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
@@ -24,6 +24,7 @@ Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning 
 
 ### ✨ Key Features
 
+- 🔍 **Smart Root Cause Analysis** - AI-powered build failure diagnosis with fix suggestions
 - 📊 **Advanced Analytics Dashboard** - DORA metrics, predictive analytics, anomaly detection
 - 🔔 **Webhook Integrations** - Real-time notifications to external systems with HMAC security
 - 🤖 **Google Gemini Integration** - Production-ready LLM with streaming and function calling

@@ -165,6 +165,22 @@ AVAILABLE_TOOLS: Dict[str, Tool] = {
         parameters={"channel": "Channel ID", "message": "Message text", "blocks": "Block Kit blocks (optional)"},
         required_params=["channel", "message"]
     ),
+    # RCA Tools
+    "analyze_build_failure": Tool(
+        name="analyze_build_failure",
+        description="Analyze a failed Jenkins build to determine root cause. Uses LLM to correlate error logs with git diffs to identify which code change caused the failure and suggest fixes.",
+        agent_type="rca",
+        endpoint="/analyze",
+        method="POST",
+        parameters={
+            "job_name": "Jenkins job name",
+            "build_number": "Build number to analyze",
+            "repo_name": "GitHub repository name (optional)",
+            "pr_id": "Pull request ID (optional)",
+            "commit_sha": "Specific commit SHA (optional)"
+        },
+        required_params=["job_name", "build_number"]
+    ),
 }
 
 
@@ -280,6 +296,27 @@ class LLMClient:
                 "content": "Thought: I should check the security scan results for the repository.\nAction: get_security_scan\nAction Input: {\"repo_name\": \"nexus/backend\"}",
                 "input_tokens": 80,
                 "output_tokens": 40
+            }
+        elif "fail" in prompt_lower and "build" in prompt_lower:
+            # RCA query
+            return {
+                "content": "Thought: The user is asking about a failed build. I should use the analyze_build_failure tool to perform root cause analysis.\nAction: analyze_build_failure\nAction Input: {\"job_name\": \"nexus-main\", \"build_number\": 142}",
+                "input_tokens": 100,
+                "output_tokens": 50
+            }
+        elif "why" in prompt_lower and ("fail" in prompt_lower or "error" in prompt_lower):
+            # RCA query variant
+            return {
+                "content": "Thought: The user wants to know why something failed. I'll analyze the build failure to find the root cause.\nAction: analyze_build_failure\nAction Input: {\"job_name\": \"nexus-main\", \"build_number\": 142}",
+                "input_tokens": 100,
+                "output_tokens": 50
+            }
+        elif "diagnose" in prompt_lower or "debug" in prompt_lower or "rca" in prompt_lower:
+            # Explicit RCA request
+            return {
+                "content": "Thought: The user wants me to diagnose an issue. I'll perform root cause analysis on the build.\nAction: analyze_build_failure\nAction Input: {\"job_name\": \"nexus-main\", \"build_number\": 142}",
+                "input_tokens": 100,
+                "output_tokens": 50
             }
         elif "build" in prompt_lower or "ci" in prompt_lower:
             return {
@@ -572,7 +609,9 @@ What is your next step?"""
     def _classify_query(self, query: str) -> str:
         """Classify query type for metrics"""
         query_lower = query.lower()
-        if "release" in query_lower or "ready" in query_lower:
+        if "fail" in query_lower or "why" in query_lower or "diagnose" in query_lower or "debug" in query_lower or "rca" in query_lower:
+            return "rca"
+        elif "release" in query_lower or "ready" in query_lower:
             return "release_check"
         elif "jira" in query_lower or "ticket" in query_lower:
             return "jira_query"

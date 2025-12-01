@@ -213,6 +213,27 @@ services:
       timeout: 10s
       retries: 3
 
+  rca-agent:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.rca-agent
+    ports:
+      - "8006:8006"
+    environment:
+      - NEXUS_ENV=development
+      - JENKINS_MOCK_MODE=true
+      - GITHUB_MOCK_MODE=true
+      - LLM_MOCK_MODE=true
+      - RCA_LLM_MODEL=gemini-1.5-pro
+      - RCA_MAX_LOG_CHARS=100000
+      - RCA_MAX_DIFF_CHARS=50000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # ===========================================================================
   # Advanced Services
   # ===========================================================================
