@@ -10,6 +10,7 @@ Nexus is your AI-powered release automation assistant. It connects to your exist
 - 🧠 **Intelligent Queries** - Ask questions in natural language (powered by Google Gemini or OpenAI)
 - 📊 **Release Assessments** - Automated Go/No-Go decisions
 - 🔧 **Jira Hygiene** - Proactive data quality management
+- 🔍 **Smart RCA** - AI-powered build failure analysis with auto-trigger
 - 📝 **Rich Reports** - Beautiful Confluence reports
 - 💡 **AI Recommendations** - Pattern-based intelligent suggestions
 - 🏠 **App Home Dashboard** - Rich Slack dashboard with widgets
@@ -236,6 +237,71 @@ Hygiene Score = (Compliant Tickets / Total Tickets) × 100%
 - **70-89%**: Good 🟡
 - **50-69%**: Needs Improvement ⚠️
 - **Below 50%**: Critical 🔴
+
+---
+
+## 🔍 Smart Root Cause Analysis (RCA)
+
+Nexus automatically analyzes build failures to identify root causes and suggest fixes. The **RCA Agent** uses AI (Google Gemini 1.5 Pro) to correlate error logs with code changes.
+
+### How It Works
+
+1. **Auto-Trigger**: When a Jenkins build fails, a webhook triggers the RCA Agent
+2. **Log Analysis**: Fetches and intelligently truncates console logs
+3. **Git Correlation**: Maps errors to recent code changes
+4. **AI Analysis**: Gemini analyzes logs + diffs to identify root cause
+5. **Slack Notification**: Sends results to release channel, tagging the PR owner
+
+### Asking About Failures
+
+You can also ask Nexus about build failures naturally:
+
+```
+/nexus Why did the last build fail?
+/nexus What caused the nexus-main build to fail?
+/nexus Diagnose the error in job nexus-api build 142
+/nexus Analyze the latest CI failure
+```
+
+### Receiving RCA Notifications
+
+When a build fails, the release channel receives an automatic notification:
+
+![RCA Slack Notification](assets/mockups/slack-rca-notification.svg)
+
+The notification includes:
+- **Error Type**: Color-coded badge (🧪 Test, 🔧 Compilation, 📦 Dependency)
+- **Root Cause**: AI-generated summary of the failure
+- **Confidence Score**: How sure the analysis is (🟢 high / 🟡 medium / 🔴 low)
+- **@PR Owner**: Tagged so they get notified immediately
+- **Suspected Files**: With specific line numbers
+- **Fix Suggestion**: Actionable recommendation
+- **Action Buttons**: View full analysis or re-run
+
+### Confidence Levels
+
+| Level | Score | Meaning |
+|-------|-------|---------|
+| 🟢 High | 80%+ | Strong correlation between error and code change |
+| 🟡 Medium | 50-79% | Likely cause, may need manual verification |
+| 🔴 Low | 30-49% | Possible cause, review recommended |
+| ⚪ Uncertain | <30% | Unable to determine, check logs manually |
+
+### Manual Analysis
+
+You can also trigger RCA analysis manually via API:
+
+```bash
+curl -X POST http://localhost:8006/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_name": "nexus-main",
+    "build_number": 142,
+    "notify": true,
+    "channel": "#release-notifications",
+    "pr_owner_email": "developer@example.com"
+  }'
+```
 
 ---
 
