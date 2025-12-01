@@ -7,10 +7,15 @@ Specialized agent for analyzing failed builds to determine:
 - Which commit/code change caused it
 - Suggested fixes
 
+Features:
+- Auto-triggers on build failures via Jenkins webhook
+- Sends Slack notifications to release channel
+- Tags PR owner in notifications
+
 Uses LLM (Google Gemini) to correlate error logs with git diffs.
 
 Author: Nexus Team
-Version: 2.1.0
+Version: 2.2.0
 """
 
 import asyncio
@@ -18,12 +23,14 @@ import logging
 import os
 import re
 import time
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from functools import wraps
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+import httpx
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
@@ -59,6 +66,16 @@ class Config:
     MAX_LOG_CHARS = int(os.getenv("RCA_MAX_LOG_CHARS", "100000"))
     MAX_DIFF_CHARS = int(os.getenv("RCA_MAX_DIFF_CHARS", "50000"))
     
+    # Slack notification settings
+    SLACK_AGENT_URL = os.getenv("SLACK_AGENT_URL", "http://slack-agent:8084")
+    SLACK_RELEASE_CHANNEL = os.getenv("SLACK_RELEASE_CHANNEL", "#release-notifications")
+    SLACK_NOTIFY_ON_FAILURE = os.getenv("SLACK_NOTIFY_ON_FAILURE", "true").lower() == "true"
+    SLACK_MOCK_MODE = os.getenv("SLACK_MOCK_MODE", "true").lower() == "true"
+    
+    # Auto-trigger settings
+    AUTO_ANALYZE_ENABLED = os.getenv("RCA_AUTO_ANALYZE", "true").lower() == "true"
+    WEBHOOK_SECRET = os.getenv("RCA_WEBHOOK_SECRET", "")  # For validating Jenkins webhooks
+    
     # Service settings
     PORT = int(os.getenv("PORT", "8006"))
 
@@ -69,7 +86,7 @@ class Config:
 RCA_REQUESTS = Counter(
     "nexus_rca_requests_total",
     "Total RCA analysis requests",
-    ["status", "error_type"]
+    ["status", "error_type", "trigger"]  # trigger: manual, webhook, auto
 )
 RCA_DURATION = Histogram(
     "nexus_rca_duration_seconds",
@@ -89,6 +106,16 @@ LLM_TOKENS_RCA = Counter(
 ACTIVE_ANALYSES = Gauge(
     "nexus_rca_active_analyses",
     "Number of RCA analyses currently running"
+)
+RCA_WEBHOOKS = Counter(
+    "nexus_rca_webhooks_total",
+    "Total Jenkins webhooks received",
+    ["job_name", "status"]
+)
+RCA_NOTIFICATIONS = Counter(
+    "nexus_rca_notifications_total",
+    "Total Slack notifications sent",
+    ["channel", "status"]
 )
 
 
@@ -170,11 +197,273 @@ class RcaAnalysis(BaseModel):
     error_log_excerpt: str = ""
     fix_suggestion: str
     fix_code_snippet: Optional[str] = None
-    additional_recommendations: List[str] = []
-    analyzed_at: datetime = Field(default_factory=datetime.utcnow)
-    analysis_duration_seconds: float = 0.0
-    model_used: Optional[str] = None
-    tokens_used: int = 0
+    # Notification tracking
+    notification_sent: bool = False
+    notification_channel: Optional[str] = None
+    pr_owner_tagged: Optional[str] = None
+
+
+class JenkinsWebhookPayload(BaseModel):
+    """Jenkins Generic Webhook Trigger payload."""
+    job_name: str = Field(..., alias="name")
+    build_number: int = Field(..., alias="number")
+    build_url: Optional[str] = Field(None, alias="url")
+    build_result: str = Field(..., alias="result")  # SUCCESS, FAILURE, UNSTABLE, ABORTED
+    
+    # Git/SCM info (if available)
+    git_url: Optional[str] = None
+    git_branch: Optional[str] = None
+    git_commit: Optional[str] = None
+    
+    # PR info (if available)
+    pr_number: Optional[int] = None
+    pr_author: Optional[str] = None
+    pr_author_email: Optional[str] = None
+    
+    # Custom fields
+    project_key: Optional[str] = None
+    release_channel: Optional[str] = None
+    
+    class Config:
+        populate_by_name = True
+
+
+class SlackRcaNotification(BaseModel):
+    """Slack notification for RCA results."""
+    channel: str
+    analysis: RcaAnalysis
+    pr_owner_slack_id: Optional[str] = None
+    additional_mentions: List[str] = []
+
+
+# =============================================================================
+# Slack Notification Client
+# =============================================================================
+
+class SlackNotificationClient:
+    """Client for sending RCA notifications to Slack."""
+    
+    def __init__(self):
+        self.mock_mode = Config.SLACK_MOCK_MODE
+        self.slack_agent_url = Config.SLACK_AGENT_URL
+        self.http_client = httpx.AsyncClient(timeout=30.0)
+    
+    async def close(self):
+        """Close the HTTP client."""
+        await self.http_client.aclose()
+    
+    async def lookup_user_by_email(self, email: str) -> Optional[str]:
+        """Look up Slack user ID by email address."""
+        if self.mock_mode:
+            logger.info(f"[MOCK] Looking up Slack user for email: {email}")
+            return f"U{email.split('@')[0].upper()[:8]}"  # Mock user ID
+        
+        try:
+            response = await self.http_client.post(
+                f"{self.slack_agent_url}/lookup-user",
+                json={"email": email}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("user_id")
+        except Exception as e:
+            logger.warning(f"Failed to lookup Slack user: {e}")
+        
+        return None
+    
+    async def send_rca_notification(
+        self,
+        analysis: "RcaAnalysis",
+        channel: str,
+        pr_owner_email: Optional[str] = None,
+        build_url: Optional[str] = None
+    ) -> bool:
+        """
+        Send RCA analysis result to Slack channel with PR owner mention.
+        
+        Args:
+            analysis: The RCA analysis result
+            channel: Slack channel to post to
+            pr_owner_email: Email of the PR owner to tag
+            build_url: URL to the failed build
+        
+        Returns:
+            True if notification was sent successfully
+        """
+        # Look up PR owner's Slack ID
+        pr_owner_slack_id = None
+        if pr_owner_email:
+            pr_owner_slack_id = await self.lookup_user_by_email(pr_owner_email)
+        
+        # Build the notification blocks
+        blocks = self._build_rca_blocks(analysis, pr_owner_slack_id, build_url)
+        
+        if self.mock_mode:
+            logger.info(f"[MOCK] Would send RCA notification to {channel}")
+            logger.info(f"[MOCK] PR Owner: {pr_owner_email} -> {pr_owner_slack_id}")
+            logger.info(f"[MOCK] Summary: {analysis.root_cause_summary[:100]}...")
+            RCA_NOTIFICATIONS.labels(channel=channel, status="mock").inc()
+            return True
+        
+        try:
+            # Send to Slack agent
+            response = await self.http_client.post(
+                f"{self.slack_agent_url}/notify",
+                json={
+                    "channel": channel,
+                    "text": f"🔍 RCA Alert: Build failure in {analysis.analysis_id}",
+                    "blocks": blocks
+                }
+            )
+            
+            if response.status_code == 200:
+                RCA_NOTIFICATIONS.labels(channel=channel, status="success").inc()
+                logger.info(f"RCA notification sent to {channel}")
+                return True
+            else:
+                RCA_NOTIFICATIONS.labels(channel=channel, status="error").inc()
+                logger.error(f"Failed to send notification: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            RCA_NOTIFICATIONS.labels(channel=channel, status="error").inc()
+            logger.error(f"Failed to send RCA notification: {e}")
+            return False
+    
+    def _build_rca_blocks(
+        self,
+        analysis: "RcaAnalysis",
+        pr_owner_slack_id: Optional[str],
+        build_url: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        """Build Slack Block Kit blocks for RCA notification."""
+        
+        # Confidence emoji
+        conf_emoji = "🟢" if analysis.confidence_level == "high" else "🟡" if analysis.confidence_level == "medium" else "🔴"
+        
+        # Error type emoji
+        error_emoji = {
+            "test_failure": "🧪",
+            "compilation_error": "🔧",
+            "dependency_error": "📦",
+            "configuration_error": "⚙️",
+            "infrastructure_error": "🏗️",
+            "timeout_error": "⏱️",
+        }.get(analysis.error_type, "❓")
+        
+        # Build mention string
+        mention = f"<@{pr_owner_slack_id}>" if pr_owner_slack_id else ""
+        
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"🔍 Build Failure Analysis",
+                    "emoji": True
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Analysis ID:* `{analysis.analysis_id}`\n"
+                            f"*Build:* {build_url or 'N/A'}\n"
+                            f"*Analyzed:* {analysis.analyzed_at.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                }
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"{error_emoji} *Error Type:* {analysis.error_type.replace('_', ' ').title()}\n\n"
+                            f"*Root Cause:*\n{analysis.root_cause_summary}"
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"{conf_emoji} *Confidence:* {analysis.confidence_score:.0%} ({analysis.confidence_level})"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Suspected Author:* {mention or analysis.suspected_author or 'Unknown'}"
+                    }
+                ]
+            }
+        ]
+        
+        # Add suspected files
+        if analysis.suspected_files:
+            files_text = "\n".join([
+                f"• `{f.file_path}` (lines: {f.relevant_lines or 'N/A'})"
+                for f in analysis.suspected_files[:3]
+            ])
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*📁 Suspected Files:*\n{files_text}"
+                }
+            })
+        
+        # Add fix suggestion
+        blocks.append({"type": "divider"})
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*💡 Suggested Fix:*\n{analysis.fix_suggestion[:500]}{'...' if len(analysis.fix_suggestion) > 500 else ''}"
+            }
+        })
+        
+        # Add code snippet if available
+        if analysis.fix_code_snippet:
+            snippet = analysis.fix_code_snippet[:300]
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"```{snippet}{'...' if len(analysis.fix_code_snippet) > 300 else ''}```"
+                }
+            })
+        
+        # Add action buttons
+        blocks.append({
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "📋 View Full Analysis", "emoji": True},
+                    "url": f"http://rca-agent:8006/analysis/{analysis.analysis_id}",
+                    "action_id": "view_rca_analysis"
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "🔄 Re-run Analysis", "emoji": True},
+                    "action_id": "rerun_rca_analysis",
+                    "value": analysis.analysis_id
+                }
+            ]
+        })
+        
+        # Add footer with recommendations
+        if analysis.additional_recommendations:
+            recs = " | ".join(analysis.additional_recommendations[:3])
+            blocks.append({
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"💡 _Additional: {recs}_"
+                    }
+                ]
+            })
+        
+        return blocks
 
 
 # =============================================================================
@@ -652,14 +941,27 @@ class RcaEngine:
     3. Process and truncate logs for LLM context
     4. Send to LLM for analysis
     5. Return structured RCA result
+    6. (Optional) Send Slack notification with PR owner tag
     """
     
     def __init__(self):
         self.jenkins = JenkinsClient()
         self.github = GitHubClient()
         self.llm = RcaLLMClient()
+        self.slack = SlackNotificationClient()
     
-    async def analyze_build(self, request: RcaRequest) -> RcaAnalysis:
+    async def close(self):
+        """Clean up resources."""
+        await self.slack.close()
+    
+    async def analyze_build(
+        self,
+        request: RcaRequest,
+        notify: bool = False,
+        channel: Optional[str] = None,
+        pr_owner_email: Optional[str] = None,
+        trigger: str = "manual"
+    ) -> RcaAnalysis:
         """Perform complete RCA analysis on a failed build."""
         
         start_time = time.time()
@@ -772,16 +1074,36 @@ class RcaEngine:
             )
             
             # Record metrics
-            RCA_REQUESTS.labels(status="success", error_type=analysis.error_type).inc()
+            RCA_REQUESTS.labels(status="success", error_type=analysis.error_type, trigger=trigger).inc()
             RCA_DURATION.labels(job_name=request.job_name).observe(analysis_duration)
             RCA_CONFIDENCE.observe(confidence)
             
             logger.info(f"RCA complete for {request.job_name}#{request.build_number} in {analysis_duration:.2f}s")
             
+            # Step 6: Send Slack notification if enabled
+            if notify and Config.SLACK_NOTIFY_ON_FAILURE:
+                notification_channel = channel or Config.SLACK_RELEASE_CHANNEL
+                
+                # Use pr_owner_email or try to get from suspected_author
+                owner_email = pr_owner_email or suspected_author
+                
+                logger.info(f"Sending RCA notification to {notification_channel}")
+                notification_sent = await self.slack.send_rca_notification(
+                    analysis=analysis,
+                    channel=notification_channel,
+                    pr_owner_email=owner_email,
+                    build_url=request.build_url or build_info.get("url")
+                )
+                
+                if notification_sent:
+                    analysis.notification_sent = True
+                    analysis.notification_channel = notification_channel
+                    analysis.pr_owner_tagged = owner_email
+            
             return analysis
             
         except Exception as e:
-            RCA_REQUESTS.labels(status="error", error_type="exception").inc()
+            RCA_REQUESTS.labels(status="error", error_type="exception", trigger=trigger).inc()
             logger.error(f"RCA failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
         
@@ -807,16 +1129,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"   Jenkins Mock Mode: {Config.JENKINS_MOCK_MODE}")
     logger.info(f"   GitHub Mock Mode: {Config.GITHUB_MOCK_MODE}")
     logger.info(f"   LLM Mock Mode: {Config.LLM_MOCK_MODE}")
+    logger.info(f"   Slack Mock Mode: {Config.SLACK_MOCK_MODE}")
+    logger.info(f"   Auto-Analyze: {Config.AUTO_ANALYZE_ENABLED}")
+    logger.info(f"   Release Channel: {Config.SLACK_RELEASE_CHANNEL}")
     
     yield
     
+    # Cleanup
+    if rca_engine:
+        await rca_engine.close()
     logger.info("👋 RCA Agent shutdown complete")
 
 
 app = FastAPI(
     title="Nexus RCA Agent",
-    description="Smart Root Cause Analysis for build failures",
-    version="2.1.0",
+    description="Smart Root Cause Analysis for build failures with auto-trigger and Slack notifications",
+    version="2.2.0",
     lifespan=lifespan
 )
 
@@ -840,13 +1168,16 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "rca-agent",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "timestamp": datetime.utcnow().isoformat(),
         "config": {
             "jenkins_mock": Config.JENKINS_MOCK_MODE,
             "github_mock": Config.GITHUB_MOCK_MODE,
             "llm_mock": Config.LLM_MOCK_MODE,
-            "llm_model": Config.LLM_MODEL
+            "llm_model": Config.LLM_MODEL,
+            "slack_mock": Config.SLACK_MOCK_MODE,
+            "auto_analyze": Config.AUTO_ANALYZE_ENABLED,
+            "release_channel": Config.SLACK_RELEASE_CHANNEL
         }
     }
 
@@ -857,8 +1188,27 @@ async def prometheus_metrics():
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
+class AnalyzeRequest(BaseModel):
+    """Extended analyze request with notification options."""
+    job_name: str
+    build_number: int
+    build_url: Optional[str] = None
+    repo_name: Optional[str] = None
+    branch: Optional[str] = None
+    pr_id: Optional[int] = None
+    commit_sha: Optional[str] = None
+    include_git_diff: bool = True
+    include_test_output: bool = True
+    max_log_lines: int = 5000
+    
+    # Notification options
+    notify: bool = False
+    channel: Optional[str] = None
+    pr_owner_email: Optional[str] = None
+
+
 @app.post("/analyze", response_model=RcaAnalysis)
-async def analyze_build_failure(request: RcaRequest):
+async def analyze_build_failure(request: AnalyzeRequest):
     """
     Analyze a failed build to determine root cause.
     
@@ -867,8 +1217,136 @@ async def analyze_build_failure(request: RcaRequest):
     2. Fetches git diffs for commits in the build
     3. Uses LLM to correlate errors with code changes
     4. Returns structured root cause analysis with fix suggestions
+    5. Optionally sends Slack notification with PR owner tag
+    
+    Set `notify=true` to send Slack notification to the release channel.
     """
-    return await rca_engine.analyze_build(request)
+    rca_request = RcaRequest(
+        job_name=request.job_name,
+        build_number=request.build_number,
+        build_url=request.build_url,
+        repo_name=request.repo_name,
+        branch=request.branch,
+        pr_id=request.pr_id,
+        commit_sha=request.commit_sha,
+        include_git_diff=request.include_git_diff,
+        include_test_output=request.include_test_output,
+        max_log_lines=request.max_log_lines
+    )
+    
+    return await rca_engine.analyze_build(
+        request=rca_request,
+        notify=request.notify,
+        channel=request.channel,
+        pr_owner_email=request.pr_owner_email,
+        trigger="manual"
+    )
+
+
+@app.post("/webhook/jenkins")
+async def jenkins_webhook(
+    payload: JenkinsWebhookPayload,
+    background_tasks: BackgroundTasks
+):
+    """
+    Webhook endpoint for Jenkins to trigger automatic RCA on build failures.
+    
+    Configure in Jenkins with Generic Webhook Trigger plugin:
+    - URL: http://rca-agent:8006/webhook/jenkins
+    - Content-Type: application/json
+    - Filter: Only trigger on FAILURE or UNSTABLE
+    
+    The RCA analysis runs in background and sends Slack notification.
+    """
+    # Only analyze failures
+    if payload.build_result not in ("FAILURE", "UNSTABLE"):
+        RCA_WEBHOOKS.labels(job_name=payload.job_name, status="skipped").inc()
+        return {
+            "status": "skipped",
+            "reason": f"Build result is {payload.build_result}, not a failure",
+            "job": payload.job_name,
+            "build": payload.build_number
+        }
+    
+    if not Config.AUTO_ANALYZE_ENABLED:
+        RCA_WEBHOOKS.labels(job_name=payload.job_name, status="disabled").inc()
+        return {
+            "status": "disabled",
+            "reason": "Auto-analyze is disabled",
+            "job": payload.job_name,
+            "build": payload.build_number
+        }
+    
+    RCA_WEBHOOKS.labels(job_name=payload.job_name, status="queued").inc()
+    
+    # Extract repo name from git_url if available
+    repo_name = None
+    if payload.git_url:
+        # Parse repo name from URL like https://github.com/org/repo.git
+        match = re.search(r'/([^/]+/[^/]+?)(?:\.git)?$', payload.git_url)
+        if match:
+            repo_name = match.group(1).split('/')[-1]
+    
+    # Queue background analysis
+    background_tasks.add_task(
+        _background_analyze_and_notify,
+        job_name=payload.job_name,
+        build_number=payload.build_number,
+        build_url=payload.build_url,
+        repo_name=repo_name,
+        branch=payload.git_branch,
+        commit_sha=payload.git_commit,
+        pr_id=payload.pr_number,
+        pr_owner_email=payload.pr_author_email,
+        channel=payload.release_channel
+    )
+    
+    return {
+        "status": "queued",
+        "message": "RCA analysis queued, Slack notification will be sent",
+        "job": payload.job_name,
+        "build": payload.build_number,
+        "channel": payload.release_channel or Config.SLACK_RELEASE_CHANNEL
+    }
+
+
+async def _background_analyze_and_notify(
+    job_name: str,
+    build_number: int,
+    build_url: Optional[str] = None,
+    repo_name: Optional[str] = None,
+    branch: Optional[str] = None,
+    commit_sha: Optional[str] = None,
+    pr_id: Optional[int] = None,
+    pr_owner_email: Optional[str] = None,
+    channel: Optional[str] = None
+):
+    """Background task to analyze build failure and send notification."""
+    try:
+        logger.info(f"[BACKGROUND] Starting RCA for {job_name}#{build_number}")
+        
+        request = RcaRequest(
+            job_name=job_name,
+            build_number=build_number,
+            build_url=build_url,
+            repo_name=repo_name,
+            branch=branch,
+            commit_sha=commit_sha,
+            pr_id=pr_id
+        )
+        
+        analysis = await rca_engine.analyze_build(
+            request=request,
+            notify=True,
+            channel=channel,
+            pr_owner_email=pr_owner_email,
+            trigger="webhook"
+        )
+        
+        logger.info(f"[BACKGROUND] RCA complete for {job_name}#{build_number}: {analysis.root_cause_summary[:50]}...")
+        
+    except Exception as e:
+        logger.error(f"[BACKGROUND] RCA failed for {job_name}#{build_number}: {e}")
 
 
 @app.post("/execute")
@@ -882,7 +1360,12 @@ async def execute_task(request: Dict[str, Any]):
     
     if action == "analyze_build_failure":
         rca_request = RcaRequest(**payload)
-        analysis = await rca_engine.analyze_build(rca_request)
+        notify = payload.get("notify", True)  # Default to notify from orchestrator
+        analysis = await rca_engine.analyze_build(
+            request=rca_request,
+            notify=notify,
+            trigger="orchestrator"
+        )
         return {"status": "success", "data": analysis.model_dump()}
     
     elif action == "health":
