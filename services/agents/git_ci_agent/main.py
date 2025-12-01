@@ -1,6 +1,8 @@
 """
 Nexus Git/CI Agent
 Handles GitHub repository operations and Jenkins/CI pipeline management
+
+Now with dynamic configuration via ConfigManager - supports live mode switching from Admin Dashboard.
 """
 import os
 import sys
@@ -37,6 +39,7 @@ from nexus_lib.instrumentation import (
     create_metrics_endpoint,
 )
 from nexus_lib.utils import generate_task_id, utc_now
+from nexus_lib.config import ConfigManager, ConfigKeys, is_mock_mode
 
 # Configure logging
 logging.basicConfig(
@@ -53,62 +56,81 @@ logger = logging.getLogger("nexus.git-ci-agent")
 class GitHubClient:
     """
     Wrapper for GitHub API interactions using PyGithub
+    
+    Now uses ConfigManager for dynamic configuration:
+    - Mode can be switched live via Admin Dashboard
+    - Credentials are fetched from Redis/env/defaults
     """
     
     def __init__(self):
-        self.mock_mode = os.environ.get("GITHUB_MOCK_MODE", "true").lower() == "true"
-        self.github = None
-        
-        if not self.mock_mode:
-            try:
-                from github import Github, Auth
-                
-                token = os.environ.get("GITHUB_TOKEN")
-                if token:
-                    auth = Auth.Token(token)
-                    self.github = Github(auth=auth)
-                    # Verify connection
-                    self.github.get_user().login
-                    logger.info("GitHub client initialized in LIVE mode")
-                else:
-                    logger.warning("GITHUB_TOKEN not set, falling back to mock mode")
-                    self.mock_mode = True
-            except ImportError:
-                logger.warning("PyGithub not installed, falling back to mock mode")
-                self.mock_mode = True
-            except Exception as e:
-                logger.error(f"Failed to initialize GitHub client: {e}")
-                self.mock_mode = True
-        
-        if self.mock_mode:
-            logger.info("GitHub client running in MOCK mode")
+        self._github = None
+        self._last_mode = None
+        self._initialized = False
+        logger.info("GitHub client created - will initialize on first use")
     
-    def get_repo_health(self, repo_name: str) -> RepositoryHealth:
+    async def _ensure_initialized(self):
+        """Lazy initialization - checks config on each operation."""
+        current_mock_mode = await is_mock_mode()
+        
+        if self._last_mode != current_mock_mode or not self._initialized:
+            self._last_mode = current_mock_mode
+            self._initialized = True
+            
+            if current_mock_mode:
+                logger.info("GitHub client operating in MOCK mode")
+                self._github = None
+            else:
+                await self._init_live_client()
+    
+    async def _init_live_client(self):
+        """Initialize the live GitHub client with credentials from ConfigManager."""
+        try:
+            from github import Github, Auth
+            
+            token = await ConfigManager.get(ConfigKeys.GITHUB_TOKEN)
+            
+            if token:
+                auth = Auth.Token(token)
+                self._github = Github(auth=auth)
+                self._github.get_user().login
+                logger.info("GitHub client initialized in LIVE mode")
+            else:
+                logger.warning("GITHUB_TOKEN not set, falling back to mock mode")
+                self._last_mode = True
+                self._github = None
+        except ImportError:
+            logger.warning("PyGithub not installed, falling back to mock mode")
+            self._last_mode = True
+            self._github = None
+        except Exception as e:
+            logger.error(f"Failed to initialize GitHub client: {e}")
+            self._last_mode = True
+            self._github = None
+    
+    @property
+    def mock_mode(self) -> bool:
+        return self._last_mode if self._last_mode is not None else True
+    
+    async def get_repo_health(self, repo_name: str) -> RepositoryHealth:
         """Get repository health metrics"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return self._mock_repo_health(repo_name)
         
         try:
-            repo = self.github.get_repo(repo_name)
+            repo = self._github.get_repo(repo_name)
             default_branch = repo.default_branch
-            
-            # Get latest commit status
             branch = repo.get_branch(default_branch)
             commit = repo.get_commit(branch.commit.sha)
-            
-            # Get combined status
             status = commit.get_combined_status()
             status_state = status.state if status else "unknown"
             
-            # Count PRs
             open_prs = repo.get_pulls(state="open")
             open_pr_count = open_prs.totalCount
-            
-            # Count stale PRs (> 7 days old)
             week_ago = datetime.now() - timedelta(days=7)
             stale_count = sum(1 for pr in open_prs if pr.created_at < week_ago)
             
-            # Get branch protection
             protection = None
             try:
                 protection = branch.get_protection()
@@ -130,16 +152,17 @@ class GitHubClient:
             logger.error(f"Failed to get repo health: {e}")
             raise
     
-    def get_pr_status(self, repo_name: str, pr_number: int) -> PRStatus:
+    async def get_pr_status(self, repo_name: str, pr_number: int) -> PRStatus:
         """Get pull request status and details"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return self._mock_pr_status(repo_name, pr_number)
         
         try:
-            repo = self.github.get_repo(repo_name)
+            repo = self._github.get_repo(repo_name)
             pr = repo.get_pull(pr_number)
             
-            # Get CI status
             commits = pr.get_commits()
             last_commit = list(commits)[-1] if commits.totalCount > 0 else None
             ci_status = None
@@ -147,7 +170,6 @@ class GitHubClient:
                 status = last_commit.get_combined_status()
                 ci_status = status.state
             
-            # Count approvals
             reviews = pr.get_reviews()
             approvals = sum(1 for r in reviews if r.state == "APPROVED")
             changes_requested = any(r.state == "CHANGES_REQUESTED" for r in reviews)
@@ -179,13 +201,15 @@ class GitHubClient:
             logger.error(f"Failed to get PR status: {e}")
             raise
     
-    def list_open_prs(self, repo_name: str) -> List[PRStatus]:
+    async def list_open_prs(self, repo_name: str) -> List[PRStatus]:
         """List all open PRs for a repository"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return [self._mock_pr_status(repo_name, i) for i in range(1, 4)]
         
         try:
-            repo = self.github.get_repo(repo_name)
+            repo = self._github.get_repo(repo_name)
             prs = repo.get_pulls(state="open", sort="updated", direction="desc")
             
             return [
@@ -200,7 +224,7 @@ class GitHubClient:
                     created_at=pr.created_at,
                     updated_at=pr.updated_at
                 )
-                for pr in prs[:20]  # Limit to 20 PRs
+                for pr in prs[:20]
             ]
         except Exception as e:
             logger.error(f"Failed to list PRs: {e}")
@@ -256,53 +280,75 @@ class GitHubClient:
 class JenkinsClient:
     """
     Wrapper for Jenkins API interactions using python-jenkins
+    
+    Now uses ConfigManager for dynamic configuration.
     """
     
     def __init__(self):
-        self.mock_mode = os.environ.get("JENKINS_MOCK_MODE", "true").lower() == "true"
-        self.jenkins = None
-        
-        if not self.mock_mode:
-            try:
-                import jenkins
-                
-                url = os.environ.get("JENKINS_URL")
-                username = os.environ.get("JENKINS_USERNAME")
-                token = os.environ.get("JENKINS_API_TOKEN")
-                
-                if url and username and token:
-                    self.jenkins = jenkins.Jenkins(url, username=username, password=token)
-                    # Verify connection
-                    self.jenkins.get_whoami()
-                    logger.info("Jenkins client initialized in LIVE mode")
-                else:
-                    logger.warning("Jenkins credentials not set, falling back to mock mode")
-                    self.mock_mode = True
-            except ImportError:
-                logger.warning("python-jenkins not installed, falling back to mock mode")
-                self.mock_mode = True
-            except Exception as e:
-                logger.error(f"Failed to initialize Jenkins client: {e}")
-                self.mock_mode = True
-        
-        if self.mock_mode:
-            logger.info("Jenkins client running in MOCK mode")
+        self._jenkins = None
+        self._last_mode = None
+        self._initialized = False
+        logger.info("Jenkins client created - will initialize on first use")
     
-    def get_build_status(self, job_name: str, build_number: Optional[int] = None) -> BuildStatus:
+    async def _ensure_initialized(self):
+        """Lazy initialization - checks config on each operation."""
+        current_mock_mode = await is_mock_mode()
+        
+        if self._last_mode != current_mock_mode or not self._initialized:
+            self._last_mode = current_mock_mode
+            self._initialized = True
+            
+            if current_mock_mode:
+                logger.info("Jenkins client operating in MOCK mode")
+                self._jenkins = None
+            else:
+                await self._init_live_client()
+    
+    async def _init_live_client(self):
+        """Initialize the live Jenkins client with credentials from ConfigManager."""
+        try:
+            import jenkins
+            
+            url = await ConfigManager.get(ConfigKeys.JENKINS_URL)
+            username = await ConfigManager.get(ConfigKeys.JENKINS_USERNAME)
+            token = await ConfigManager.get(ConfigKeys.JENKINS_API_TOKEN)
+            
+            if url and username and token:
+                self._jenkins = jenkins.Jenkins(url, username=username, password=token)
+                self._jenkins.get_whoami()
+                logger.info(f"Jenkins client initialized in LIVE mode - {url}")
+            else:
+                logger.warning("Jenkins credentials not set, falling back to mock mode")
+                self._last_mode = True
+                self._jenkins = None
+        except ImportError:
+            logger.warning("python-jenkins not installed, falling back to mock mode")
+            self._last_mode = True
+            self._jenkins = None
+        except Exception as e:
+            logger.error(f"Failed to initialize Jenkins client: {e}")
+            self._last_mode = True
+            self._jenkins = None
+    
+    @property
+    def mock_mode(self) -> bool:
+        return self._last_mode if self._last_mode is not None else True
+    
+    async def get_build_status(self, job_name: str, build_number: Optional[int] = None) -> BuildStatus:
         """Get build status for a job"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return self._mock_build_status(job_name, build_number or 42)
         
         try:
             if build_number:
-                build_info = self.jenkins.get_build_info(job_name, build_number)
+                build_info = self._jenkins.get_build_info(job_name, build_number)
             else:
-                # Get last build
-                job_info = self.jenkins.get_job_info(job_name)
+                job_info = self._jenkins.get_job_info(job_name)
                 build_number = job_info["lastBuild"]["number"]
-                build_info = self.jenkins.get_build_info(job_name, build_number)
+                build_info = self._jenkins.get_build_info(job_name, build_number)
             
-            # Parse test results if available
             test_results = None
             for action in build_info.get("actions", []):
                 if action.get("_class", "").endswith("TestResultAction"):
@@ -315,7 +361,6 @@ class JenkinsClient:
                     )
                     break
             
-            # Parse artifacts
             artifacts = [
                 BuildArtifact(
                     name=a["fileName"],
@@ -341,17 +386,19 @@ class JenkinsClient:
             logger.error(f"Failed to get build status: {e}")
             raise
     
-    def trigger_build(self, job_name: str, parameters: Optional[Dict] = None) -> Dict[str, Any]:
+    async def trigger_build(self, job_name: str, parameters: Optional[Dict] = None) -> Dict[str, Any]:
         """Trigger a new build"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             logger.info(f"[MOCK] Triggered build for {job_name} with params: {parameters}")
             return {"queue_id": 12345, "message": "Build queued (mock)"}
         
         try:
             if parameters:
-                queue_id = self.jenkins.build_job(job_name, parameters=parameters)
+                queue_id = self._jenkins.build_job(job_name, parameters=parameters)
             else:
-                queue_id = self.jenkins.build_job(job_name)
+                queue_id = self._jenkins.build_job(job_name)
             
             return {
                 "queue_id": queue_id,
@@ -361,17 +408,19 @@ class JenkinsClient:
             logger.error(f"Failed to trigger build: {e}")
             raise
     
-    def get_job_history(self, job_name: str, limit: int = 10) -> List[BuildStatus]:
+    async def get_job_history(self, job_name: str, limit: int = 10) -> List[BuildStatus]:
         """Get build history for a job"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return [self._mock_build_status(job_name, 42 - i) for i in range(limit)]
         
         try:
-            job_info = self.jenkins.get_job_info(job_name)
+            job_info = self._jenkins.get_job_info(job_name)
             builds = job_info.get("builds", [])[:limit]
             
             return [
-                self.get_build_status(job_name, b["number"])
+                await self.get_build_status(job_name, b["number"])
                 for b in builds
             ]
         except Exception as e:
@@ -419,20 +468,25 @@ class JenkinsClient:
 # ============================================================================
 
 class SecurityScannerClient:
-    """Mock security scanner integration"""
+    """Mock security scanner integration with dynamic mode support"""
     
     def __init__(self):
-        self.mock_mode = True
-        logger.info("Security scanner running in MOCK mode")
+        self._last_mode = None
+        logger.info("Security scanner client created")
     
-    def get_security_scan(self, repo_name: str, branch: str = "main") -> SecurityScanResult:
+    async def _ensure_initialized(self):
+        """Check mode on each operation."""
+        self._last_mode = await is_mock_mode()
+    
+    @property
+    def mock_mode(self) -> bool:
+        return self._last_mode if self._last_mode is not None else True
+    
+    async def get_security_scan(self, repo_name: str, branch: str = "main") -> SecurityScanResult:
         """Get security scan results"""
-        # In production, integrate with tools like:
-        # - Snyk
-        # - Dependabot
-        # - SonarQube
-        # - Trivy
+        await self._ensure_initialized()
         
+        # In production, integrate with tools like Snyk, Dependabot, SonarQube, Trivy
         return SecurityScanResult(
             repo_name=repo_name,
             branch=branch,
@@ -450,7 +504,7 @@ class SecurityScannerClient:
             info_vulnerabilities=8,
             vulnerabilities=[
                 Vulnerability(
-                    id="CVE-2023-12345",
+                    id="CVE-2025-12345",
                     title="Prototype Pollution in lodash",
                     severity=SeverityLevel.HIGH,
                     cvss_score=7.5,
@@ -460,7 +514,7 @@ class SecurityScannerClient:
                     remediation="Upgrade lodash to version 4.17.21 or later"
                 ),
                 Vulnerability(
-                    id="CVE-2023-67890",
+                    id="CVE-2025-67890",
                     title="SQL Injection in mysql driver",
                     severity=SeverityLevel.HIGH,
                     cvss_score=8.1,
@@ -493,11 +547,13 @@ async def lifespan(app: FastAPI):
     global github_client, jenkins_client, security_client
     
     # Startup
-    setup_tracing("git-ci-agent", service_version="1.0.0")
+    setup_tracing("git-ci-agent", service_version="2.3.0")
     github_client = GitHubClient()
     jenkins_client = JenkinsClient()
     security_client = SecurityScannerClient()
-    logger.info("Git/CI Agent started")
+    
+    current_mode = await is_mock_mode()
+    logger.info(f"Git/CI Agent started - Mode: {'MOCK' if current_mode else 'LIVE'}")
     
     yield
     
@@ -507,8 +563,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Nexus Git/CI Agent",
-    description="Agent for GitHub and Jenkins/CI operations in the Nexus release automation system",
-    version="1.0.0",
+    description="Agent for GitHub and Jenkins/CI operations with dynamic configuration support",
+    version="2.3.0",
     lifespan=lifespan
 )
 
@@ -530,25 +586,25 @@ create_metrics_endpoint(app)
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with dynamic mode detection"""
+    current_mode = await is_mock_mode()
     return {
         "status": "healthy",
         "service": "git-ci-agent",
-        "github_mock": github_client.mock_mode if github_client else True,
-        "jenkins_mock": jenkins_client.mock_mode if jenkins_client else True
+        "version": "2.3.0",
+        "mock_mode": current_mode,
+        "dynamic_config": True
     }
 
 
 @app.get("/repo/{repo_name:path}/health", response_model=AgentTaskResponse)
 @track_tool_usage("check_repo_health", agent_type="git_ci")
 async def get_repo_health(repo_name: str):
-    """
-    Get repository health metrics
-    """
+    """Get repository health metrics"""
     task_id = generate_task_id("git")
     
     try:
-        health = github_client.get_repo_health(repo_name)
+        health = await github_client.get_repo_health(repo_name)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -569,13 +625,11 @@ async def get_repo_health(repo_name: str):
 @app.get("/repo/{repo_name:path}/pr/{pr_number}", response_model=AgentTaskResponse)
 @track_tool_usage("check_pr_status", agent_type="git_ci")
 async def get_pr_status(repo_name: str, pr_number: int):
-    """
-    Get pull request status
-    """
+    """Get pull request status"""
     task_id = generate_task_id("git")
     
     try:
-        pr_status = github_client.get_pr_status(repo_name, pr_number)
+        pr_status = await github_client.get_pr_status(repo_name, pr_number)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -596,13 +650,11 @@ async def get_pr_status(repo_name: str, pr_number: int):
 @app.get("/repo/{repo_name:path}/prs", response_model=AgentTaskResponse)
 @track_tool_usage("list_open_prs", agent_type="git_ci")
 async def list_open_prs(repo_name: str):
-    """
-    List open pull requests
-    """
+    """List open pull requests"""
     task_id = generate_task_id("git")
     
     try:
-        prs = github_client.list_open_prs(repo_name)
+        prs = await github_client.list_open_prs(repo_name)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -626,13 +678,11 @@ async def trigger_build(
     job_name: str,
     parameters: Optional[Dict[str, Any]] = None
 ):
-    """
-    Trigger a Jenkins build
-    """
+    """Trigger a Jenkins build"""
     task_id = generate_task_id("jenkins")
     
     try:
-        result = jenkins_client.trigger_build(job_name, parameters)
+        result = await jenkins_client.trigger_build(job_name, parameters)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -652,17 +702,15 @@ async def trigger_build(
 
 @app.get("/build/{job_name}/status", response_model=AgentTaskResponse)
 @track_tool_usage("get_build_status", agent_type="git_ci")
-async def get_build_status(
+async def get_build_status_endpoint(
     job_name: str,
     build_number: Optional[int] = Query(None, description="Build number (default: latest)")
 ):
-    """
-    Get build status
-    """
+    """Get build status"""
     task_id = generate_task_id("jenkins")
     
     try:
-        status = jenkins_client.get_build_status(job_name, build_number)
+        status = await jenkins_client.get_build_status(job_name, build_number)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -686,13 +734,11 @@ async def get_build_history(
     job_name: str,
     limit: int = Query(10, ge=1, le=50)
 ):
-    """
-    Get build history for a job
-    """
+    """Get build history for a job"""
     task_id = generate_task_id("jenkins")
     
     try:
-        history = jenkins_client.get_job_history(job_name, limit)
+        history = await jenkins_client.get_job_history(job_name, limit)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -716,13 +762,11 @@ async def get_security_scan(
     repo_name: str,
     branch: str = Query("main", description="Branch to scan")
 ):
-    """
-    Get security scan results for a repository
-    """
+    """Get security scan results for a repository"""
     task_id = generate_task_id("security")
     
     try:
-        scan = security_client.get_security_scan(repo_name, branch)
+        scan = await security_client.get_security_scan(repo_name, branch)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -742,13 +786,10 @@ async def get_security_scan(
 
 @app.post("/execute", response_model=AgentTaskResponse)
 async def execute_task(request: AgentTaskRequest):
-    """
-    Generic task execution endpoint for orchestrator integration
-    """
+    """Generic task execution endpoint for orchestrator integration"""
     action = request.action
     payload = request.payload
     
-    # Route to appropriate handler
     if action == "repo_health":
         return await get_repo_health(payload.get("repo_name"))
     elif action == "pr_status":
@@ -758,7 +799,7 @@ async def execute_task(request: AgentTaskRequest):
     elif action == "trigger_build":
         return await trigger_build(payload.get("job_name"), payload.get("parameters"))
     elif action == "build_status":
-        return await get_build_status(payload.get("job_name"), payload.get("build_number"))
+        return await get_build_status_endpoint(payload.get("job_name"), payload.get("build_number"))
     elif action == "build_history":
         return await get_build_history(payload.get("job_name"), payload.get("limit", 10))
     elif action == "security_scan":

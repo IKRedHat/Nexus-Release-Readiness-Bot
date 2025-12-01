@@ -14,13 +14,16 @@ Features:
 
 Uses LLM (Google Gemini) to correlate error logs with git diffs.
 
+Now with dynamic configuration via ConfigManager - supports live mode switching from Admin Dashboard.
+
 Author: Nexus Team
-Version: 2.2.0
+Version: 2.3.0
 """
 
 import asyncio
 import logging
 import os
+import sys
 import re
 import time
 import json
@@ -36,6 +39,11 @@ from pydantic import BaseModel, Field
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
 
+# Add shared lib to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../shared")))
+
+from nexus_lib.config import ConfigManager, ConfigKeys, is_mock_mode
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,39 +53,88 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 class Config:
-    """RCA Agent configuration."""
-    # Jenkins settings
+    """
+    RCA Agent configuration.
+    
+    Now uses ConfigManager for dynamic configuration.
+    Mode can be switched live via Admin Dashboard.
+    """
+    # Analysis settings (static, not dynamically configured)
+    MAX_LOG_CHARS = int(os.getenv("RCA_MAX_LOG_CHARS", "100000"))
+    MAX_DIFF_CHARS = int(os.getenv("RCA_MAX_DIFF_CHARS", "50000"))
+    
+    # Service settings
+    PORT = int(os.getenv("PORT", "8006"))
+    WEBHOOK_SECRET = os.getenv("RCA_WEBHOOK_SECRET", "")
+    
+    # Defaults (used as fallback)
+    DEFAULT_SLACK_CHANNEL = "#release-notifications"
+    DEFAULT_LLM_MODEL = "gemini-1.5-pro"
+    
+    @classmethod
+    async def get_jenkins_url(cls) -> str:
+        return await ConfigManager.get(ConfigKeys.JENKINS_URL) or "http://jenkins:8080"
+    
+    @classmethod
+    async def get_jenkins_username(cls) -> str:
+        return await ConfigManager.get(ConfigKeys.JENKINS_USERNAME) or ""
+    
+    @classmethod
+    async def get_jenkins_token(cls) -> str:
+        return await ConfigManager.get(ConfigKeys.JENKINS_API_TOKEN) or ""
+    
+    @classmethod
+    async def get_github_token(cls) -> str:
+        return await ConfigManager.get(ConfigKeys.GITHUB_TOKEN) or ""
+    
+    @classmethod
+    async def get_github_org(cls) -> str:
+        return await ConfigManager.get(ConfigKeys.GITHUB_ORG) or ""
+    
+    @classmethod
+    async def get_gemini_api_key(cls) -> str:
+        return await ConfigManager.get(ConfigKeys.GEMINI_API_KEY) or ""
+    
+    @classmethod
+    async def get_llm_model(cls) -> str:
+        return await ConfigManager.get(ConfigKeys.LLM_MODEL) or cls.DEFAULT_LLM_MODEL
+    
+    @classmethod
+    async def get_slack_agent_url(cls) -> str:
+        return await ConfigManager.get(ConfigKeys.SLACK_AGENT_URL) or "http://slack-agent:8084"
+    
+    @classmethod
+    async def get_slack_channel(cls) -> str:
+        return os.getenv("SLACK_RELEASE_CHANNEL", cls.DEFAULT_SLACK_CHANNEL)
+    
+    @classmethod
+    async def is_mock_mode(cls) -> bool:
+        return await is_mock_mode()
+    
+    @classmethod
+    async def notify_on_failure(cls) -> bool:
+        return os.getenv("SLACK_NOTIFY_ON_FAILURE", "true").lower() == "true"
+    
+    @classmethod
+    async def auto_analyze_enabled(cls) -> bool:
+        return os.getenv("RCA_AUTO_ANALYZE", "true").lower() == "true"
+    
+    # Backward compatibility properties for static access (reads env vars)
     JENKINS_URL = os.getenv("JENKINS_URL", "http://jenkins:8080")
     JENKINS_USERNAME = os.getenv("JENKINS_USERNAME", "")
     JENKINS_API_TOKEN = os.getenv("JENKINS_API_TOKEN", "")
     JENKINS_MOCK_MODE = os.getenv("JENKINS_MOCK_MODE", "true").lower() == "true"
-    
-    # GitHub settings
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
     GITHUB_ORG = os.getenv("GITHUB_ORG", "")
     GITHUB_MOCK_MODE = os.getenv("GITHUB_MOCK_MODE", "true").lower() == "true"
-    
-    # LLM settings (Gemini recommended for larger context)
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
-    LLM_MODEL = os.getenv("RCA_LLM_MODEL", "gemini-1.5-pro")  # Pro has 1M token context
+    LLM_MODEL = os.getenv("RCA_LLM_MODEL", "gemini-1.5-pro")
     LLM_MOCK_MODE = os.getenv("LLM_MOCK_MODE", "true").lower() == "true"
-    
-    # Analysis settings
-    MAX_LOG_CHARS = int(os.getenv("RCA_MAX_LOG_CHARS", "100000"))
-    MAX_DIFF_CHARS = int(os.getenv("RCA_MAX_DIFF_CHARS", "50000"))
-    
-    # Slack notification settings
     SLACK_AGENT_URL = os.getenv("SLACK_AGENT_URL", "http://slack-agent:8084")
     SLACK_RELEASE_CHANNEL = os.getenv("SLACK_RELEASE_CHANNEL", "#release-notifications")
     SLACK_NOTIFY_ON_FAILURE = os.getenv("SLACK_NOTIFY_ON_FAILURE", "true").lower() == "true"
     SLACK_MOCK_MODE = os.getenv("SLACK_MOCK_MODE", "true").lower() == "true"
-    
-    # Auto-trigger settings
     AUTO_ANALYZE_ENABLED = os.getenv("RCA_AUTO_ANALYZE", "true").lower() == "true"
-    WEBHOOK_SECRET = os.getenv("RCA_WEBHOOK_SECRET", "")  # For validating Jenkins webhooks
-    
-    # Service settings
-    PORT = int(os.getenv("PORT", "8006"))
 
 # =============================================================================
 # Prometheus Metrics

@@ -1,6 +1,8 @@
 """
 Nexus Jira Agent
 Handles all Jira-related operations including ticket fetching, updates, and hierarchy traversal
+
+Now with dynamic configuration via ConfigManager - supports live mode switching from Admin Dashboard.
 """
 import os
 import sys
@@ -36,6 +38,7 @@ from nexus_lib.instrumentation import (
     JIRA_TICKETS_PROCESSED,
 )
 from nexus_lib.utils import generate_task_id, utc_now
+from nexus_lib.config import ConfigManager, ConfigKeys, is_mock_mode
 
 # Configure logging
 logging.basicConfig(
@@ -53,31 +56,72 @@ class JiraClient:
     """
     Wrapper for Jira API interactions using atlassian-python-api
     Supports both real API calls and mock mode for development
+    
+    Now uses ConfigManager for dynamic configuration:
+    - Mode can be switched live via Admin Dashboard
+    - Credentials are fetched from Redis/env/defaults
     """
     
     def __init__(self):
-        self.mock_mode = os.environ.get("JIRA_MOCK_MODE", "true").lower() == "true"
-        self.jira = None
+        self._jira = None
+        self._last_mode = None
+        self._initialized = False
+        logger.info("Jira client created - will initialize on first use")
+    
+    async def _ensure_initialized(self):
+        """
+        Lazy initialization - checks config on each operation.
+        This allows live mode switching without restart.
+        """
+        current_mock_mode = await is_mock_mode()
         
-        if not self.mock_mode:
-            try:
-                from atlassian import Jira
-                self.jira = Jira(
-                    url=os.environ.get("JIRA_URL", "https://jira.example.com"),
-                    username=os.environ.get("JIRA_USERNAME"),
-                    password=os.environ.get("JIRA_API_TOKEN"),
-                    cloud=os.environ.get("JIRA_CLOUD", "true").lower() == "true"
-                )
-                logger.info("Jira client initialized in LIVE mode")
-            except ImportError:
-                logger.warning("atlassian-python-api not installed, falling back to mock mode")
-                self.mock_mode = True
-            except Exception as e:
-                logger.error(f"Failed to initialize Jira client: {e}")
-                self.mock_mode = True
-        
-        if self.mock_mode:
-            logger.info("Jira client running in MOCK mode")
+        # Reinitialize if mode changed or not initialized
+        if self._last_mode != current_mock_mode or not self._initialized:
+            self._last_mode = current_mock_mode
+            self._initialized = True
+            
+            if current_mock_mode:
+                logger.info("Jira client operating in MOCK mode")
+                self._jira = None
+            else:
+                await self._init_live_client()
+    
+    async def _init_live_client(self):
+        """Initialize the live Jira client with credentials from ConfigManager."""
+        try:
+            from atlassian import Jira
+            
+            jira_url = await ConfigManager.get(ConfigKeys.JIRA_URL)
+            jira_username = await ConfigManager.get(ConfigKeys.JIRA_USERNAME)
+            jira_token = await ConfigManager.get(ConfigKeys.JIRA_API_TOKEN)
+            
+            if not all([jira_url, jira_username, jira_token]):
+                logger.warning("Jira credentials incomplete, falling back to mock mode")
+                self._last_mode = True
+                self._jira = None
+                return
+            
+            self._jira = Jira(
+                url=jira_url,
+                username=jira_username,
+                password=jira_token,
+                cloud=True  # Assume cloud by default
+            )
+            logger.info(f"Jira client initialized in LIVE mode - {jira_url}")
+            
+        except ImportError:
+            logger.warning("atlassian-python-api not installed, using mock mode")
+            self._last_mode = True
+            self._jira = None
+        except Exception as e:
+            logger.error(f"Failed to initialize Jira client: {e}")
+            self._last_mode = True
+            self._jira = None
+    
+    @property
+    def mock_mode(self) -> bool:
+        """Check if currently in mock mode."""
+        return self._last_mode if self._last_mode is not None else True
     
     def _parse_user(self, user_data: Optional[Dict]) -> Optional[JiraUser]:
         """Parse Jira user data into JiraUser model"""
@@ -110,7 +154,7 @@ class JiraClient:
             epic_key=fields.get("customfield_10014") or fields.get("epic", {}).get("key") if fields.get("epic") else None,
             assignee=self._parse_user(fields.get("assignee")),
             reporter=self._parse_user(fields.get("reporter")),
-            story_points=fields.get("customfield_10016"),  # Common story points field
+            story_points=fields.get("customfield_10016"),
             sprint_name=self._extract_sprint_name(fields),
             labels=fields.get("labels", []),
             components=[c.get("name") for c in fields.get("components", [])],
@@ -149,11 +193,10 @@ class JiraClient:
     
     def _extract_sprint_name(self, fields: Dict) -> Optional[str]:
         """Extract sprint name from Jira fields"""
-        sprints = fields.get("customfield_10020", [])  # Common sprint field
+        sprints = fields.get("customfield_10020", [])
         if sprints and len(sprints) > 0:
-            sprint = sprints[-1]  # Get latest sprint
+            sprint = sprints[-1]
             if isinstance(sprint, str):
-                # Parse sprint string format
                 if "name=" in sprint:
                     start = sprint.find("name=") + 5
                     end = sprint.find(",", start)
@@ -171,43 +214,41 @@ class JiraClient:
         except (ValueError, AttributeError):
             return None
     
-    def get_issue(self, key: str, expand: str = "changelog") -> JiraTicket:
+    async def get_issue(self, key: str, expand: str = "changelog") -> JiraTicket:
         """Fetch a single Jira issue"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return self._mock_issue(key)
         
-        issue = self.jira.issue(key, expand=expand)
+        issue = self._jira.issue(key, expand=expand)
         return self._parse_issue(issue, include_subtasks=True)
     
-    def get_issue_hierarchy(self, key: str, max_depth: int = 3) -> JiraTicket:
-        """
-        Recursively fetch issue hierarchy (Epic -> Stories -> Subtasks)
-        """
+    async def get_issue_hierarchy(self, key: str, max_depth: int = 3) -> JiraTicket:
+        """Recursively fetch issue hierarchy (Epic -> Stories -> Subtasks)"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return self._mock_hierarchy(key)
         
-        root = self.get_issue(key)
-        self._fetch_children(root, depth=0, max_depth=max_depth)
+        root = await self.get_issue(key)
+        await self._fetch_children(root, depth=0, max_depth=max_depth)
         return root
     
-    def _fetch_children(self, ticket: JiraTicket, depth: int, max_depth: int):
+    async def _fetch_children(self, ticket: JiraTicket, depth: int, max_depth: int):
         """Recursively fetch child issues"""
         if depth >= max_depth:
             return
         
-        # Fetch stories/tasks under epic
         if ticket.issue_type == JiraIssueType.EPIC:
             jql = f'"Epic Link" = {ticket.key}'
-            results = self.search_issues(jql)
+            results = await self.search_issues(jql)
             ticket.subtasks = results.issues
             
-            # Fetch subtasks for each story
             for child in ticket.subtasks:
-                self._fetch_children(child, depth + 1, max_depth)
-        
-        # Subtasks are already populated from the main issue fetch
+                await self._fetch_children(child, depth + 1, max_depth)
     
-    def search_issues(
+    async def search_issues(
         self,
         jql: str,
         start_at: int = 0,
@@ -215,10 +256,12 @@ class JiraClient:
         fields: str = "*all"
     ) -> JiraSearchResult:
         """Search issues using JQL"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return self._mock_search(jql, max_results)
         
-        result = self.jira.jql(jql, start=start_at, limit=max_results, fields=fields)
+        result = self._jira.jql(jql, start=start_at, limit=max_results, fields=fields)
         
         return JiraSearchResult(
             total=result.get("total", 0),
@@ -227,17 +270,17 @@ class JiraClient:
             issues=[self._parse_issue(issue) for issue in result.get("issues", [])]
         )
     
-    def update_issue_status(self, key: str, status: str, comment: Optional[str] = None) -> bool:
+    async def update_issue_status(self, key: str, status: str, comment: Optional[str] = None) -> bool:
         """Update issue status using transition"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             logger.info(f"[MOCK] Updated {key} to status: {status}")
             return True
         
         try:
-            # Get available transitions
-            transitions = self.jira.get_issue_transitions(key)
+            transitions = self._jira.get_issue_transitions(key)
             
-            # Find matching transition
             target_transition = None
             for t in transitions.get("transitions", []):
                 if t["to"]["name"].lower() == status.lower():
@@ -248,35 +291,20 @@ class JiraClient:
                 logger.warning(f"No transition found for status: {status}")
                 return False
             
-            # Perform transition
-            self.jira.set_issue_status(key, target_transition)
+            self._jira.set_issue_status(key, target_transition)
             
-            # Add comment if provided
             if comment:
-                self.jira.issue_add_comment(key, comment)
+                self._jira.issue_add_comment(key, comment)
             
             return True
         except Exception as e:
             logger.error(f"Failed to update issue status: {e}")
+            return False
     
-    def update_issue_fields(self, key: str, fields: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Update multiple fields on a Jira issue
+    async def update_issue_fields(self, key: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+        """Update multiple fields on a Jira issue"""
+        await self._ensure_initialized()
         
-        Args:
-            key: Jira issue key (e.g., "PROJ-123")
-            fields: Dictionary of field updates, e.g.:
-                {
-                    "labels": ["backend", "api"],
-                    "fixVersions": [{"name": "v2.0.0"}],
-                    "versions": [{"name": "v1.9.0"}],
-                    "customfield_10016": 5.0,  # Story Points
-                    "customfield_10001": {"name": "Platform Team"}  # Team
-                }
-        
-        Returns:
-            Result dictionary with success status and details
-        """
         if self.mock_mode:
             logger.info(f"[MOCK] Updated {key} with fields: {list(fields.keys())}")
             return {
@@ -287,14 +315,11 @@ class JiraClient:
             }
         
         try:
-            # Prepare the update payload
             update_payload = {"fields": {}}
-            
             for field_name, value in fields.items():
                 update_payload["fields"][field_name] = value
             
-            # Execute the update
-            self.jira.update_issue_field(key, update_payload["fields"])
+            self._jira.update_issue_field(key, update_payload["fields"])
             
             logger.info(f"Updated {key} fields: {list(fields.keys())}")
             
@@ -311,36 +336,37 @@ class JiraClient:
                 "ticket_key": key,
                 "error": str(e)
             }
-            return False
     
-    def add_comment(self, key: str, comment: str) -> bool:
+    async def add_comment(self, key: str, comment: str) -> bool:
         """Add comment to an issue"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             logger.info(f"[MOCK] Added comment to {key}: {comment[:50]}...")
             return True
         
         try:
-            self.jira.issue_add_comment(key, comment)
+            self._jira.issue_add_comment(key, comment)
             return True
         except Exception as e:
             logger.error(f"Failed to add comment: {e}")
             return False
     
-    def get_sprint_stats(self, project_key: str, sprint_name: Optional[str] = None) -> JiraSprintStats:
+    async def get_sprint_stats(self, project_key: str, sprint_name: Optional[str] = None) -> JiraSprintStats:
         """Get sprint statistics for a project"""
+        await self._ensure_initialized()
+        
         if self.mock_mode:
             return self._mock_sprint_stats(project_key, sprint_name)
         
-        # Build JQL for current sprint
         jql = f'project = {project_key}'
         if sprint_name:
             jql += f' AND sprint = "{sprint_name}"'
         else:
             jql += ' AND sprint in openSprints()'
         
-        result = self.search_issues(jql, max_results=500)
+        result = await self.search_issues(jql, max_results=500)
         
-        # Calculate stats
         total = len(result.issues)
         completed = sum(1 for i in result.issues if i.status.lower() == "done")
         in_progress = sum(1 for i in result.issues if i.status.lower() == "in progress")
@@ -495,9 +521,12 @@ async def lifespan(app: FastAPI):
     global jira_client
     
     # Startup
-    setup_tracing("jira-agent", service_version="1.0.0")
+    setup_tracing("jira-agent", service_version="2.3.0")
     jira_client = JiraClient()
-    logger.info("Jira Agent started")
+    
+    # Log current mode
+    current_mode = await is_mock_mode()
+    logger.info(f"Jira Agent started - Mode: {'MOCK' if current_mode else 'LIVE'}")
     
     yield
     
@@ -507,8 +536,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Nexus Jira Agent",
-    description="Agent for Jira ticket operations in the Nexus release automation system",
-    version="1.0.0",
+    description="Agent for Jira ticket operations with dynamic configuration support",
+    version="2.3.0",
     lifespan=lifespan
 )
 
@@ -530,24 +559,25 @@ create_metrics_endpoint(app)
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with dynamic mode detection"""
+    current_mode = await is_mock_mode()
     return {
         "status": "healthy",
         "service": "jira-agent",
-        "mock_mode": jira_client.mock_mode if jira_client else True
+        "version": "2.3.0",
+        "mock_mode": current_mode,
+        "dynamic_config": True
     }
 
 
 @app.get("/issue/{ticket_key}", response_model=AgentTaskResponse)
 @track_tool_usage("get_issue", agent_type="jira")
 async def get_issue(ticket_key: str):
-    """
-    Fetch a single Jira issue by key
-    """
+    """Fetch a single Jira issue by key"""
     task_id = generate_task_id("jira")
     
     try:
-        ticket = jira_client.get_issue(ticket_key)
+        ticket = await jira_client.get_issue(ticket_key)
         JIRA_TICKETS_PROCESSED.labels(action="get", project_key=ticket.project_key or "unknown").inc()
         
         return AgentTaskResponse(
@@ -572,15 +602,12 @@ async def get_ticket_hierarchy(
     ticket_key: str,
     max_depth: int = Query(3, ge=1, le=5, description="Maximum depth to traverse")
 ):
-    """
-    Fetch complete ticket hierarchy (Epic -> Stories -> Subtasks)
-    """
+    """Fetch complete ticket hierarchy (Epic -> Stories -> Subtasks)"""
     task_id = generate_task_id("jira")
     
     try:
-        hierarchy = jira_client.get_issue_hierarchy(ticket_key, max_depth=max_depth)
+        hierarchy = await jira_client.get_issue_hierarchy(ticket_key, max_depth=max_depth)
         
-        # Count total tickets in hierarchy
         def count_tickets(ticket: JiraTicket) -> int:
             return 1 + sum(count_tickets(st) for st in ticket.subtasks)
         
@@ -614,13 +641,11 @@ async def search_issues(
     start_at: int = Query(0, ge=0),
     max_results: int = Query(50, ge=1, le=100)
 ):
-    """
-    Search Jira issues using JQL
-    """
+    """Search Jira issues using JQL"""
     task_id = generate_task_id("jira")
     
     try:
-        results = jira_client.search_issues(jql, start_at, max_results)
+        results = await jira_client.search_issues(jql, start_at, max_results)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -645,18 +670,16 @@ async def update_ticket(
     status: Optional[str] = Query(None, description="New status"),
     comment: Optional[str] = Query(None, description="Comment to add")
 ):
-    """
-    Update a Jira ticket's status and/or add a comment
-    """
+    """Update a Jira ticket's status and/or add a comment"""
     task_id = generate_task_id("jira")
     
     try:
         success = True
         
         if status:
-            success = jira_client.update_issue_status(key, status, comment)
+            success = await jira_client.update_issue_status(key, status, comment)
         elif comment:
-            success = jira_client.add_comment(key, comment)
+            success = await jira_client.add_comment(key, comment)
         else:
             return AgentTaskResponse(
                 task_id=task_id,
@@ -703,23 +726,11 @@ class TicketFieldUpdateRequest(PydanticBaseModel):
 @app.post("/update-ticket", response_model=AgentTaskResponse)
 @track_tool_usage("update_ticket_fields", agent_type="jira")
 async def update_ticket_fields(request: TicketFieldUpdateRequest):
-    """
-    Update multiple fields on a Jira ticket
-    
-    This endpoint is used by the Slack Agent to apply hygiene fixes
-    submitted via the interactive modal.
-    
-    Supported fields:
-    - **labels**: List of label strings
-    - **fixVersions**: List of version objects [{"name": "v2.0"}]
-    - **versions**: List of affected version objects
-    - **customfield_10016**: Story points (number)
-    - **customfield_10001**: Team/Contributors (object with name)
-    """
+    """Update multiple fields on a Jira ticket"""
     task_id = generate_task_id("jira")
     
     try:
-        result = jira_client.update_issue_fields(
+        result = await jira_client.update_issue_fields(
             key=request.ticket_key,
             fields=request.fields
         )
@@ -764,13 +775,11 @@ async def get_sprint_stats(
     project_key: str,
     sprint_name: Optional[str] = Query(None, description="Sprint name (optional)")
 ):
-    """
-    Get sprint statistics for release readiness assessment
-    """
+    """Get sprint statistics for release readiness assessment"""
     task_id = generate_task_id("jira")
     
     try:
-        stats = jira_client.get_sprint_stats(project_key, sprint_name)
+        stats = await jira_client.get_sprint_stats(project_key, sprint_name)
         
         return AgentTaskResponse(
             task_id=task_id,
@@ -790,13 +799,10 @@ async def get_sprint_stats(
 
 @app.post("/execute", response_model=AgentTaskResponse)
 async def execute_task(request: AgentTaskRequest):
-    """
-    Generic task execution endpoint for orchestrator integration
-    """
+    """Generic task execution endpoint for orchestrator integration"""
     action = request.action
     payload = request.payload
     
-    # Route to appropriate handler
     if action == "get_issue":
         return await get_issue(payload.get("key"))
     elif action == "get_hierarchy":

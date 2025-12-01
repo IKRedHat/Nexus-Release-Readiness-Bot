@@ -1,6 +1,8 @@
 """
 Nexus Slack Agent
 Handles Slack interactions including slash commands, Block Kit modals, and notifications
+
+Now with dynamic configuration via ConfigManager - supports live mode switching from Admin Dashboard.
 """
 import os
 import sys
@@ -32,6 +34,7 @@ from nexus_lib.instrumentation import (
     create_metrics_endpoint,
 )
 from nexus_lib.utils import AsyncHttpClient, generate_task_id
+from nexus_lib.config import ConfigManager, ConfigKeys, is_mock_mode
 
 # Configure logging
 logging.basicConfig(
@@ -48,21 +51,55 @@ logger = logging.getLogger("nexus.slack-agent")
 class SlackClient:
     """
     Wrapper for Slack Web API and interactions
+    
+    Now uses ConfigManager for dynamic configuration:
+    - Mode can be switched live via Admin Dashboard
+    - Credentials are fetched from Redis/env/defaults
     """
     
     def __init__(self):
-        self.mock_mode = os.environ.get("SLACK_MOCK_MODE", "true").lower() == "true"
-        self.bot_token = os.environ.get("SLACK_BOT_TOKEN")
-        self.signing_secret = os.environ.get("SLACK_SIGNING_SECRET")
-        self.http_client = AsyncHttpClient(
-            base_url="https://slack.com/api",
-            headers={"Authorization": f"Bearer {self.bot_token}"} if self.bot_token else {}
-        )
+        self._last_mode = None
+        self._bot_token = None
+        self._signing_secret = None
+        self._http_client = None
+        self._initialized = False
+        logger.info("Slack client created - will initialize on first use")
+    
+    async def _ensure_initialized(self):
+        """Lazy initialization - checks config on each operation."""
+        current_mock_mode = await is_mock_mode()
         
-        if self.mock_mode:
-            logger.info("Slack client running in MOCK mode")
-        else:
+        if self._last_mode != current_mock_mode or not self._initialized:
+            self._last_mode = current_mock_mode
+            self._initialized = True
+            
+            if current_mock_mode:
+                logger.info("Slack client operating in MOCK mode")
+            else:
+                await self._init_live_client()
+    
+    async def _init_live_client(self):
+        """Initialize the live Slack client with credentials from ConfigManager."""
+        self._bot_token = await ConfigManager.get(ConfigKeys.SLACK_BOT_TOKEN)
+        self._signing_secret = await ConfigManager.get(ConfigKeys.SLACK_SIGNING_SECRET)
+        
+        if self._bot_token:
+            self._http_client = AsyncHttpClient(
+                base_url="https://slack.com/api",
+                headers={"Authorization": f"Bearer {self._bot_token}"}
+            )
             logger.info("Slack client initialized in LIVE mode")
+        else:
+            logger.warning("SLACK_BOT_TOKEN not set, falling back to mock mode")
+            self._last_mode = True
+    
+    @property
+    def mock_mode(self) -> bool:
+        return self._last_mode if self._last_mode is not None else True
+    
+    @property
+    def http_client(self):
+        return self._http_client or AsyncHttpClient(base_url="https://slack.com/api")
     
     async def post_message(
         self,
@@ -72,6 +109,7 @@ class SlackClient:
         thread_ts: Optional[str] = None
     ) -> Dict[str, Any]:
         """Post a message to a Slack channel"""
+        await self._ensure_initialized()
         if self.mock_mode:
             logger.info(f"[MOCK] Posted to {channel}: {text[:50]}...")
             return {"ok": True, "ts": "mock.ts", "channel": channel}
@@ -95,6 +133,7 @@ class SlackClient:
         blocks: Optional[List[Dict]] = None
     ) -> Dict[str, Any]:
         """Update an existing Slack message"""
+        await self._ensure_initialized()
         if self.mock_mode:
             logger.info(f"[MOCK] Updated message in {channel}")
             return {"ok": True, "ts": ts, "channel": channel}
@@ -115,6 +154,7 @@ class SlackClient:
         view: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Open a Block Kit modal"""
+        await self._ensure_initialized()
         if self.mock_mode:
             logger.info(f"[MOCK] Opened modal with trigger {trigger_id}")
             return {"ok": True, "view": {"id": "mock-view-id"}}
@@ -131,6 +171,7 @@ class SlackClient:
         view: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Update an existing modal"""
+        await self._ensure_initialized()
         if self.mock_mode:
             logger.info(f"[MOCK] Updated modal {view_id}")
             return {"ok": True, "view": {"id": view_id}}
@@ -149,6 +190,7 @@ class SlackClient:
         response_type: str = "in_channel"
     ) -> Dict[str, Any]:
         """Respond to a slash command via response_url"""
+        await self._ensure_initialized()
         if self.mock_mode:
             logger.info(f"[MOCK] Responded to command: {text[:50]}...")
             return {"ok": True}
@@ -165,6 +207,7 @@ class SlackClient:
     
     async def lookup_user_by_email(self, email: str) -> Optional[str]:
         """Look up a Slack user ID by email address"""
+        await self._ensure_initialized()
         if self.mock_mode:
             logger.info(f"[MOCK] Looking up user by email: {email}")
             return f"U_MOCK_{email.split('@')[0].upper()}"
@@ -183,6 +226,7 @@ class SlackClient:
     
     async def open_dm_channel(self, user_id: str) -> Optional[str]:
         """Open a DM channel with a user"""
+        await self._ensure_initialized()
         if self.mock_mode:
             logger.info(f"[MOCK] Opening DM channel with user: {user_id}")
             return f"D_MOCK_{user_id}"
@@ -506,7 +550,7 @@ async def lifespan(app: FastAPI):
     setup_tracing("slack-agent", service_version="1.0.0")
     slack_client = SlackClient()
     orchestrator_client = AsyncHttpClient(
-        base_url=os.environ.get("ORCHESTRATOR_URL", "http://localhost:8080")
+        base_url=await ConfigManager.get(ConfigKeys.ORCHESTRATOR_URL) or "http://localhost:8080"
     )
     logger.info("Slack Agent started")
     
@@ -920,7 +964,7 @@ async def apply_jira_hygiene_updates(updates: List[Dict], user: Dict[str, Any]):
         updates: List of ticket updates with fields
         user: Slack user who submitted the updates
     """
-    jira_agent_url = os.environ.get("JIRA_AGENT_URL", "http://jira-agent:8081")
+    jira_agent_url = await ConfigManager.get(ConfigKeys.JIRA_AGENT_URL) or "http://jira-agent:8081"
     
     http_client = AsyncHttpClient(timeout=30)
     
