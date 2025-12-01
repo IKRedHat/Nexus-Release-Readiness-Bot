@@ -115,6 +115,81 @@ The Admin Dashboard includes a comprehensive observability page that consolidate
 - Panels display directly in the Admin Dashboard
 - Maintains dark theme consistency
 
+### 📅 Release Management
+
+The Admin Dashboard includes a comprehensive Release Management system that allows you to:
+
+- **Track Release Versions**: Define and monitor multiple releases
+- **Set Target Dates**: Configure release schedules with milestones
+- **Import from External Sources**: Sync from Smartsheet, CSV, or webhooks
+- **Monitor Readiness**: Real-time metrics and Go/No-Go decisions
+- **Manage Milestones**: Track progress through release lifecycle
+
+**Release Sources:**
+
+| Source | Description | Integration |
+|--------|-------------|-------------|
+| **Manual** | Create releases directly in the UI | Built-in |
+| **Smartsheet** | Sync from Smartsheet sheets | API integration |
+| **CSV** | Import from CSV files | File upload |
+| **Webhook** | Receive from external systems | REST API |
+| **Jira** | Import from Jira fix versions | Agent integration |
+
+**Release Lifecycle:**
+
+```
+Planning → In Progress → Code Freeze → Testing → UAT → Staging → Ready → Deployed
+```
+
+**Key Metrics per Release:**
+
+| Metric | Description |
+|--------|-------------|
+| **Days Until Release** | Countdown to target date |
+| **Ticket Completion** | % of Jira tickets completed |
+| **Build Success Rate** | % of CI builds passing |
+| **Test Coverage** | Code coverage percentage |
+| **Critical Vulnerabilities** | Security scan results |
+| **Readiness Score** | Overall release health (0-100) |
+
+**External Source Sync:**
+
+Smartsheet Integration:
+```bash
+curl -X POST http://localhost:8088/releases/sync/smartsheet \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_token": "your-smartsheet-token",
+    "sheet_id": "1234567890",
+    "version_column": "Release Version",
+    "target_date_column": "Target Date"
+  }'
+```
+
+CSV Import:
+```bash
+curl -X POST http://localhost:8088/releases/sync/csv \
+  -H "Content-Type: text/plain" \
+  -d 'version,target_date,name,status
+v2.1.0,2025-02-15,Phoenix,planning
+v2.2.0,2025-03-01,Ember,planning'
+```
+
+Webhook (for external systems to push data):
+```bash
+curl -X POST http://localhost:8088/releases/sync/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "create",
+    "source": "your-system",
+    "release": {
+      "version": "v2.1.0",
+      "target_date": "2025-02-15T00:00:00Z",
+      "name": "Phoenix"
+    }
+  }'
+```
+
 ### ⚙️ Dynamic Configuration
 
 The ConfigManager enables dynamic configuration without restarts:
@@ -155,7 +230,7 @@ flowchart TB
 
 ## API Reference
 
-### Endpoints
+### Core Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -171,6 +246,24 @@ flowchart TB
 | `GET` | `/health-check/{agent}` | Check specific agent |
 | `GET` | `/config/templates` | Get config form templates |
 | `GET` | `/api/metrics` | Get aggregated observability metrics |
+
+### Release Management Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/releases` | List all releases |
+| `GET` | `/releases/calendar` | Get calendar view |
+| `GET` | `/releases/templates` | Get release templates |
+| `GET` | `/releases/{release_id}` | Get specific release |
+| `POST` | `/releases` | Create new release |
+| `PUT` | `/releases/{release_id}` | Update release |
+| `DELETE` | `/releases/{release_id}` | Delete release |
+| `GET` | `/releases/{release_id}/metrics` | Get release metrics |
+| `POST` | `/releases/{release_id}/milestones` | Add milestone |
+| `POST` | `/releases/{release_id}/risks` | Add risk item |
+| `POST` | `/releases/sync/smartsheet` | Sync from Smartsheet |
+| `POST` | `/releases/sync/csv` | Import from CSV |
+| `POST` | `/releases/sync/webhook` | Receive webhook data |
 
 ### Set System Mode
 

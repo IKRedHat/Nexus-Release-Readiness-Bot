@@ -727,6 +727,306 @@ class RcaBatchResponse(BaseModel):
 
 
 # ============================================================================
+# RELEASE MANAGEMENT MODELS
+# ============================================================================
+
+class ReleaseStatus(str, Enum):
+    """Release lifecycle status"""
+    PLANNING = "planning"
+    IN_PROGRESS = "in_progress"
+    CODE_FREEZE = "code_freeze"
+    TESTING = "testing"
+    UAT = "uat"
+    STAGING = "staging"
+    READY = "ready"
+    DEPLOYED = "deployed"
+    CANCELLED = "cancelled"
+    DELAYED = "delayed"
+
+
+class ReleaseType(str, Enum):
+    """Types of releases"""
+    MAJOR = "major"
+    MINOR = "minor"
+    PATCH = "patch"
+    HOTFIX = "hotfix"
+    FEATURE = "feature"
+    MAINTENANCE = "maintenance"
+
+
+class ReleaseSource(str, Enum):
+    """Source of release data"""
+    MANUAL = "manual"
+    SMARTSHEET = "smartsheet"
+    JIRA = "jira"
+    CSV_IMPORT = "csv_import"
+    API_WEBHOOK = "api_webhook"
+    CONFLUENCE = "confluence"
+
+
+class ReleaseMilestone(BaseModel):
+    """A milestone within a release"""
+    name: str = Field(..., description="Milestone name (e.g., 'Code Freeze', 'UAT Start')")
+    target_date: datetime = Field(..., description="Target date for milestone")
+    actual_date: Optional[datetime] = Field(None, description="Actual completion date")
+    completed: bool = False
+    notes: Optional[str] = None
+    
+    @property
+    def is_overdue(self) -> bool:
+        """Check if milestone is overdue"""
+        if self.completed:
+            return False
+        return datetime.now() > self.target_date
+
+
+class ReleaseRisk(BaseModel):
+    """Risk item for a release"""
+    risk_id: str = Field(default_factory=lambda: f"risk-{uuid.uuid4().hex[:8]}")
+    title: str
+    description: str
+    severity: SeverityLevel = SeverityLevel.MEDIUM
+    probability: str = "medium"  # low, medium, high
+    mitigation: Optional[str] = None
+    owner: Optional[str] = None
+    status: str = "open"  # open, mitigated, accepted, closed
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+class ReleaseMetrics(BaseModel):
+    """Metrics for a release"""
+    # Ticket metrics
+    total_tickets: int = 0
+    completed_tickets: int = 0
+    in_progress_tickets: int = 0
+    blocked_tickets: int = 0
+    ticket_completion_rate: float = 0.0
+    
+    # Story points
+    total_story_points: float = 0.0
+    completed_story_points: float = 0.0
+    story_point_completion_rate: float = 0.0
+    
+    # Build metrics
+    total_builds: int = 0
+    successful_builds: int = 0
+    build_success_rate: float = 0.0
+    last_build_status: Optional[str] = None
+    
+    # Test metrics
+    test_coverage: float = 0.0
+    passing_tests: int = 0
+    failing_tests: int = 0
+    
+    # Security metrics
+    critical_vulnerabilities: int = 0
+    high_vulnerabilities: int = 0
+    security_risk_score: float = 0.0
+    
+    # Time metrics
+    days_until_release: int = 0
+    days_since_start: int = 0
+    schedule_variance_days: int = 0  # Positive = ahead, Negative = behind
+    
+    # Readiness
+    readiness_score: float = 0.0  # 0-100
+    go_no_go: ReleaseDecision = ReleaseDecision.PENDING
+    
+    # Last updated
+    calculated_at: datetime = Field(default_factory=datetime.now)
+
+
+class Release(BaseModel):
+    """Comprehensive release model"""
+    release_id: str = Field(default_factory=lambda: f"rel-{uuid.uuid4().hex[:8]}")
+    version: str = Field(..., description="Release version (e.g., 'v2.0.0')")
+    name: Optional[str] = Field(None, description="Release name (e.g., 'Phoenix')")
+    description: Optional[str] = Field(None, description="Release description")
+    
+    # Type and status
+    release_type: ReleaseType = ReleaseType.MINOR
+    status: ReleaseStatus = ReleaseStatus.PLANNING
+    
+    # Dates
+    target_date: datetime = Field(..., description="Target release date")
+    start_date: Optional[datetime] = Field(None, description="Release start date")
+    actual_release_date: Optional[datetime] = Field(None, description="Actual release date")
+    code_freeze_date: Optional[datetime] = Field(None, description="Code freeze date")
+    
+    # Source tracking
+    source: ReleaseSource = ReleaseSource.MANUAL
+    external_id: Optional[str] = Field(None, description="ID from external system (Smartsheet row ID, etc.)")
+    external_url: Optional[str] = Field(None, description="URL to external source")
+    
+    # Project context
+    project_key: Optional[str] = Field(None, description="Jira project key")
+    epic_key: Optional[str] = Field(None, description="Jira epic key")
+    fix_version: Optional[str] = Field(None, description="Jira fix version")
+    
+    # Repository context
+    repo_name: Optional[str] = Field(None, description="Git repository name")
+    branch: str = "main"
+    environment: str = "production"
+    
+    # Team
+    release_manager: Optional[str] = Field(None, description="Release manager email")
+    team_members: List[str] = Field(default_factory=list, description="Team member emails")
+    stakeholders: List[str] = Field(default_factory=list, description="Stakeholder emails")
+    
+    # Milestones and risks
+    milestones: List[ReleaseMilestone] = Field(default_factory=list)
+    risks: List[ReleaseRisk] = Field(default_factory=list)
+    
+    # Current metrics
+    metrics: Optional[ReleaseMetrics] = None
+    
+    # Notes and links
+    notes: Optional[str] = None
+    links: Dict[str, str] = Field(default_factory=dict, description="Related links (confluence, dashboard, etc.)")
+    tags: List[str] = Field(default_factory=list)
+    
+    # Metadata
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    created_by: Optional[str] = None
+    last_synced_at: Optional[datetime] = Field(None, description="Last sync from external source")
+    
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
+    
+    @property
+    def days_until_release(self) -> int:
+        """Calculate days until target release date"""
+        delta = self.target_date - datetime.now()
+        return delta.days
+    
+    @property
+    def is_overdue(self) -> bool:
+        """Check if release is overdue"""
+        if self.status == ReleaseStatus.DEPLOYED:
+            return False
+        return datetime.now() > self.target_date
+    
+    @property
+    def progress_percentage(self) -> float:
+        """Calculate overall progress percentage"""
+        if not self.metrics:
+            return 0.0
+        return self.metrics.ticket_completion_rate
+
+
+class ReleaseCreateRequest(BaseModel):
+    """Request to create a new release"""
+    version: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    target_date: datetime
+    release_type: ReleaseType = ReleaseType.MINOR
+    
+    # Optional context
+    project_key: Optional[str] = None
+    epic_key: Optional[str] = None
+    repo_name: Optional[str] = None
+    branch: str = "main"
+    environment: str = "production"
+    
+    # Optional team
+    release_manager: Optional[str] = None
+    team_members: List[str] = Field(default_factory=list)
+    
+    # Optional dates
+    start_date: Optional[datetime] = None
+    code_freeze_date: Optional[datetime] = None
+
+
+class ReleaseUpdateRequest(BaseModel):
+    """Request to update a release"""
+    version: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    target_date: Optional[datetime] = None
+    status: Optional[ReleaseStatus] = None
+    release_type: Optional[ReleaseType] = None
+    
+    # Optional context
+    project_key: Optional[str] = None
+    epic_key: Optional[str] = None
+    code_freeze_date: Optional[datetime] = None
+    
+    # Team updates
+    release_manager: Optional[str] = None
+    team_members: Optional[List[str]] = None
+    
+    # Notes
+    notes: Optional[str] = None
+
+
+class SmartsheetConfig(BaseModel):
+    """Configuration for Smartsheet integration"""
+    api_token: str = Field(..., description="Smartsheet API token")
+    sheet_id: str = Field(..., description="Smartsheet sheet ID")
+    
+    # Column mapping
+    version_column: str = "Release Version"
+    target_date_column: str = "Target Date"
+    status_column: str = "Status"
+    name_column: Optional[str] = "Release Name"
+    description_column: Optional[str] = "Description"
+    type_column: Optional[str] = "Release Type"
+    project_key_column: Optional[str] = "Project Key"
+    release_manager_column: Optional[str] = "Release Manager"
+    
+    # Sync settings
+    auto_sync: bool = False
+    sync_interval_minutes: int = 60
+
+
+class ExternalSourceSyncRequest(BaseModel):
+    """Request to sync releases from external source"""
+    source_type: ReleaseSource
+    config: Dict[str, Any] = Field(..., description="Source-specific configuration")
+    sync_mode: str = "merge"  # merge, replace, append
+    dry_run: bool = False
+
+
+class ExternalSourceSyncResult(BaseModel):
+    """Result of external source sync"""
+    success: bool
+    source_type: ReleaseSource
+    sync_mode: str
+    
+    # Counts
+    total_records: int = 0
+    created: int = 0
+    updated: int = 0
+    unchanged: int = 0
+    errors: int = 0
+    
+    # Details
+    error_details: List[str] = Field(default_factory=list)
+    synced_releases: List[str] = Field(default_factory=list, description="Release IDs that were synced")
+    
+    # Timing
+    started_at: datetime
+    completed_at: datetime
+    duration_seconds: float
+
+
+class ReleaseCalendarView(BaseModel):
+    """Calendar view of releases"""
+    start_date: datetime
+    end_date: datetime
+    releases: List[Release]
+    milestones: List[Dict[str, Any]] = Field(default_factory=list, description="Flattened milestones across releases")
+    
+    # Summary
+    total_releases: int = 0
+    upcoming_releases: int = 0
+    overdue_releases: int = 0
+    at_risk_releases: int = 0
+
+
+# ============================================================================
 # SLACK MODELS
 # ============================================================================
 

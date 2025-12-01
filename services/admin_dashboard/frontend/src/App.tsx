@@ -7,19 +7,22 @@ import {
   Zap,
   Menu,
   X,
-  BarChart3
+  BarChart3,
+  Calendar
 } from 'lucide-react'
 import { useState } from 'react'
 import Dashboard from './pages/Dashboard'
 import SettingsPage from './pages/Settings'
 import HealthPage from './pages/Health'
 import MetricsPage from './pages/Metrics'
+import ReleasesPage from './pages/Releases'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/releases', icon: Calendar, label: 'Releases' },
     { to: '/metrics', icon: BarChart3, label: 'Observability' },
     { to: '/health', icon: Activity, label: 'Health Monitor' },
     { to: '/settings', icon: Settings, label: 'Configuration' },
@@ -92,6 +95,7 @@ function App() {
         <div className="p-6 lg:p-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/releases" element={<ReleasesPage />} />
             <Route path="/metrics" element={<MetricsPage />} />
             <Route path="/health" element={<HealthPage />} />
             <Route path="/settings" element={<SettingsPage />} />
