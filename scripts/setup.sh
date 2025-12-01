@@ -74,7 +74,7 @@ print_banner() {
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
     
-    Release Automation System - v2.0
+    Release Automation System - v2.3
     One-Click Setup Script
     
 EOF
@@ -419,6 +419,10 @@ install_dependencies() {
         "services/agents/reporting_agent"
         "services/agents/slack_agent"
         "services/agents/jira_hygiene_agent"
+        "services/agents/rca_agent"
+        "services/analytics"
+        "services/webhooks"
+        "services/admin_dashboard/backend"
     )
     
     for service in "${services[@]}"; do
@@ -549,6 +553,20 @@ GITCI_AGENT_URL=http://git-ci-agent:8082
 REPORTING_AGENT_URL=http://reporting-agent:8083
 SLACK_AGENT_URL=http://slack-agent:8084
 HYGIENE_AGENT_URL=http://jira-hygiene-agent:8005
+RCA_AGENT_URL=http://rca-agent:8006
+ANALYTICS_AGENT_URL=http://analytics:8086
+WEBHOOKS_AGENT_URL=http://webhooks:8087
+ADMIN_DASHBOARD_URL=http://admin-dashboard:8088
+
+# RCA Agent Configuration
+RCA_AUTO_ANALYZE=true
+RCA_SLACK_NOTIFY=true
+SLACK_RELEASE_CHANNEL=#release-notifications
+
+# Webhooks Configuration
+WEBHOOKS_HMAC_SECRET=your-webhook-secret-here
+WEBHOOKS_RETRY_MAX=3
+WEBHOOKS_RATE_LIMIT=100
 
 # Database (for production)
 POSTGRES_HOST=postgres
@@ -557,10 +575,14 @@ POSTGRES_DB=nexus
 POSTGRES_USER=nexus
 POSTGRES_PASSWORD=nexus_dev_password
 
-# Redis
+# Redis (also used for dynamic configuration)
 REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_PASSWORD=
+REDIS_URL=redis://redis:6379/0
+
+# Dynamic Configuration
+NEXUS_MOCK_MODE=true                 # Set to false for production mode
 
 # JWT Secret (generate a strong random string for production)
 NEXUS_JWT_SECRET=nexus-dev-jwt-secret-change-in-production
@@ -656,6 +678,10 @@ verify_setup() {
             "http://localhost:8083/health:Reporting Agent"
             "http://localhost:8084/health:Slack Agent"
             "http://localhost:8005/health:Jira Hygiene Agent"
+            "http://localhost:8006/health:RCA Agent"
+            "http://localhost:8086/health:Analytics"
+            "http://localhost:8087/health:Webhooks"
+            "http://localhost:8088/health:Admin Dashboard"
         )
         
         for service in "${services[@]}"; do
@@ -730,6 +756,10 @@ print_summary() {
         echo -e "    ${WHITE}• Orchestrator API:    ${NC}http://localhost:8080"
         echo -e "    ${WHITE}• Orchestrator Docs:   ${NC}http://localhost:8080/docs"
         echo -e "    ${WHITE}• Hygiene Agent:       ${NC}http://localhost:8005"
+        echo -e "    ${WHITE}• RCA Agent:           ${NC}http://localhost:8006"
+        echo -e "    ${WHITE}• Analytics:           ${NC}http://localhost:8086"
+        echo -e "    ${WHITE}• Webhooks:            ${NC}http://localhost:8087"
+        echo -e "    ${WHITE}• Admin Dashboard:     ${NC}http://localhost:8088 ${YELLOW}(System Management)${NC}"
         echo -e "    ${WHITE}• Grafana Dashboard:   ${NC}http://localhost:3000 ${YELLOW}(admin/nexus_admin)${NC}"
         echo -e "    ${WHITE}• Prometheus:          ${NC}http://localhost:9090"
         echo -e "    ${WHITE}• Jaeger Tracing:      ${NC}http://localhost:16686"
@@ -739,6 +769,7 @@ print_summary() {
         echo -e "    ${WHITE}docker compose ps${NC}              # Check status"
         echo -e "    ${WHITE}docker compose down${NC}            # Stop services"
         echo -e "    ${WHITE}docker compose restart${NC}         # Restart services"
+        echo -e "    ${WHITE}./scripts/dev.sh help${NC}          # More dev commands"
         echo ""
     fi
     

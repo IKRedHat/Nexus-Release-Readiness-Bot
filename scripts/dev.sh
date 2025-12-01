@@ -23,11 +23,11 @@ cd "$PROJECT_ROOT"
 
 show_help() {
     echo ""
-    echo -e "${PURPLE}${BOLD}Nexus Development Helper${NC}"
+    echo -e "${PURPLE}${BOLD}Nexus Development Helper v2.3${NC}"
     echo ""
     echo -e "${CYAN}Usage:${NC} ./scripts/dev.sh <command>"
     echo ""
-    echo -e "${CYAN}Commands:${NC}"
+    echo -e "${CYAN}Docker Commands:${NC}"
     echo "  start           Start all Docker services"
     echo "  stop            Stop all Docker services"
     echo "  restart         Restart all Docker services"
@@ -35,16 +35,28 @@ show_help() {
     echo "  logs <service>  Follow logs for specific service"
     echo "  status          Show service status"
     echo "  health          Run health checks"
+    echo "  clean           Remove containers and volumes"
+    echo "  rebuild         Rebuild and restart services"
+    echo ""
+    echo -e "${CYAN}Testing Commands:${NC}"
     echo "  test            Run all tests"
     echo "  test-unit       Run unit tests only"
     echo "  test-e2e        Run e2e tests only"
     echo "  lint            Run linters"
     echo "  format          Format code"
-    echo "  shell           Open Python shell with nexus_lib"
+    echo ""
+    echo -e "${CYAN}API Commands:${NC}"
     echo "  query <text>    Send a query to orchestrator"
     echo "  hygiene <proj>  Run hygiene check for project"
-    echo "  clean           Remove containers and volumes"
-    echo "  rebuild         Rebuild and restart services"
+    echo "  rca <job> <num> Analyze build failure (RCA)"
+    echo "  analytics       Get analytics KPIs"
+    echo "  mode [mock|live] Get or set system mode"
+    echo ""
+    echo -e "${CYAN}Other Commands:${NC}"
+    echo "  shell           Open Python shell with nexus_lib"
+    echo "  admin           Open Admin Dashboard in browser"
+    echo "  grafana         Open Grafana in browser"
+    echo "  sync-labels     Sync GitHub labels"
     echo ""
 }
 
@@ -155,6 +167,72 @@ print()
         curl -s -X POST http://localhost:8005/run-check \
             -H "Content-Type: application/json" \
             -d "{\"project_key\": \"$project\", \"notify\": false}" | python3 -m json.tool
+        ;;
+    
+    rca)
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            echo -e "${RED}Usage: ./scripts/dev.sh rca <job_name> <build_number>${NC}"
+            echo -e "Example: ./scripts/dev.sh rca nexus-main 142"
+            exit 1
+        fi
+        echo -e "${CYAN}Analyzing build failure: $2 #$3...${NC}"
+        curl -s -X POST http://localhost:8006/analyze \
+            -H "Content-Type: application/json" \
+            -d "{\"job_name\": \"$2\", \"build_number\": $3, \"notify\": false}" | python3 -m json.tool
+        ;;
+    
+    analytics)
+        echo -e "${CYAN}Fetching analytics KPIs...${NC}"
+        curl -s http://localhost:8086/api/v1/kpis?time_range=7d | python3 -m json.tool
+        ;;
+    
+    mode)
+        if [ -z "$2" ]; then
+            echo -e "${CYAN}Current system mode:${NC}"
+            curl -s http://localhost:8088/config | python3 -c "import sys, json; d=json.load(sys.stdin); print('Mode:', d.get('nexus:mode', 'mock'))"
+        else
+            if [ "$2" = "mock" ] || [ "$2" = "live" ]; then
+                echo -e "${CYAN}Setting system mode to: $2...${NC}"
+                curl -s -X POST http://localhost:8088/mode \
+                    -H "Content-Type: application/json" \
+                    -d "{\"mode\": \"$2\"}" | python3 -m json.tool
+            else
+                echo -e "${RED}Invalid mode. Use 'mock' or 'live'${NC}"
+                exit 1
+            fi
+        fi
+        ;;
+    
+    admin)
+        echo -e "${CYAN}Opening Admin Dashboard...${NC}"
+        if command -v open &> /dev/null; then
+            open http://localhost:8088
+        elif command -v xdg-open &> /dev/null; then
+            xdg-open http://localhost:8088
+        else
+            echo "Visit: http://localhost:8088"
+        fi
+        ;;
+    
+    grafana)
+        echo -e "${CYAN}Opening Grafana...${NC}"
+        if command -v open &> /dev/null; then
+            open http://localhost:3000
+        elif command -v xdg-open &> /dev/null; then
+            xdg-open http://localhost:3000
+        else
+            echo "Visit: http://localhost:3000 (admin/nexus_admin)"
+        fi
+        ;;
+    
+    sync-labels)
+        activate_venv
+        echo -e "${CYAN}Syncing GitHub labels...${NC}"
+        if [ -z "$GITHUB_TOKEN" ]; then
+            echo -e "${YELLOW}Set GITHUB_TOKEN environment variable first${NC}"
+            exit 1
+        fi
+        python3 "$SCRIPT_DIR/sync_labels.py"
         ;;
     
     clean)
