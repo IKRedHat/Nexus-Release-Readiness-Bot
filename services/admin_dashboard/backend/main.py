@@ -838,6 +838,671 @@ async def get_config_templates():
 
 
 # =============================================================================
+# Release Management
+# =============================================================================
+
+# Import release models
+try:
+    from nexus_lib.schemas.agent_contract import (
+        Release, ReleaseCreateRequest, ReleaseUpdateRequest, ReleaseStatus,
+        ReleaseSource, ReleaseMetrics, ReleaseMilestone, ReleaseRisk,
+        SmartsheetConfig, ExternalSourceSyncRequest, ExternalSourceSyncResult,
+        ReleaseCalendarView
+    )
+except ImportError:
+    Release = None
+
+# Prometheus metrics for releases
+RELEASE_COUNT = Gauge(
+    "nexus_admin_releases_total",
+    "Total number of releases",
+    ["status"]
+)
+RELEASE_DAYS_TO_TARGET = Gauge(
+    "nexus_admin_release_days_to_target",
+    "Days until target release date",
+    ["release_id", "version"]
+)
+
+
+class ReleaseManager:
+    """Manager for release data stored in Redis."""
+    
+    REDIS_KEY_PREFIX = "nexus:releases:"
+    
+    @classmethod
+    async def _get_redis(cls):
+        """Get Redis client."""
+        return await RedisConnection().get_client()
+    
+    @classmethod
+    async def list_releases(
+        cls,
+        status: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[dict]:
+        """List all releases with optional filtering."""
+        redis = await cls._get_redis()
+        if not redis:
+            return []
+        
+        # Get all release keys
+        keys = await redis.keys(f"{cls.REDIS_KEY_PREFIX}*")
+        releases = []
+        
+        for key in keys:
+            data = await redis.get(key)
+            if data:
+                import json
+                release = json.loads(data)
+                if status and release.get("status") != status:
+                    continue
+                releases.append(release)
+        
+        # Sort by target_date
+        releases.sort(key=lambda r: r.get("target_date", ""), reverse=False)
+        
+        return releases[offset:offset + limit]
+    
+    @classmethod
+    async def get_release(cls, release_id: str) -> Optional[dict]:
+        """Get a specific release by ID."""
+        redis = await cls._get_redis()
+        if not redis:
+            return None
+        
+        data = await redis.get(f"{cls.REDIS_KEY_PREFIX}{release_id}")
+        if data:
+            import json
+            return json.loads(data)
+        return None
+    
+    @classmethod
+    async def create_release(cls, release: dict) -> dict:
+        """Create a new release."""
+        redis = await cls._get_redis()
+        if not redis:
+            raise HTTPException(500, "Redis not available")
+        
+        import json
+        import uuid
+        
+        release_id = release.get("release_id") or f"rel-{uuid.uuid4().hex[:8]}"
+        release["release_id"] = release_id
+        release["created_at"] = datetime.utcnow().isoformat()
+        release["updated_at"] = datetime.utcnow().isoformat()
+        
+        await redis.set(
+            f"{cls.REDIS_KEY_PREFIX}{release_id}",
+            json.dumps(release, default=str)
+        )
+        
+        logger.info(f"Created release: {release_id} - {release.get('version')}")
+        return release
+    
+    @classmethod
+    async def update_release(cls, release_id: str, updates: dict) -> Optional[dict]:
+        """Update an existing release."""
+        redis = await cls._get_redis()
+        if not redis:
+            raise HTTPException(500, "Redis not available")
+        
+        import json
+        
+        existing = await cls.get_release(release_id)
+        if not existing:
+            return None
+        
+        # Apply updates
+        for key, value in updates.items():
+            if value is not None:
+                existing[key] = value
+        
+        existing["updated_at"] = datetime.utcnow().isoformat()
+        
+        await redis.set(
+            f"{cls.REDIS_KEY_PREFIX}{release_id}",
+            json.dumps(existing, default=str)
+        )
+        
+        logger.info(f"Updated release: {release_id}")
+        return existing
+    
+    @classmethod
+    async def delete_release(cls, release_id: str) -> bool:
+        """Delete a release."""
+        redis = await cls._get_redis()
+        if not redis:
+            return False
+        
+        result = await redis.delete(f"{cls.REDIS_KEY_PREFIX}{release_id}")
+        if result:
+            logger.info(f"Deleted release: {release_id}")
+        return result > 0
+    
+    @classmethod
+    async def calculate_metrics(cls, release_id: str) -> Optional[dict]:
+        """Calculate metrics for a release."""
+        release = await cls.get_release(release_id)
+        if not release:
+            return None
+        
+        # In a real implementation, this would fetch data from Jira, Jenkins, etc.
+        # For now, return mock metrics
+        from datetime import datetime as dt
+        
+        target_date = dt.fromisoformat(release["target_date"].replace("Z", "+00:00"))
+        now = dt.now(target_date.tzinfo) if target_date.tzinfo else dt.now()
+        days_until = (target_date - now).days
+        
+        metrics = {
+            "total_tickets": random.randint(30, 60),
+            "completed_tickets": random.randint(20, 50),
+            "in_progress_tickets": random.randint(2, 10),
+            "blocked_tickets": random.randint(0, 3),
+            "ticket_completion_rate": random.uniform(70, 98),
+            "total_story_points": random.uniform(50, 100),
+            "completed_story_points": random.uniform(30, 90),
+            "story_point_completion_rate": random.uniform(60, 95),
+            "total_builds": random.randint(10, 50),
+            "successful_builds": random.randint(8, 48),
+            "build_success_rate": random.uniform(85, 100),
+            "last_build_status": random.choice(["SUCCESS", "SUCCESS", "SUCCESS", "FAILURE"]),
+            "test_coverage": random.uniform(75, 95),
+            "passing_tests": random.randint(200, 500),
+            "failing_tests": random.randint(0, 10),
+            "critical_vulnerabilities": random.randint(0, 1),
+            "high_vulnerabilities": random.randint(0, 5),
+            "security_risk_score": random.uniform(10, 40),
+            "days_until_release": days_until,
+            "days_since_start": random.randint(10, 30),
+            "schedule_variance_days": random.randint(-5, 5),
+            "readiness_score": random.uniform(60, 95),
+            "go_no_go": "PENDING" if days_until > 7 else random.choice(["GO", "NO_GO", "CONDITIONAL"]),
+            "calculated_at": datetime.utcnow().isoformat()
+        }
+        
+        # Update release with metrics
+        await cls.update_release(release_id, {"metrics": metrics})
+        
+        return metrics
+
+
+@app.get("/releases")
+async def list_releases(status: Optional[str] = None, limit: int = 50, offset: int = 0):
+    """
+    List all releases with optional filtering.
+    
+    - **status**: Filter by status (planning, in_progress, testing, ready, deployed)
+    - **limit**: Maximum number of results (default: 50)
+    - **offset**: Number of results to skip (default: 0)
+    """
+    releases = await ReleaseManager.list_releases(status, limit, offset)
+    
+    return {
+        "releases": releases,
+        "count": len(releases),
+        "offset": offset,
+        "limit": limit
+    }
+
+
+@app.get("/releases/calendar")
+async def get_release_calendar(months: int = 3):
+    """
+    Get calendar view of releases for the next N months.
+    """
+    from datetime import timedelta
+    
+    start_date = datetime.utcnow()
+    end_date = start_date + timedelta(days=months * 30)
+    
+    releases = await ReleaseManager.list_releases(limit=100)
+    
+    # Filter to relevant date range
+    upcoming = []
+    overdue = []
+    at_risk = []
+    
+    for release in releases:
+        target = release.get("target_date")
+        if target:
+            target_dt = datetime.fromisoformat(target.replace("Z", "+00:00"))
+            if target_dt.tzinfo:
+                target_dt = target_dt.replace(tzinfo=None)
+            
+            if release.get("status") != "deployed":
+                if target_dt < start_date:
+                    overdue.append(release)
+                elif (target_dt - start_date).days <= 14:
+                    at_risk.append(release)
+                else:
+                    upcoming.append(release)
+    
+    # Collect milestones
+    milestones = []
+    for release in releases:
+        for milestone in release.get("milestones", []):
+            milestones.append({
+                "release_id": release["release_id"],
+                "release_version": release["version"],
+                **milestone
+            })
+    
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "releases": releases,
+        "milestones": sorted(milestones, key=lambda m: m.get("target_date", "")),
+        "summary": {
+            "total_releases": len(releases),
+            "upcoming_releases": len(upcoming),
+            "overdue_releases": len(overdue),
+            "at_risk_releases": len(at_risk)
+        }
+    }
+
+
+@app.get("/releases/{release_id}")
+async def get_release(release_id: str):
+    """Get a specific release by ID."""
+    release = await ReleaseManager.get_release(release_id)
+    
+    if not release:
+        raise HTTPException(404, f"Release not found: {release_id}")
+    
+    return release
+
+
+@app.post("/releases")
+async def create_release(request: dict):
+    """
+    Create a new release.
+    
+    Required fields:
+    - **version**: Release version (e.g., "v2.1.0")
+    - **target_date**: Target release date (ISO format)
+    
+    Optional fields:
+    - **name**: Release name (e.g., "Phoenix")
+    - **description**: Release description
+    - **release_type**: major, minor, patch, hotfix, feature
+    - **project_key**: Jira project key
+    - **epic_key**: Jira epic key
+    - **repo_name**: Git repository name
+    - **release_manager**: Release manager email
+    """
+    if "version" not in request:
+        raise HTTPException(400, "version is required")
+    if "target_date" not in request:
+        raise HTTPException(400, "target_date is required")
+    
+    # Set defaults
+    request.setdefault("source", "manual")
+    request.setdefault("status", "planning")
+    request.setdefault("release_type", "minor")
+    request.setdefault("branch", "main")
+    request.setdefault("environment", "production")
+    
+    release = await ReleaseManager.create_release(request)
+    
+    return {
+        "message": "Release created successfully",
+        "release": release
+    }
+
+
+@app.put("/releases/{release_id}")
+async def update_release(release_id: str, updates: dict):
+    """
+    Update an existing release.
+    
+    Any fields provided will be updated, others will remain unchanged.
+    """
+    release = await ReleaseManager.update_release(release_id, updates)
+    
+    if not release:
+        raise HTTPException(404, f"Release not found: {release_id}")
+    
+    return {
+        "message": "Release updated successfully",
+        "release": release
+    }
+
+
+@app.delete("/releases/{release_id}")
+async def delete_release(release_id: str):
+    """Delete a release."""
+    success = await ReleaseManager.delete_release(release_id)
+    
+    if not success:
+        raise HTTPException(404, f"Release not found: {release_id}")
+    
+    return {"message": f"Release {release_id} deleted successfully"}
+
+
+@app.get("/releases/{release_id}/metrics")
+async def get_release_metrics(release_id: str, refresh: bool = False):
+    """
+    Get metrics for a specific release.
+    
+    - **refresh**: Force recalculation of metrics
+    """
+    release = await ReleaseManager.get_release(release_id)
+    
+    if not release:
+        raise HTTPException(404, f"Release not found: {release_id}")
+    
+    if refresh or not release.get("metrics"):
+        metrics = await ReleaseManager.calculate_metrics(release_id)
+    else:
+        metrics = release.get("metrics")
+    
+    return {
+        "release_id": release_id,
+        "version": release.get("version"),
+        "metrics": metrics
+    }
+
+
+@app.post("/releases/{release_id}/milestones")
+async def add_milestone(release_id: str, milestone: dict):
+    """Add a milestone to a release."""
+    release = await ReleaseManager.get_release(release_id)
+    
+    if not release:
+        raise HTTPException(404, f"Release not found: {release_id}")
+    
+    milestones = release.get("milestones", [])
+    
+    # Generate ID if not provided
+    if "id" not in milestone:
+        import uuid
+        milestone["id"] = f"ms-{uuid.uuid4().hex[:6]}"
+    
+    milestone.setdefault("completed", False)
+    milestones.append(milestone)
+    
+    await ReleaseManager.update_release(release_id, {"milestones": milestones})
+    
+    return {
+        "message": "Milestone added",
+        "milestone": milestone
+    }
+
+
+@app.post("/releases/{release_id}/risks")
+async def add_risk(release_id: str, risk: dict):
+    """Add a risk item to a release."""
+    release = await ReleaseManager.get_release(release_id)
+    
+    if not release:
+        raise HTTPException(404, f"Release not found: {release_id}")
+    
+    risks = release.get("risks", [])
+    
+    # Generate ID if not provided
+    if "risk_id" not in risk:
+        import uuid
+        risk["risk_id"] = f"risk-{uuid.uuid4().hex[:6]}"
+    
+    risk.setdefault("status", "open")
+    risk.setdefault("severity", "medium")
+    risk["created_at"] = datetime.utcnow().isoformat()
+    risks.append(risk)
+    
+    await ReleaseManager.update_release(release_id, {"risks": risks})
+    
+    return {
+        "message": "Risk added",
+        "risk": risk
+    }
+
+
+# =============================================================================
+# External Source Sync (Smartsheet, CSV, etc.)
+# =============================================================================
+
+@app.post("/releases/sync/smartsheet")
+async def sync_from_smartsheet(config: dict, background_tasks: BackgroundTasks):
+    """
+    Sync releases from Smartsheet.
+    
+    Required config:
+    - **api_token**: Smartsheet API token
+    - **sheet_id**: Sheet ID containing release data
+    
+    Optional config:
+    - **version_column**: Column name for version (default: "Release Version")
+    - **target_date_column**: Column name for target date (default: "Target Date")
+    - **status_column**: Column name for status (default: "Status")
+    - **sync_mode**: "merge" (default), "replace", or "append"
+    """
+    if "api_token" not in config:
+        raise HTTPException(400, "api_token is required")
+    if "sheet_id" not in config:
+        raise HTTPException(400, "sheet_id is required")
+    
+    # In production, this would use the Smartsheet API
+    # For now, return a mock sync result
+    
+    sync_id = f"sync-{uuid.uuid4().hex[:8]}"
+    
+    # Simulate async sync
+    async def perform_sync():
+        logger.info(f"Starting Smartsheet sync: {sync_id}")
+        # Actual Smartsheet API integration would go here
+        # smartsheet_client = smartsheet.Smartsheet(config["api_token"])
+        # sheet = smartsheet_client.Sheets.get_sheet(config["sheet_id"])
+        
+        # For demo, create some mock releases from "Smartsheet"
+        mock_releases = [
+            {
+                "version": "v3.0.0",
+                "name": "Phoenix",
+                "target_date": (datetime.utcnow() + timedelta(days=45)).isoformat(),
+                "status": "planning",
+                "source": "smartsheet",
+                "external_id": f"row-{random.randint(1000, 9999)}",
+                "release_type": "major"
+            },
+            {
+                "version": "v2.5.0",
+                "name": "Ember",
+                "target_date": (datetime.utcnow() + timedelta(days=21)).isoformat(),
+                "status": "in_progress",
+                "source": "smartsheet",
+                "external_id": f"row-{random.randint(1000, 9999)}",
+                "release_type": "minor"
+            }
+        ]
+        
+        for release in mock_releases:
+            await ReleaseManager.create_release(release)
+        
+        logger.info(f"Smartsheet sync completed: {sync_id}")
+    
+    background_tasks.add_task(perform_sync)
+    
+    return {
+        "message": "Smartsheet sync initiated",
+        "sync_id": sync_id,
+        "status": "in_progress"
+    }
+
+
+@app.post("/releases/sync/csv")
+async def sync_from_csv(csv_data: str, config: dict = None):
+    """
+    Import releases from CSV data.
+    
+    Expected CSV columns (headers required):
+    - version (required)
+    - target_date (required)
+    - name (optional)
+    - description (optional)
+    - status (optional)
+    - release_type (optional)
+    - project_key (optional)
+    """
+    import csv
+    from io import StringIO
+    
+    config = config or {}
+    
+    try:
+        reader = csv.DictReader(StringIO(csv_data))
+        created = []
+        errors = []
+        
+        for row in reader:
+            if "version" not in row or "target_date" not in row:
+                errors.append(f"Missing required fields in row: {row}")
+                continue
+            
+            release = {
+                "version": row["version"],
+                "target_date": row["target_date"],
+                "name": row.get("name"),
+                "description": row.get("description"),
+                "status": row.get("status", "planning"),
+                "release_type": row.get("release_type", "minor"),
+                "project_key": row.get("project_key"),
+                "source": "csv_import"
+            }
+            
+            try:
+                result = await ReleaseManager.create_release(release)
+                created.append(result["release_id"])
+            except Exception as e:
+                errors.append(f"Failed to create release {row['version']}: {str(e)}")
+        
+        return {
+            "message": f"CSV import completed",
+            "created": len(created),
+            "errors": len(errors),
+            "created_ids": created,
+            "error_details": errors
+        }
+    
+    except Exception as e:
+        raise HTTPException(400, f"Failed to parse CSV: {str(e)}")
+
+
+@app.post("/releases/sync/webhook")
+async def receive_external_webhook(payload: dict):
+    """
+    Receive release data from an external webhook.
+    
+    This endpoint can be configured in external tools (Smartsheet, Notion, etc.)
+    to automatically push release updates to Nexus.
+    
+    Expected payload:
+    - **action**: "create", "update", or "delete"
+    - **release**: Release data object
+    - **source**: Source system identifier
+    """
+    action = payload.get("action")
+    release_data = payload.get("release", {})
+    source = payload.get("source", "api_webhook")
+    
+    if not action:
+        raise HTTPException(400, "action is required")
+    
+    if action == "create":
+        release_data["source"] = source
+        release = await ReleaseManager.create_release(release_data)
+        return {"message": "Release created", "release_id": release["release_id"]}
+    
+    elif action == "update":
+        release_id = release_data.get("release_id") or release_data.get("external_id")
+        if not release_id:
+            raise HTTPException(400, "release_id or external_id required for update")
+        
+        release = await ReleaseManager.update_release(release_id, release_data)
+        if not release:
+            raise HTTPException(404, f"Release not found: {release_id}")
+        return {"message": "Release updated", "release_id": release_id}
+    
+    elif action == "delete":
+        release_id = release_data.get("release_id") or release_data.get("external_id")
+        if not release_id:
+            raise HTTPException(400, "release_id or external_id required for delete")
+        
+        success = await ReleaseManager.delete_release(release_id)
+        if not success:
+            raise HTTPException(404, f"Release not found: {release_id}")
+        return {"message": "Release deleted", "release_id": release_id}
+    
+    else:
+        raise HTTPException(400, f"Unknown action: {action}")
+
+
+# =============================================================================
+# Release Templates
+# =============================================================================
+
+@app.get("/releases/templates")
+async def get_release_templates():
+    """Get release templates for quick creation."""
+    return {
+        "templates": [
+            {
+                "id": "standard",
+                "name": "Standard Release",
+                "description": "Standard release with typical milestones",
+                "release_type": "minor",
+                "milestones": [
+                    {"name": "Planning Complete", "days_before_release": 30},
+                    {"name": "Development Complete", "days_before_release": 14},
+                    {"name": "Code Freeze", "days_before_release": 7},
+                    {"name": "UAT Start", "days_before_release": 7},
+                    {"name": "UAT Complete", "days_before_release": 3},
+                    {"name": "Go/No-Go Decision", "days_before_release": 2},
+                    {"name": "Production Deploy", "days_before_release": 0}
+                ]
+            },
+            {
+                "id": "hotfix",
+                "name": "Hotfix Release",
+                "description": "Emergency fix with accelerated timeline",
+                "release_type": "hotfix",
+                "milestones": [
+                    {"name": "Fix Developed", "days_before_release": 1},
+                    {"name": "Testing Complete", "days_before_release": 0},
+                    {"name": "Production Deploy", "days_before_release": 0}
+                ]
+            },
+            {
+                "id": "major",
+                "name": "Major Release",
+                "description": "Major version with extended timeline",
+                "release_type": "major",
+                "milestones": [
+                    {"name": "Requirements Complete", "days_before_release": 60},
+                    {"name": "Design Complete", "days_before_release": 45},
+                    {"name": "Development Complete", "days_before_release": 21},
+                    {"name": "Code Freeze", "days_before_release": 14},
+                    {"name": "UAT Start", "days_before_release": 14},
+                    {"name": "Performance Testing", "days_before_release": 10},
+                    {"name": "Security Review", "days_before_release": 7},
+                    {"name": "UAT Complete", "days_before_release": 5},
+                    {"name": "Go/No-Go Decision", "days_before_release": 3},
+                    {"name": "Staging Deploy", "days_before_release": 2},
+                    {"name": "Production Deploy", "days_before_release": 0}
+                ]
+            }
+        ]
+    }
+
+
+# Need to import additional modules
+from datetime import timedelta
+import uuid
+
+
+# =============================================================================
 # Main Entry Point
 # =============================================================================
 

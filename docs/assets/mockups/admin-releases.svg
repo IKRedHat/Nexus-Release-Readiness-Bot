@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f1a"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00ff88"/>
+      <stop offset="100%" style="stop-color:#00cc6a"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="800" fill="url(#bgGrad)"/>
+  
+  <!-- Grid Pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+  </pattern>
+  <rect width="1200" height="800" fill="url(#grid)"/>
+  
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="220" height="800" fill="#12121f" stroke="#2d2d4a" stroke-width="1"/>
+  
+  <!-- Logo -->
+  <rect x="20" y="20" width="44" height="44" rx="10" fill="url(#accentGrad)"/>
+  <text x="42" y="48" font-family="Arial" font-size="20" fill="#0f0f1a" text-anchor="middle">⚡</text>
+  <text x="74" y="38" font-family="Inter, Arial" font-size="16" font-weight="bold" fill="white">Nexus</text>
+  <text x="74" y="54" font-family="Inter, Arial" font-size="10" fill="#6b7280">Admin Dashboard</text>
+  
+  <!-- Navigation -->
+  <rect x="20" y="100" width="180" height="44" rx="8" fill="transparent"/>
+  <text x="55" y="128" font-family="Inter, Arial" font-size="14" fill="#6b7280">📊 Dashboard</text>
+  
+  <rect x="20" y="150" width="180" height="44" rx="8" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+  <text x="55" y="178" font-family="Inter, Arial" font-size="14" fill="#00ff88">📅 Releases</text>
+  
+  <rect x="20" y="200" width="180" height="44" rx="8" fill="transparent"/>
+  <text x="55" y="228" font-family="Inter, Arial" font-size="14" fill="#6b7280">📈 Observability</text>
+  
+  <rect x="20" y="250" width="180" height="44" rx="8" fill="transparent"/>
+  <text x="55" y="278" font-family="Inter, Arial" font-size="14" fill="#6b7280">❤️ Health Monitor</text>
+  
+  <rect x="20" y="300" width="180" height="44" rx="8" fill="transparent"/>
+  <text x="55" y="328" font-family="Inter, Arial" font-size="14" fill="#6b7280">⚙️ Configuration</text>
+  
+  <!-- Version footer -->
+  <text x="30" y="780" font-family="Inter, Arial" font-size="11" fill="#4b5563">🛡️ Version 2.4.0</text>
+  
+  <!-- Main Content Area -->
+  <!-- Header -->
+  <text x="260" y="50" font-family="Inter, Arial" font-size="24" font-weight="bold" fill="white">📅 Release Management</text>
+  <text x="260" y="75" font-family="Inter, Arial" font-size="14" fill="#6b7280">Track release versions and target dates from external sources</text>
+  
+  <!-- Action Buttons -->
+  <rect x="920" y="30" width="120" height="36" rx="8" fill="#1e1e3a" stroke="#3d3d5c" stroke-width="1"/>
+  <text x="960" y="54" font-family="Inter, Arial" font-size="12" fill="#9ca3af">📤 Import</text>
+  
+  <rect x="1050" y="30" width="120" height="36" rx="8" fill="url(#accentGrad)"/>
+  <text x="1090" y="54" font-family="Inter, Arial" font-size="12" fill="#0f0f1a" font-weight="bold">+ New Release</text>
+  
+  <!-- Summary Cards -->
+  <rect x="260" y="100" width="225" height="90" rx="12" fill="#1e1e3a" stroke="#2d2d4a" stroke-width="1"/>
+  <text x="280" y="130" font-family="Inter, Arial" font-size="12" fill="#6b7280">Total Releases</text>
+  <text x="280" y="165" font-family="Inter, Arial" font-size="32" font-weight="bold" fill="white">5</text>
+  <circle cx="450" cy="145" r="24" fill="rgba(59,130,246,0.2)"/>
+  <text x="450" y="152" font-family="Arial" font-size="18" fill="#3b82f6" text-anchor="middle">📅</text>
+  
+  <rect x="500" y="100" width="225" height="90" rx="12" fill="#1e1e3a" stroke="#2d2d4a" stroke-width="1"/>
+  <text x="520" y="130" font-family="Inter, Arial" font-size="12" fill="#6b7280">Upcoming</text>
+  <text x="520" y="165" font-family="Inter, Arial" font-size="32" font-weight="bold" fill="#22c55e">3</text>
+  <circle cx="690" cy="145" r="24" fill="rgba(34,197,94,0.2)"/>
+  <text x="690" y="152" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="middle">🎯</text>
+  
+  <rect x="740" y="100" width="225" height="90" rx="12" fill="#1e1e3a" stroke="#2d2d4a" stroke-width="1"/>
+  <text x="760" y="130" font-family="Inter, Arial" font-size="12" fill="#6b7280">At Risk</text>
+  <text x="760" y="165" font-family="Inter, Arial" font-size="32" font-weight="bold" fill="#f59e0b">1</text>
+  <circle cx="930" cy="145" r="24" fill="rgba(245,158,11,0.2)"/>
+  <text x="930" y="152" font-family="Arial" font-size="18" fill="#f59e0b" text-anchor="middle">⚠️</text>
+  
+  <rect x="980" y="100" width="190" height="90" rx="12" fill="#1e1e3a" stroke="#2d2d4a" stroke-width="1"/>
+  <text x="1000" y="130" font-family="Inter, Arial" font-size="12" fill="#6b7280">Overdue</text>
+  <text x="1000" y="165" font-family="Inter, Arial" font-size="32" font-weight="bold" fill="#ef4444">0</text>
+  <circle cx="1135" cy="145" r="24" fill="rgba(239,68,68,0.2)"/>
+  <text x="1135" y="152" font-family="Arial" font-size="18" fill="#ef4444" text-anchor="middle">🕐</text>
+  
+  <!-- Release Card 1 - In Progress -->
+  <rect x="260" y="210" width="910" height="150" rx="12" fill="#1e1e3a" stroke="#3b82f6" stroke-width="1"/>
+  
+  <!-- Status Badge -->
+  <rect x="280" y="230" width="95" height="24" rx="12" fill="#3b82f6"/>
+  <text x="327" y="247" font-family="Inter, Arial" font-size="11" fill="white" text-anchor="middle">In Progress</text>
+  
+  <!-- Type Badge -->
+  <rect x="385" y="230" width="55" height="24" rx="4" fill="#2d2d4a"/>
+  <text x="412" y="247" font-family="Inter, Arial" font-size="10" fill="#9ca3af" text-anchor="middle">MINOR</text>
+  
+  <!-- Source Badge -->
+  <rect x="450" y="230" width="70" height="24" rx="4" fill="#2d2d4a"/>
+  <text x="485" y="247" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">📝 manual</text>
+  
+  <!-- Version and Name -->
+  <text x="280" y="285" font-family="Inter, Arial" font-size="20" font-weight="bold" fill="white">v2.1.0</text>
+  <text x="360" y="285" font-family="Inter, Arial" font-size="18" fill="#6b7280">"Phoenix"</text>
+  
+  <!-- Description -->
+  <text x="280" y="310" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Major feature release with new analytics dashboard</text>
+  
+  <!-- Meta Info -->
+  <text x="280" y="340" font-family="Inter, Arial" font-size="12" fill="#6b7280">📅 Target: Jan 21, 2025   •   📁 NEXUS   •   🔀 nexus-backend   •   👤 release-manager@company.com</text>
+  
+  <!-- Days Counter -->
+  <text x="1020" y="260" font-family="Inter, Arial" font-size="36" font-weight="bold" fill="white" text-anchor="end">21</text>
+  <text x="1020" y="280" font-family="Inter, Arial" font-size="12" fill="#6b7280" text-anchor="end">days left</text>
+  
+  <!-- Metrics -->
+  <text x="920" y="310" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#22c55e" text-anchor="middle">78%</text>
+  <text x="920" y="325" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Ready</text>
+  
+  <text x="990" y="310" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#9ca3af" text-anchor="middle">71%</text>
+  <text x="990" y="325" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Tickets</text>
+  
+  <text x="1060" y="310" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#9ca3af" text-anchor="middle">0</text>
+  <text x="1060" y="325" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Critical</text>
+  
+  <!-- Action Icons -->
+  <circle cx="1100" y="340" r="14" fill="transparent" stroke="#4b5563" stroke-width="1"/>
+  <text x="1100" y="345" font-family="Arial" font-size="12" fill="#6b7280" text-anchor="middle">🔄</text>
+  
+  <circle cx="1135" y="340" r="14" fill="transparent" stroke="#4b5563" stroke-width="1"/>
+  <text x="1135" y="345" font-family="Arial" font-size="12" fill="#6b7280" text-anchor="middle">✏️</text>
+  
+  <!-- Release Card 2 - Testing (At Risk) -->
+  <rect x="260" y="375" width="910" height="150" rx="12" fill="#1e1e3a" stroke="#f59e0b" stroke-width="1"/>
+  
+  <!-- Status Badge -->
+  <rect x="280" y="395" width="70" height="24" rx="12" fill="#f59e0b"/>
+  <text x="315" y="412" font-family="Inter, Arial" font-size="11" fill="white" text-anchor="middle">Testing</text>
+  
+  <!-- Type Badge -->
+  <rect x="360" y="395" width="60" height="24" rx="4" fill="#2d2d4a"/>
+  <text x="390" y="412" font-family="Inter, Arial" font-size="10" fill="#9ca3af" text-anchor="middle">HOTFIX</text>
+  
+  <!-- Source Badge -->
+  <rect x="430" y="395" width="90" height="24" rx="4" fill="#2d2d4a"/>
+  <text x="475" y="412" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">📊 smartsheet</text>
+  
+  <!-- Version and Name -->
+  <text x="280" y="450" font-family="Inter, Arial" font-size="20" font-weight="bold" fill="white">v2.0.5</text>
+  <text x="360" y="450" font-family="Inter, Arial" font-size="18" fill="#6b7280">"Hotfix"</text>
+  
+  <!-- Description -->
+  <text x="280" y="475" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Security patch for CVE-2025-1234</text>
+  
+  <!-- Meta Info -->
+  <text x="280" y="505" font-family="Inter, Arial" font-size="12" fill="#6b7280">📅 Target: Jan 4, 2025   •   📁 NEXUS   •   🔀 hotfix/2.0.5   •   👤 security-lead@company.com</text>
+  
+  <!-- Days Counter (At Risk) -->
+  <text x="1020" y="425" font-family="Inter, Arial" font-size="36" font-weight="bold" fill="#f59e0b" text-anchor="end">3</text>
+  <text x="1020" y="445" font-family="Inter, Arial" font-size="12" fill="#6b7280" text-anchor="end">days left</text>
+  
+  <!-- Metrics -->
+  <text x="920" y="475" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#f59e0b" text-anchor="middle">85%</text>
+  <text x="920" y="490" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Ready</text>
+  
+  <text x="990" y="475" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#9ca3af" text-anchor="middle">80%</text>
+  <text x="990" y="490" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Tickets</text>
+  
+  <text x="1060" y="475" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#ef4444" text-anchor="middle">1</text>
+  <text x="1060" y="490" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Critical</text>
+  
+  <!-- Release Card 3 - Deployed -->
+  <rect x="260" y="540" width="910" height="110" rx="12" fill="#1e1e3a" stroke="#22c55e" stroke-width="1"/>
+  
+  <!-- Status Badge -->
+  <rect x="280" y="560" width="75" height="24" rx="12" fill="#22c55e"/>
+  <text x="317" y="577" font-family="Inter, Arial" font-size="11" fill="white" text-anchor="middle">Deployed</text>
+  
+  <!-- Type Badge -->
+  <rect x="365" y="560" width="55" height="24" rx="4" fill="#2d2d4a"/>
+  <text x="392" y="577" font-family="Inter, Arial" font-size="10" fill="#9ca3af" text-anchor="middle">PATCH</text>
+  
+  <!-- Source Badge -->
+  <rect x="430" y="560" width="80" height="24" rx="4" fill="#2d2d4a"/>
+  <text x="470" y="577" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">📄 csv_import</text>
+  
+  <!-- Version -->
+  <text x="280" y="615" font-family="Inter, Arial" font-size="20" font-weight="bold" fill="white">v2.0.4</text>
+  
+  <!-- Description -->
+  <text x="280" y="640" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Bug fixes and performance improvements</text>
+  
+  <!-- Deployed Checkmark -->
+  <circle cx="1050" y="600" r="30" fill="rgba(34,197,94,0.2)"/>
+  <text x="1050" y="608" font-family="Arial" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+  
+  <!-- Metrics -->
+  <text x="920" y="615" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#22c55e" text-anchor="middle">100%</text>
+  <text x="920" y="630" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Complete</text>
+  
+  <!-- Import Sources Legend -->
+  <rect x="260" y="670" width="910" height="50" rx="8" fill="#12121f" stroke="#2d2d4a" stroke-width="1"/>
+  <text x="280" y="700" font-family="Inter, Arial" font-size="12" fill="#6b7280">📊 Smartsheet</text>
+  <text x="400" y="700" font-family="Inter, Arial" font-size="12" fill="#6b7280">📄 CSV Import</text>
+  <text x="510" y="700" font-family="Inter, Arial" font-size="12" fill="#6b7280">🔗 Webhook</text>
+  <text x="620" y="700" font-family="Inter, Arial" font-size="12" fill="#6b7280">📝 Manual</text>
+  <text x="720" y="700" font-family="Inter, Arial" font-size="12" fill="#6b7280">🎫 Jira</text>
+  
+  <!-- Live indicator -->
+  <rect x="1080" y="740" width="80" height="30" rx="15" fill="rgba(34,197,94,0.2)" stroke="#22c55e" stroke-width="1"/>
+  <circle cx="1095" cy="755" r="4" fill="#22c55e"/>
+  <text x="1130" y="760" font-family="Inter, Arial" font-size="11" fill="#22c55e" text-anchor="middle">LIVE</text>
+</svg>
+

@@ -9,10 +9,12 @@ A step-by-step guide for using the Nexus Admin Dashboard. This tutorial is desig
 3. [Checking System Health](#3-checking-system-health)
 4. [Switching Between Modes](#4-switching-between-modes)
 5. [Viewing Observability Metrics](#5-viewing-observability-metrics)
-6. [Configuration Tab - Going from Mock to Live](#6-configuration-tab---going-from-mock-to-live)
-7. [Monitoring Agents](#7-monitoring-agents)
-8. [Common Tasks](#8-common-tasks)
-9. [Troubleshooting](#9-troubleshooting)
+6. [Managing Releases](#6-managing-releases)
+7. [Configuring Integrations](#7-configuring-integrations)
+8. [Configuration Tab - Going from Mock to Live](#8-configuration-tab---going-from-mock-to-live)
+9. [Monitoring Agents](#9-monitoring-agents)
+10. [Common Tasks](#10-common-tasks)
+11. [Troubleshooting](#11-troubleshooting)
 
 ---
 
@@ -44,11 +46,12 @@ You should see the Nexus Admin Dashboard with a dark theme and green accent colo
 
 ### Main Navigation
 
-The dashboard has a **sidebar** on the left with four main sections:
+The dashboard has a **sidebar** on the left with five main sections:
 
 | Icon | Section | Purpose |
 |------|---------|---------|
 | 📊 | **Dashboard** | System overview and quick actions |
+| 📅 | **Releases** | Manage releases and target dates |
 | 📈 | **Observability** | Metrics, charts, and performance data |
 | ❤️ | **Health Monitor** | Real-time agent status |
 | ⚙️ | **Configuration** | Manage settings and credentials |
@@ -246,7 +249,148 @@ If Grafana is configured for embedding:
 
 ---
 
-## 6. Configuring Integrations
+## 6. Managing Releases
+
+The **Releases** page allows you to track release versions, target dates, and readiness metrics. You can create releases manually or import from external sources like Smartsheet, CSV, or webhooks.
+
+![Releases Page](assets/mockups/admin-releases.svg)
+
+### Step 1: Navigate to Releases
+
+Click **"📅 Releases"** in the sidebar (second item).
+
+### Step 2: Review Summary Cards
+
+At the top, you'll see four summary cards:
+
+| Card | What It Shows | Color |
+|------|---------------|-------|
+| **Total Releases** | All tracked releases | Blue |
+| **Upcoming** | Releases on schedule | Green |
+| **At Risk** | Releases within 14 days of target | Amber |
+| **Overdue** | Releases past target date | Red |
+
+### Step 3: Create a New Release
+
+1. Click the **"+ New Release"** button (top right)
+2. Fill in the required fields:
+   - **Version**: e.g., `v2.1.0`
+   - **Target Date**: Select from calendar
+3. Optional fields:
+   - **Release Name**: e.g., "Phoenix"
+   - **Description**: Brief description
+   - **Release Type**: Major, Minor, Patch, Hotfix, Feature
+   - **Jira Project Key**: e.g., `PROJ`
+   - **Repository**: e.g., `nexus-backend`
+   - **Release Manager**: Email address
+4. Click **"Create Release"**
+
+### Step 4: Import from Smartsheet
+
+To sync releases from Smartsheet:
+
+1. Click the **"Import"** button
+2. Select the **"Smartsheet"** tab
+3. Enter your Smartsheet API token
+4. Enter the Sheet ID
+5. Click **"Sync from Smartsheet"**
+
+The system will automatically map these columns:
+- Release Version
+- Target Date
+- Status
+- Release Name (optional)
+
+### Step 5: Import from CSV
+
+To import from a CSV file:
+
+1. Click the **"Import"** button
+2. Select the **"CSV"** tab
+3. Paste CSV data in this format:
+
+```csv
+version,target_date,name,status
+v2.1.0,2025-02-15,Phoenix,planning
+v2.2.0,2025-03-01,Ember,in_progress
+```
+
+4. Click **"Import CSV"**
+
+### Step 6: Configure Webhook Integration
+
+For automated syncing from external systems:
+
+1. Click the **"Import"** button
+2. Select the **"Webhook"** tab
+3. Copy the webhook URL shown
+4. Configure your external system to POST to this URL
+
+**Webhook Payload Format:**
+```json
+{
+  "action": "create",
+  "source": "your-system",
+  "release": {
+    "version": "v2.1.0",
+    "target_date": "2025-02-15T00:00:00Z",
+    "name": "Phoenix"
+  }
+}
+```
+
+### Step 7: View Release Details
+
+Each release card shows:
+
+| Element | Description |
+|---------|-------------|
+| **Status Badge** | Planning, In Progress, Testing, Ready, Deployed |
+| **Type Badge** | Major, Minor, Patch, Hotfix |
+| **Source Badge** | Where the release came from |
+| **Version** | Release version number |
+| **Description** | Brief description |
+| **Meta Info** | Target date, project, repo, manager |
+| **Days Counter** | Days until release (red if overdue) |
+| **Metrics** | Readiness score, ticket %, critical issues |
+
+### Step 8: Track Milestones
+
+For each release, you can track milestones:
+
+1. Click on a release to expand
+2. View milestone progress bar
+3. Milestones show:
+   - ✅ Green: Completed
+   - 🔴 Red: Overdue
+   - ⚪ Gray: Upcoming
+
+### Step 9: Refresh Release Metrics
+
+To update metrics from Jira, Jenkins, etc.:
+
+1. Find the release card
+2. Click the **🔄 Refresh** button
+3. Wait for metrics to update
+
+Metrics include:
+- Ticket completion rate
+- Build success rate
+- Test coverage
+- Critical vulnerabilities
+- Readiness score
+
+### Step 10: Delete a Release
+
+1. Find the release card
+2. Click the **🗑️ Delete** button
+3. Confirm deletion in the popup
+
+> ⚠️ **Warning**: Deletion is permanent. Make sure you want to remove this release.
+
+---
+
+## 7. Configuring Integrations
 
 ### Step 1: Go to Configuration
 
@@ -310,7 +454,7 @@ Scroll down to see the **"All Configuration Values"** table showing:
 
 ---
 
-## 6. Configuration Tab - Going from Mock to Live
+## 8. Configuration Tab - Going from Mock to Live
 
 The Configuration tab is where you set up all your integrations to move from Mock mode to Live mode. This is the most important section for production deployment.
 
@@ -464,7 +608,7 @@ Once all configurations are saved:
 
 ---
 
-## 7. Monitoring Agents
+## 9. Monitoring Agents
 
 ### Step 1: Go to Health Monitor
 
@@ -499,7 +643,7 @@ Click **"Refresh Now"** to immediately check all agents.
 
 ---
 
-## 7. Common Tasks
+## 10. Common Tasks
 
 ### Task 1: Preparing for a Demo
 
@@ -545,7 +689,7 @@ Click **"Refresh Now"** to immediately check all agents.
 
 ---
 
-## 8. Troubleshooting
+## 11. Troubleshooting
 
 ### Problem: Dashboard Won't Load
 
