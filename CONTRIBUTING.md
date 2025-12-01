@@ -260,11 +260,37 @@ mypy shared/ --ignore-missing-imports
 
 ### Testing Standards
 
-- **Unit tests**: Required for all new functions
+Nexus uses a comprehensive testing strategy with ~370 tests across 4 categories:
+
+| Category | Location | Purpose | Required For |
+|----------|----------|---------|--------------|
+| **Unit** | `tests/unit/` | Isolated component testing | All new functions |
+| **E2E** | `tests/e2e/` | Service endpoint testing | New endpoints |
+| **Integration** | `tests/integration/` | Inter-service workflows | Cross-service features |
+| **Smoke** | `tests/smoke/` | Quick health checks | Major deployments |
+
+**Requirements:**
+- **Unit tests**: Required for all new functions/classes
 - **E2E tests**: Required for new endpoints/features
 - **Coverage**: Aim for 80%+ coverage on new code
-- **Naming**: `test_<function_name>_<scenario>`
+- **Naming**: `test_<action>_<scenario>` (e.g., `test_validate_ticket_missing_labels`)
 
+**Running Tests:**
+```bash
+# Run all tests
+pytest
+
+# Run by category
+pytest -m unit           # Unit tests
+pytest -m e2e            # E2E tests
+pytest -m integration    # Integration tests
+pytest -m smoke          # Smoke tests
+
+# Run with coverage
+pytest --cov=shared --cov-report=html
+```
+
+**Example Test:**
 ```python
 import pytest
 from unittest.mock import AsyncMock, patch
@@ -272,19 +298,27 @@ from unittest.mock import AsyncMock, patch
 class TestHygieneChecker:
     """Tests for the HygieneChecker class."""
 
-    def test_validate_ticket_missing_labels(self):
+    @pytest.fixture
+    def checker(self):
+        """Create checker with mocked dependencies."""
+        return HygieneChecker(mock_client, mock_config)
+
+    def test_validate_ticket_missing_labels(self, checker):
         """Should detect missing labels as a violation."""
-        ticket = {"key": "PROJ-123", "labels": []}
-        violations = checker.validate(ticket)
+        ticket = {"key": "PROJ-123", "fields": {"labels": []}}
+        violations = checker._validate_ticket(ticket)
         assert "Labels" in violations
 
     @pytest.mark.asyncio
-    async def test_check_hygiene_sends_notifications(self):
+    async def test_check_hygiene_sends_notifications(self, checker):
         """Should send DM notifications when violations are found."""
-        with patch("slack_client.send_dm") as mock_dm:
+        with patch.object(checker.slack_client, "post") as mock_dm:
+            mock_dm.return_value = {"status": "success"}
             await checker.check_hygiene(project_key="PROJ")
             mock_dm.assert_called()
 ```
+
+📖 **[Full Testing Documentation](docs/testing.md)**
 
 ---
 

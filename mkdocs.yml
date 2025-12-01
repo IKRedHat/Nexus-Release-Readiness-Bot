@@ -57,6 +57,13 @@ nav:
     - Analytics Dashboard: analytics.md
     - Webhook Integrations: webhooks.md
     - Smart RCA: rca.md
+  - Testing:
+    - Testing Guide: testing.md
+    - Unit Tests: testing.md#-unit-tests-testsunit
+    - E2E Tests: testing.md#-e2e-tests-testse2e
+    - Integration Tests: testing.md#-integration-tests-testsintegration
+    - Smoke Tests: testing.md#-smoke-tests-testssmoke
+    - Coverage: testing.md#test-coverage
   - CI/CD:
     - Overview: ci-cd/index.md
     - CI Workflow: ci-cd/ci-workflow.md

@@ -390,25 +390,74 @@ We provide helper scripts for common development tasks:
 
 ## 🧪 Testing
 
+Nexus has a comprehensive test suite with ~370 tests across 4 categories:
+
+| Category | Tests | Purpose |
+|----------|-------|---------|
+| **Unit** | ~200 | Test individual components in isolation |
+| **E2E** | ~100 | Test complete service endpoints |
+| **Integration** | ~30 | Test inter-service communication |
+| **Smoke** | ~40 | Quick health verification |
+
+### Running Tests
+
 ```bash
 # Run all tests
-pytest tests/ -v
+pytest
 
-# Unit tests only
-pytest tests/unit/ -v
+# Run by category (using markers)
+pytest -m unit           # Unit tests only
+pytest -m e2e            # E2E tests only
+pytest -m integration    # Integration tests only
+pytest -m smoke          # Smoke tests (quick health checks)
 
-# E2E tests only
-pytest tests/e2e/ -v
+# Exclude slow tests
+pytest -m "not slow"
 
-# Hygiene logic tests
-pytest tests/unit/test_hygiene_logic.py -v
+# Run specific test file
+pytest tests/unit/test_rca_logic.py -v
 
 # With coverage
-pytest tests/ --cov=shared --cov=services --cov-report=html
+pytest --cov=shared --cov=services --cov-report=html
+
+# Run tests in parallel (faster)
+pytest -n auto
 
 # Or use the dev script
 ./scripts/dev.sh test
+./scripts/dev.sh test-unit
 ```
+
+### Test Structure
+
+```
+tests/
+├── conftest.py                      # Shared fixtures
+├── unit/                            # Unit tests
+│   ├── test_schemas.py              # Pydantic models
+│   ├── test_react_engine.py         # Orchestrator ReAct engine
+│   ├── test_hygiene_logic.py        # Hygiene agent logic
+│   ├── test_rca_logic.py            # RCA log parsing
+│   ├── test_config_manager.py       # Dynamic configuration
+│   ├── test_analytics.py            # Analytics engine
+│   ├── test_webhooks.py             # Webhook management
+│   ├── test_instrumentation.py      # Metrics & tracing
+│   └── test_llm_client.py           # LLM abstraction
+├── e2e/                             # End-to-end tests
+│   ├── test_release_flow.py         # Orchestrator E2E
+│   ├── test_slack_flow.py           # Slack agent E2E
+│   ├── test_reporting_flow.py       # Reporting agent E2E
+│   ├── test_jira_agent.py           # Jira agent E2E
+│   ├── test_git_ci_agent.py         # Git/CI agent E2E
+│   ├── test_hygiene_agent.py        # Hygiene agent E2E
+│   └── test_rca_agent.py            # RCA agent E2E
+├── integration/                     # Integration tests
+│   └── test_agent_communication.py  # Inter-agent workflows
+└── smoke/                           # Smoke tests
+    └── test_all_services.py         # All service health checks
+```
+
+📖 **[Full Testing Documentation](docs/testing.md)**
 
 ---
 
