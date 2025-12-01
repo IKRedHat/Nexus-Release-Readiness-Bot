@@ -253,7 +253,8 @@ class AgentRegistry:
             "git_ci": "GIT_CI_AGENT_URL",
             "slack": "SLACK_AGENT_URL",
             "reporting": "REPORTING_AGENT_URL",
-            "scheduling": "SCHEDULING_AGENT_URL"
+            "scheduling": "SCHEDULING_AGENT_URL",
+            "rca": "RCA_AGENT_URL"
         }
         
         for agent_type, env_var in agent_mappings.items():
@@ -532,6 +533,299 @@ def cached(ttl: int = 300, key_prefix: str = ""):
         return sync_wrapper
     
     return decorator
+
+
+# ============================================================================
+# LOG PROCESSING UTILITIES (for RCA)
+# ============================================================================
+
+# Common error patterns to preserve in truncated logs
+ERROR_PATTERNS = [
+    # Python
+    r"Traceback \(most recent call last\):.*?(?=\n\n|\Z)",
+    r"^\s*File \".*\", line \d+.*$",
+    r"^\w+Error:.*$",
+    r"^\w+Exception:.*$",
+    r"AssertionError:.*$",
+    r"FAILED.*$",
+    
+    # Java/JVM
+    r"Exception in thread.*$",
+    r"^\s*at [\w\.$]+\(.*:\d+\).*$",
+    r"Caused by:.*$",
+    r"java\.\w+\.\w+Exception:.*$",
+    r"BUILD FAILURE.*$",
+    r"\[ERROR\].*$",
+    
+    # JavaScript/Node
+    r"Error:.*$",
+    r"^\s*at .*\(.*:\d+:\d+\).*$",
+    r"ReferenceError:.*$",
+    r"TypeError:.*$",
+    r"SyntaxError:.*$",
+    
+    # Generic CI/Build
+    r"FAILURE:.*$",
+    r"ERROR:.*$",
+    r"FATAL:.*$",
+    r"Test failed:.*$",
+    r"Compilation failed.*$",
+    r"Permission denied.*$",
+    r"Cannot find.*$",
+    r"No such file or directory.*$",
+    r"Command failed.*$",
+    r"Exit code: [1-9]\d*.*$",
+    r"npm ERR!.*$",
+    r"ModuleNotFoundError:.*$",
+    r"ImportError:.*$",
+]
+
+# Compiled patterns for efficiency
+import re
+COMPILED_ERROR_PATTERNS = [re.compile(p, re.MULTILINE | re.IGNORECASE) for p in ERROR_PATTERNS]
+
+
+def truncate_build_log(
+    log_content: str,
+    max_total_chars: int = 100000,  # ~25k tokens for most models
+    head_lines: int = 100,
+    tail_lines: int = 200,
+    error_context_lines: int = 10,
+    preserve_error_blocks: bool = True
+) -> str:
+    """
+    Intelligently truncate a build log to fit within LLM context windows
+    while preserving the most relevant error information.
+    
+    Strategy:
+    1. Keep the first N lines (build initialization, environment info)
+    2. Keep the last M lines (final status, summary)
+    3. Extract and preserve all error blocks with context
+    4. Ensure total size fits within max_total_chars
+    
+    Args:
+        log_content: The full build log content
+        max_total_chars: Maximum total characters to return
+        head_lines: Number of lines to keep from the start
+        tail_lines: Number of lines to keep from the end
+        error_context_lines: Lines of context around each error
+        preserve_error_blocks: Whether to extract and preserve error blocks
+    
+    Returns:
+        Truncated log with preserved error sections
+    """
+    if len(log_content) <= max_total_chars:
+        return log_content
+    
+    lines = log_content.split('\n')
+    total_lines = len(lines)
+    
+    if total_lines <= head_lines + tail_lines:
+        return log_content[:max_total_chars]
+    
+    # Extract sections
+    head_section = lines[:head_lines]
+    tail_section = lines[-tail_lines:]
+    middle_section = lines[head_lines:-tail_lines] if tail_lines > 0 else lines[head_lines:]
+    
+    # Find error blocks in the middle section
+    error_blocks = []
+    if preserve_error_blocks and middle_section:
+        middle_text = '\n'.join(middle_section)
+        
+        for pattern in COMPILED_ERROR_PATTERNS:
+            for match in pattern.finditer(middle_text):
+                start_pos = match.start()
+                end_pos = match.end()
+                
+                # Get line numbers
+                start_line = middle_text[:start_pos].count('\n')
+                end_line = middle_text[:end_pos].count('\n')
+                
+                # Add context
+                context_start = max(0, start_line - error_context_lines)
+                context_end = min(len(middle_section), end_line + error_context_lines + 1)
+                
+                error_block = '\n'.join(middle_section[context_start:context_end])
+                
+                # Avoid duplicates
+                if error_block not in error_blocks:
+                    error_blocks.append(error_block)
+    
+    # Build the truncated log
+    separator = "\n\n" + "=" * 60 + "\n"
+    
+    parts = []
+    
+    # Header section
+    parts.append("=== BUILD LOG START (first {} lines) ===\n".format(head_lines))
+    parts.append('\n'.join(head_section))
+    
+    # Error blocks
+    if error_blocks:
+        parts.append(separator)
+        parts.append("=== EXTRACTED ERROR BLOCKS ===\n")
+        for i, block in enumerate(error_blocks[:20], 1):  # Limit to 20 blocks
+            parts.append(f"\n--- Error Block {i} ---\n")
+            parts.append(block)
+    
+    # Truncation notice
+    skipped_lines = total_lines - head_lines - tail_lines
+    parts.append(separator)
+    parts.append(f"[... {skipped_lines} lines truncated ...]\n")
+    
+    # Tail section
+    parts.append(separator)
+    parts.append("=== BUILD LOG END (last {} lines) ===\n".format(tail_lines))
+    parts.append('\n'.join(tail_section))
+    
+    result = ''.join(parts)
+    
+    # Final size check - if still too long, truncate from middle error blocks
+    if len(result) > max_total_chars:
+        # Calculate how much we need to cut
+        excess = len(result) - max_total_chars
+        
+        # Remove error blocks until we fit
+        while error_blocks and len(result) > max_total_chars:
+            error_blocks.pop()
+            parts = []
+            parts.append("=== BUILD LOG START (first {} lines) ===\n".format(head_lines))
+            parts.append('\n'.join(head_section))
+            if error_blocks:
+                parts.append(separator)
+                parts.append("=== EXTRACTED ERROR BLOCKS ===\n")
+                for i, block in enumerate(error_blocks, 1):
+                    parts.append(f"\n--- Error Block {i} ---\n")
+                    parts.append(block)
+            parts.append(separator)
+            parts.append(f"[... {skipped_lines} lines truncated ...]\n")
+            parts.append(separator)
+            parts.append("=== BUILD LOG END (last {} lines) ===\n".format(tail_lines))
+            parts.append('\n'.join(tail_section))
+            result = ''.join(parts)
+        
+        # If still too long, hard truncate
+        if len(result) > max_total_chars:
+            result = result[:max_total_chars] + "\n[... LOG TRUNCATED TO FIT CONTEXT WINDOW ...]"
+    
+    return result
+
+
+def extract_error_summary(log_content: str, max_errors: int = 10) -> List[str]:
+    """
+    Extract a list of error messages from a build log.
+    
+    Args:
+        log_content: The build log content
+        max_errors: Maximum number of errors to extract
+    
+    Returns:
+        List of unique error messages
+    """
+    errors = []
+    
+    for pattern in COMPILED_ERROR_PATTERNS:
+        for match in pattern.finditer(log_content):
+            error_text = match.group().strip()
+            if error_text and error_text not in errors:
+                errors.append(error_text)
+                if len(errors) >= max_errors:
+                    return errors
+    
+    return errors
+
+
+def parse_stack_trace(log_content: str) -> Optional[Dict[str, Any]]:
+    """
+    Parse a stack trace from log content.
+    
+    Returns:
+        Dictionary with parsed stack trace info or None
+    """
+    # Python traceback
+    python_tb_pattern = r"Traceback \(most recent call last\):(.*?)(\w+(?:Error|Exception):.*?)(?=\n\n|\Z)"
+    python_match = re.search(python_tb_pattern, log_content, re.DOTALL)
+    
+    if python_match:
+        frames_text = python_match.group(1)
+        error_line = python_match.group(2).strip()
+        
+        # Parse frames
+        frame_pattern = r'File "([^"]+)", line (\d+), in (\w+)'
+        frames = []
+        for match in re.finditer(frame_pattern, frames_text):
+            frames.append({
+                "file": match.group(1),
+                "line": int(match.group(2)),
+                "function": match.group(3)
+            })
+        
+        return {
+            "type": "python",
+            "error": error_line,
+            "frames": frames,
+            "top_frame": frames[-1] if frames else None
+        }
+    
+    # Java stack trace
+    java_pattern = r"([\w.]+(?:Exception|Error)):?\s*(.*?)(?:\n\s+at ([\w.$]+)\(([\w.]+):(\d+)\))?"
+    java_match = re.search(java_pattern, log_content)
+    
+    if java_match:
+        frames = []
+        at_pattern = r"at ([\w.$]+)\(([\w.]+):(\d+)\)"
+        for match in re.finditer(at_pattern, log_content):
+            frames.append({
+                "class": match.group(1),
+                "file": match.group(2),
+                "line": int(match.group(3))
+            })
+        
+        return {
+            "type": "java",
+            "exception": java_match.group(1),
+            "message": java_match.group(2).strip() if java_match.group(2) else "",
+            "frames": frames[:20],  # Limit frames
+            "top_frame": frames[0] if frames else None
+        }
+    
+    return None
+
+
+def identify_failing_test(log_content: str) -> Optional[Dict[str, Any]]:
+    """
+    Identify the failing test from log content.
+    
+    Returns:
+        Dictionary with test info or None
+    """
+    # JUnit/TestNG pattern
+    junit_pattern = r"(?:FAILED|FAILURE|ERROR)[\s:]+(\w+(?:\.\w+)*)[#.](\w+)"
+    junit_match = re.search(junit_pattern, log_content)
+    
+    if junit_match:
+        return {
+            "framework": "junit",
+            "class": junit_match.group(1),
+            "method": junit_match.group(2),
+            "full_name": f"{junit_match.group(1)}#{junit_match.group(2)}"
+        }
+    
+    # pytest pattern
+    pytest_pattern = r"FAILED\s+([\w/]+\.py)::(\w+)(?:::(\w+))?"
+    pytest_match = re.search(pytest_pattern, log_content)
+    
+    if pytest_match:
+        return {
+            "framework": "pytest",
+            "file": pytest_match.group(1),
+            "class": pytest_match.group(2),
+            "method": pytest_match.group(3) if pytest_match.group(3) else pytest_match.group(2),
+            "full_name": pytest_match.group(0).replace("FAILED ", "")
+        }
+    
+    return None
 
 
 # ============================================================================

@@ -21,6 +21,7 @@ class AgentType(str, Enum):
     REPORTING = "reporting"
     SCHEDULING = "scheduling"
     ORCHESTRATOR = "orchestrator"
+    RCA = "rca"  # Root Cause Analysis agent
 
 
 class TaskPriority(str, Enum):
@@ -559,6 +560,170 @@ class ReActTrace(BaseModel):
     started_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
     total_duration_ms: float = 0.0
+
+
+# ============================================================================
+# ROOT CAUSE ANALYSIS (RCA) MODELS
+# ============================================================================
+
+class RcaConfidenceLevel(str, Enum):
+    """Confidence level for RCA analysis"""
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNCERTAIN = "uncertain"
+
+
+class RcaErrorType(str, Enum):
+    """Types of errors that can be identified"""
+    COMPILATION_ERROR = "compilation_error"
+    TEST_FAILURE = "test_failure"
+    DEPENDENCY_ERROR = "dependency_error"
+    CONFIGURATION_ERROR = "configuration_error"
+    INFRASTRUCTURE_ERROR = "infrastructure_error"
+    TIMEOUT_ERROR = "timeout_error"
+    PERMISSION_ERROR = "permission_error"
+    RESOURCE_ERROR = "resource_error"
+    UNKNOWN = "unknown"
+
+
+class RcaRequest(BaseModel):
+    """Request for Root Cause Analysis of a failed build"""
+    # Required identifiers
+    job_name: str = Field(..., description="Jenkins job name")
+    build_number: int = Field(..., description="Build number to analyze")
+    
+    # Optional context
+    build_url: Optional[str] = Field(None, description="Direct URL to the build")
+    repo_name: Optional[str] = Field(None, description="Repository name for git context")
+    branch: Optional[str] = Field(None, description="Git branch")
+    pr_id: Optional[int] = Field(None, description="Pull request ID if applicable")
+    commit_sha: Optional[str] = Field(None, description="Specific commit SHA to analyze")
+    
+    # Analysis options
+    include_git_diff: bool = Field(True, description="Include git diff in analysis")
+    include_test_output: bool = Field(True, description="Include test output details")
+    max_log_lines: int = Field(5000, description="Maximum log lines to analyze")
+    
+    # Request metadata
+    requested_by: Optional[str] = Field(None, description="User who requested the analysis")
+    request_source: Optional[str] = Field(None, description="Source of request (slack, api, etc.)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "job_name": "nexus-main-pipeline",
+                "build_number": 142,
+                "repo_name": "nexus-backend",
+                "branch": "feature/new-api",
+                "pr_id": 456,
+                "include_git_diff": True
+            }
+        }
+
+
+class RcaFileChange(BaseModel):
+    """File change that may have caused the issue"""
+    file_path: str = Field(..., description="Path to the changed file")
+    change_type: str = Field(..., description="Type of change: added, modified, deleted")
+    lines_added: int = Field(0, description="Number of lines added")
+    lines_deleted: int = Field(0, description="Number of lines deleted")
+    relevant_lines: Optional[List[int]] = Field(None, description="Specific lines related to the error")
+    code_snippet: Optional[str] = Field(None, description="Relevant code snippet")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "file_path": "src/api/handlers.py",
+                "change_type": "modified",
+                "lines_added": 15,
+                "lines_deleted": 3,
+                "relevant_lines": [42, 43, 44],
+                "code_snippet": "def handle_request(self):\n    return self.invalid_method()"
+            }
+        }
+
+
+class RcaTestFailure(BaseModel):
+    """Details of a specific test failure"""
+    test_name: str = Field(..., description="Full test name/path")
+    test_class: Optional[str] = Field(None, description="Test class name")
+    error_message: str = Field(..., description="Error message from the test")
+    stack_trace: Optional[str] = Field(None, description="Stack trace if available")
+    expected: Optional[str] = Field(None, description="Expected value")
+    actual: Optional[str] = Field(None, description="Actual value")
+    duration_seconds: Optional[float] = Field(None, description="Test duration")
+
+
+class RcaAnalysis(BaseModel):
+    """Complete Root Cause Analysis result"""
+    # Analysis identification
+    analysis_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique analysis ID")
+    request: RcaRequest = Field(..., description="Original request")
+    
+    # Core findings
+    root_cause_summary: str = Field(..., description="Human-readable summary of the root cause")
+    error_type: RcaErrorType = Field(RcaErrorType.UNKNOWN, description="Categorized error type")
+    error_message: str = Field(..., description="Primary error message extracted from logs")
+    
+    # Confidence and reliability
+    confidence_score: float = Field(..., ge=0.0, le=1.0, description="Confidence in the analysis (0-1)")
+    confidence_level: RcaConfidenceLevel = Field(RcaConfidenceLevel.MEDIUM, description="Confidence category")
+    
+    # Suspected cause
+    suspected_commit: Optional[str] = Field(None, description="SHA of the suspected commit")
+    suspected_author: Optional[str] = Field(None, description="Author of the suspected commit")
+    suspected_files: List[RcaFileChange] = Field(default_factory=list, description="Files likely causing the issue")
+    
+    # Detailed findings
+    test_failures: List[RcaTestFailure] = Field(default_factory=list, description="Detailed test failure info")
+    error_log_excerpt: str = Field("", description="Relevant excerpt from error logs")
+    
+    # Suggestions
+    fix_suggestion: str = Field(..., description="Suggested fix for the issue")
+    fix_code_snippet: Optional[str] = Field(None, description="Example code fix if applicable")
+    additional_recommendations: List[str] = Field(default_factory=list, description="Additional recommendations")
+    
+    # Related information
+    similar_failures: List[str] = Field(default_factory=list, description="Similar past failures")
+    documentation_links: List[str] = Field(default_factory=list, description="Helpful documentation")
+    
+    # Metadata
+    analyzed_at: datetime = Field(default_factory=datetime.utcnow)
+    analysis_duration_seconds: float = Field(0.0, description="Time taken for analysis")
+    model_used: Optional[str] = Field(None, description="LLM model used for analysis")
+    tokens_used: int = Field(0, description="Total tokens used for analysis")
+    
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
+        json_schema_extra = {
+            "example": {
+                "analysis_id": "rca-20251130-abc123",
+                "root_cause_summary": "Test failure in UserServiceTest due to null pointer exception when accessing user.getEmail() on line 42",
+                "error_type": "test_failure",
+                "error_message": "NullPointerException: Cannot invoke method getEmail() on null object",
+                "confidence_score": 0.85,
+                "confidence_level": "high",
+                "suspected_commit": "a1b2c3d4e5f6",
+                "suspected_author": "developer@example.com",
+                "fix_suggestion": "Add null check before accessing user.getEmail() or ensure user object is properly initialized in the test setup.",
+                "fix_code_snippet": "if (user != null && user.getEmail() != null) {\n    sendEmail(user.getEmail());\n}"
+            }
+        }
+
+
+class RcaBatchRequest(BaseModel):
+    """Request to analyze multiple failed builds"""
+    requests: List[RcaRequest] = Field(..., min_length=1, max_length=10)
+    correlation_id: Optional[str] = Field(None, description="ID to correlate batch results")
+
+
+class RcaBatchResponse(BaseModel):
+    """Response containing multiple RCA analyses"""
+    correlation_id: Optional[str] = None
+    analyses: List[RcaAnalysis] = Field(default_factory=list)
+    failed_analyses: List[Dict[str, str]] = Field(default_factory=list, description="Requests that failed")
+    total_duration_seconds: float = 0.0
 
 
 # ============================================================================

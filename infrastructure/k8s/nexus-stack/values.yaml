@@ -225,6 +225,49 @@ jiraHygieneAgent:
     JIRA_API_TOKEN: ""
 
 # ============================================================================
+# RCA Agent Configuration
+# ============================================================================
+rcaAgent:
+  enabled: true
+  replicas: 1
+  
+  image:
+    repository: nexus/rca-agent
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8006
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  env:
+    JENKINS_MOCK_MODE: "false"
+    GITHUB_MOCK_MODE: "false"
+    LLM_MOCK_MODE: "false"
+    RCA_LLM_MODEL: "gemini-1.5-pro"
+    RCA_MAX_LOG_CHARS: "100000"
+    RCA_MAX_DIFF_CHARS: "50000"
+  
+  secrets:
+    JENKINS_URL: ""
+    JENKINS_USERNAME: ""
+    JENKINS_API_TOKEN: ""
+    GITHUB_TOKEN: ""
+    GEMINI_API_KEY: ""
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8006"
+    prometheus.io/path: "/metrics"
+
+# ============================================================================
 # Analytics Service Configuration
 # ============================================================================
 analytics:

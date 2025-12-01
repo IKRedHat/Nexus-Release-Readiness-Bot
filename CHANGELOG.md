@@ -12,6 +12,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2025-12-01
+
+### Added
+
+#### 🔍 Smart Root Cause Analysis (RCA)
+- New RCA Agent service for analyzing failed CI/CD builds
+- Intelligent log truncation utility preserving error blocks for LLM context windows
+- Error pattern detection for Python, Java, JavaScript/Node, and generic CI failures
+- Stack trace parsing for Python and Java exceptions
+- Failing test identification for pytest and JUnit
+- LLM-powered analysis using Google Gemini 1.5 Pro (1M token context)
+- Git diff correlation to map errors to specific code changes
+- Confidence scoring (high/medium/low/uncertain)
+- Automated fix suggestions with code snippets
+- Support for Jenkins build logs and GitHub diffs/PRs
+
+#### New Pydantic Models
+- `RcaRequest` - Analysis request with build and git context
+- `RcaAnalysis` - Comprehensive analysis result with fix suggestions
+- `RcaFileChange` - File changes that may have caused issues
+- `RcaTestFailure` - Detailed test failure information
+- `RcaConfidenceLevel` and `RcaErrorType` enums
+
+#### Orchestrator Integration
+- New `analyze_build_failure` tool registered in ReAct engine
+- Natural language routing for RCA queries ("Why did build fail?", "Diagnose error")
+- RCA query classification for metrics
+
+### Changed
+- Updated agent registry to include RCA agent URL
+- Enhanced LLM mock responses for RCA-related queries
+
+### Infrastructure
+- New `Dockerfile.rca-agent` for RCA service (port 8006)
+- Updated docker-compose.yml with RCA agent service
+- Extended Prometheus scrape config for RCA metrics
+- Updated Kubernetes Helm values with RCA agent configuration
+
+### Documentation
+- New `docs/rca.md` with comprehensive RCA documentation
+- Updated mkdocs.yml navigation
+- Updated README with RCA feature highlight
+
+### Testing
+- New `tests/unit/test_rca_logic.py` with comprehensive test coverage
+- Tests for log truncation, error extraction, stack trace parsing
+- Tests for RCA Pydantic models and LLM input formatting
+
+---
+
 ## [2.1.0] - 2025-11-30
 
 ### Added
