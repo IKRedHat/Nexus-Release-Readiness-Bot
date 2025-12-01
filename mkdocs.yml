@@ -63,6 +63,9 @@ nav:
     - Release Workflow: ci-cd/release-workflow.md
     - Dependabot: ci-cd/dependabot.md
     - Troubleshooting: ci-cd/troubleshooting.md
+  - Admin Dashboard:
+    - Overview: admin-dashboard.md
+    - User Tutorial: admin-dashboard-tutorial.md
   - Operations:
     - Deployment: runbooks/deployment.md
     - GitHub Setup: GITHUB_SETUP.md

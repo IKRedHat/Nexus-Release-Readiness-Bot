@@ -60,6 +60,11 @@ scrape_configs:
     static_configs:
       - targets: ['rca-agent:8006']
     metrics_path: '/metrics'
+
+  - job_name: 'nexus-admin-dashboard'
+    static_configs:
+      - targets: ['admin-dashboard:8088']
+    metrics_path: '/metrics'
     scrape_interval: 10s
 
   # Analytics Service

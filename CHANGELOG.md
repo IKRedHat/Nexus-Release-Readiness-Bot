@@ -12,6 +12,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] - 2025-12-01
+
+### Added
+
+#### 🎛️ Admin Dashboard
+- New web-based Admin Dashboard (`services/admin_dashboard/`)
+- React + Vite frontend with Tailwind CSS and cyber/tech dark theme
+- FastAPI backend for configuration management
+- Real-time agent health monitoring with auto-refresh
+- Mode switching (Mock/Live) with instant propagation
+- Secure credential management with masked sensitive values
+- Configuration templates for all integrations (Jira, GitHub, Jenkins, LLM, Slack, Confluence)
+
+#### 🔧 Dynamic Configuration System
+- New `ConfigManager` class in `shared/nexus_lib/config.py`
+- Redis-backed dynamic configuration with environment variable fallback
+- Configuration caching with TTL for performance
+- `is_mock_mode()` helper for conditional logic
+- `with_mock_fallback()` decorator for easy mock/live switching
+- `ConfigContext` context manager for configuration-aware operations
+- `AgentRegistry` for centralized agent URL management
+
+#### 📊 New Dashboard Components
+- `ModeSwitch` - Animated toggle for Mock/Live modes
+- `StatusCard` - Health status visualization with glow effects
+- `ConfigForm` - Secure credential input with show/hide toggle
+- Health Monitor page with real-time agent status
+- Settings page with categorized configuration forms
+
+#### 📚 Documentation
+- `docs/admin-dashboard.md` - Comprehensive dashboard documentation
+- `docs/admin-dashboard-tutorial.md` - Step-by-step no-code user guide
+- Admin Dashboard mockup visual (`docs/assets/mockups/admin-dashboard.svg`)
+
+### Changed
+- Updated Docker Compose to include admin-dashboard service (port 8088)
+- Updated Prometheus config to scrape admin-dashboard metrics
+- Updated Kubernetes Helm values with adminDashboard configuration
+- Updated mkdocs.yml navigation with Admin Dashboard section
+
+### Metrics
+- `nexus_admin_config_changes_total{key, source}` - Configuration changes
+- `nexus_admin_health_checks_total{agent, status}` - Health check counts
+- `nexus_admin_mode_switches_total{from_mode, to_mode}` - Mode switches
+- `nexus_admin_active_mode` - Current mode gauge (0=mock, 1=live)
+
+---
+
 ## [2.2.1] - 2025-12-01
 
 ### Added

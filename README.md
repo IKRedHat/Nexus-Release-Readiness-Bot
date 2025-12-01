@@ -24,6 +24,7 @@ Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning 
 
 ### ✨ Key Features
 
+- 🎛️ **Admin Dashboard** - Web UI for system management, mode switching, and credential configuration
 - 🔍 **Smart Root Cause Analysis** - AI-powered build failure diagnosis with auto-trigger and Slack notifications
 - 📊 **Advanced Analytics Dashboard** - DORA metrics, predictive analytics, anomaly detection
 - 🔔 **Webhook Integrations** - Real-time notifications to external systems with HMAC security
