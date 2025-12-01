@@ -300,6 +300,38 @@ services:
       timeout: 10s
       retries: 3
 
+  # ===========================================================================
+  # Admin Dashboard
+  # ===========================================================================
+
+  admin-dashboard:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.admin-dashboard
+    ports:
+      - "8088:8088"
+      - "3000:3000"
+    environment:
+      - NEXUS_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - ORCHESTRATOR_URL=http://orchestrator:8080
+      - JIRA_AGENT_URL=http://jira-agent:8081
+      - GIT_AGENT_URL=http://git-agent:8082
+      - REPORTING_AGENT_URL=http://reporting-agent:8083
+      - SLACK_AGENT_URL=http://slack-agent:8084
+      - HYGIENE_AGENT_URL=http://jira-hygiene-agent:8005
+      - RCA_AGENT_URL=http://rca-agent:8006
+      - ANALYTICS_URL=http://analytics:8086
+      - WEBHOOKS_URL=http://webhooks:8087
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   redis_data:
   postgres_data:

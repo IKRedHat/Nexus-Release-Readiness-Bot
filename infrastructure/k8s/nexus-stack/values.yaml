@@ -383,6 +383,36 @@ ingress:
         - nexus.example.com
 
 # ============================================================================
+# Admin Dashboard Configuration
+# ============================================================================
+adminDashboard:
+  enabled: true
+  replicas: 1
+  
+  image:
+    repository: nexus/admin-dashboard
+    tag: ""
+  
+  service:
+    type: ClusterIP
+    port: 8088
+  
+  ingress:
+    enabled: true
+    host: admin.nexus.example.com
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    REDIS_URL: "redis://redis-master:6379"
+
+# ============================================================================
 # Redis Configuration (using Bitnami chart)
 # ============================================================================
 redis:

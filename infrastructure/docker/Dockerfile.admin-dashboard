@@ -1,0 +1,75 @@
+# =============================================================================
+# Nexus Admin Dashboard - Multi-stage Dockerfile
+# =============================================================================
+# Stage 1: Build React frontend
+# Stage 2: Python backend with built frontend
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Build Frontend
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Copy package files
+COPY services/admin_dashboard/frontend/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy frontend source
+COPY services/admin_dashboard/frontend/ ./
+
+# Build the frontend
+RUN npm run build
+
+# -----------------------------------------------------------------------------
+# Stage 2: Python Backend
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim AS backend
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY services/admin_dashboard/backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy shared library
+COPY shared/nexus_lib /app/shared/nexus_lib
+COPY shared/setup.py /app/shared/
+RUN pip install -e /app/shared
+
+# Copy backend code
+COPY services/admin_dashboard/backend/ ./
+
+# Copy built frontend from Stage 1
+COPY --from=frontend-builder /app/frontend/dist ./static
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash nexus && \
+    chown -R nexus:nexus /app
+
+USER nexus
+
+# Expose ports
+EXPOSE 8088
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8088/health || exit 1
+
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8088"]
+

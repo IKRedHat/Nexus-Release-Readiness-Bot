@@ -32,6 +32,7 @@ docker-compose up -d
 # - Jira Hygiene Agent: http://localhost:8085
 # - RCA Agent: http://localhost:8006
 # - Analytics Dashboard: http://localhost:8086
+# - Admin Dashboard: http://localhost:8088
 # - Webhook Service: http://localhost:8087
 # - Grafana: http://localhost:3000 (admin/nexus_admin)
 # - Prometheus: http://localhost:9090
