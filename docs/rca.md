@@ -160,41 +160,16 @@ pipeline {
 
 When a build fails, the team receives a notification like this:
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│  🔍 Build Failure Analysis                                      │
-│                                                                  │
-│  Analysis ID: rca-nexus-main-142-1732976400                     │
-│  Build: http://jenkins:8080/job/nexus-main/142/                 │
-│                                                                  │
-│  ─────────────────────────────────────────────────────────────  │
-│                                                                  │
-│  🧪 Error Type: Test Failure                                    │
-│                                                                  │
-│  Root Cause:                                                     │
-│  Test failure in TestUserService.test_validate_email due to     │
-│  validate_user_email() returning None instead of ValidationResult│
-│                                                                  │
-│  🟢 Confidence: 92% (high)    Suspected Author: @john.doe       │
-│                                                                  │
-│  📁 Suspected Files:                                            │
-│  • src/api/users.py (lines: 87, 88, 89)                        │
-│                                                                  │
-│  ─────────────────────────────────────────────────────────────  │
-│                                                                  │
-│  💡 Suggested Fix:                                              │
-│  Add null check before accessing is_valid attribute...          │
-│                                                                  │
-│  ```python                                                       │
-│  if result is not None:                                          │
-│      return result.is_valid                                      │
-│  ```                                                             │
-│                                                                  │
-│  [📋 View Full Analysis]  [🔄 Re-run Analysis]                  │
-│                                                                  │
-│  💡 Additional: Add type hints | Add edge case tests            │
-└────────────────────────────────────────────────────────────────┘
-```
+![RCA Slack Notification](assets/mockups/slack-rca-notification.svg)
+
+The notification includes:
+- **Error Type**: Color-coded badge (🧪 Test, 🔧 Compilation, 📦 Dependency)
+- **Root Cause**: AI-generated summary of the failure
+- **Confidence Score**: How sure the analysis is (🟢 high / 🟡 medium / 🔴 low)
+- **@PR Owner**: Tagged so they get notified immediately
+- **Suspected Files**: With specific line numbers
+- **Fix Suggestion**: Actionable recommendation
+- **Action Buttons**: View full analysis or re-run
 
 ### Environment Variables for Auto-Trigger
 

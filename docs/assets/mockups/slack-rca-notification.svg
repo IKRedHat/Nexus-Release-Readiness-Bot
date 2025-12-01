@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 580">
+  <defs>
+    <filter id="msgShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Slack message background -->
+  <rect width="650" height="580" fill="#1a1d21"/>
+  
+  <!-- Channel header -->
+  <rect x="0" y="0" width="650" height="50" fill="#222529" stroke="#3f3f46" stroke-width="0 0 1 0"/>
+  <text x="20" y="32" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#d1d2d3"># release-notifications</text>
+  
+  <!-- Message container -->
+  <rect x="20" y="70" width="610" height="490" rx="8" fill="#222529" filter="url(#msgShadow)"/>
+  
+  <!-- Bot avatar and name -->
+  <circle cx="45" cy="100" r="18" fill="#4a154b"/>
+  <text x="38" y="107" font-family="Arial" font-size="16" fill="#fff">🔍</text>
+  <text x="75" y="98" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d1d2d3">Nexus RCA Bot</text>
+  <text x="178" y="98" font-family="Arial, sans-serif" font-size="11" fill="#ababad">APP</text>
+  <text x="210" y="98" font-family="Arial, sans-serif" font-size="11" fill="#666">10:42 AM</text>
+  
+  <!-- Message header -->
+  <rect x="75" y="115" width="520" height="35" rx="4" fill="#3d1c1c"/>
+  <text x="90" y="138" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff6b6b">🔍 Build Failure Analysis</text>
+  
+  <!-- Analysis ID and Build URL -->
+  <text x="75" y="175" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Analysis ID:</text>
+  <text x="155" y="175" font-family="Consolas, monospace" font-size="12" fill="#82aaff">rca-nexus-main-142-1701432600</text>
+  
+  <text x="75" y="198" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Build:</text>
+  <text x="115" y="198" font-family="Arial, sans-serif" font-size="13" fill="#1264a3" text-decoration="underline">http://jenkins:8080/job/nexus-main/142/</text>
+  
+  <text x="75" y="221" font-family="Arial, sans-serif" font-size="13" fill="#ababad">Analyzed:</text>
+  <text x="140" y="221" font-family="Arial, sans-serif" font-size="13" fill="#666">2025-12-01 10:42:00 UTC</text>
+  
+  <!-- Divider -->
+  <line x1="75" y1="238" x2="590" y2="238" stroke="#3f3f46" stroke-width="1"/>
+  
+  <!-- Error Type -->
+  <text x="75" y="265" font-family="Arial, sans-serif" font-size="14" fill="#d1d2d3">🧪</text>
+  <text x="100" y="265" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#d1d2d3">Error Type:</text>
+  <text x="185" y="265" font-family="Arial, sans-serif" font-size="14" fill="#ff922b">Test Failure</text>
+  
+  <!-- Root Cause Summary -->
+  <text x="75" y="295" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#d1d2d3">Root Cause:</text>
+  <rect x="75" y="305" width="520" height="50" rx="4" fill="#2d3748"/>
+  <text x="85" y="325" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">Test failure in TestUserService.test_validate_email due to</text>
+  <text x="85" y="343" font-family="Arial, sans-serif" font-size="12" fill="#e2e8f0">validate_user_email() returning None instead of ValidationResult</text>
+  
+  <!-- Confidence and Author -->
+  <rect x="75" y="370" width="250" height="35" rx="4" fill="#1a3d1a"/>
+  <text x="90" y="392" font-family="Arial, sans-serif" font-size="13" fill="#4ade80">🟢 Confidence: 92% (high)</text>
+  
+  <rect x="340" y="370" width="250" height="35" rx="4" fill="#2d3748"/>
+  <text x="355" y="392" font-family="Arial, sans-serif" font-size="13" fill="#d1d2d3">👤 Suspected Author:</text>
+  <text x="493" y="392" font-family="Arial, sans-serif" font-size="13" fill="#1264a3">@john.doe</text>
+  
+  <!-- Suspected Files -->
+  <text x="75" y="430" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#d1d2d3">📁 Suspected Files:</text>
+  <text x="85" y="452" font-family="Arial, sans-serif" font-size="12" fill="#d1d2d3">•</text>
+  <text x="100" y="452" font-family="Consolas, monospace" font-size="12" fill="#82aaff">src/api/users.py</text>
+  <text x="235" y="452" font-family="Arial, sans-serif" font-size="12" fill="#ababad">(lines: 87, 88, 89)</text>
+  
+  <!-- Divider -->
+  <line x1="75" y1="470" x2="590" y2="470" stroke="#3f3f46" stroke-width="1"/>
+  
+  <!-- Fix Suggestion -->
+  <text x="75" y="495" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffd43b">💡 Suggested Fix:</text>
+  <text x="75" y="515" font-family="Arial, sans-serif" font-size="12" fill="#ababad">Add null check before accessing is_valid attribute on the</text>
+  <text x="75" y="532" font-family="Arial, sans-serif" font-size="12" fill="#ababad">ValidationResult object returned by validate_user_email()...</text>
+  
+  <!-- Action buttons -->
+  <rect x="75" y="548" width="145" height="32" rx="6" fill="#007a5a"/>
+  <text x="90" y="569" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff">📋 View Full Analysis</text>
+  
+  <rect x="230" y="548" width="130" height="32" rx="6" fill="#36373d" stroke="#555" stroke-width="1"/>
+  <text x="248" y="569" font-family="Arial, sans-serif" font-size="12" fill="#d1d2d3">🔄 Re-run Analysis</text>
+  
+  <!-- Footer context -->
+  <text x="380" y="569" font-family="Arial, sans-serif" font-size="11" fill="#666" font-style="italic">💡 Add type hints | Add edge case tests</text>
+</svg>
+
