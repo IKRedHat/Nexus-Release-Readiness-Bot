@@ -224,10 +224,18 @@ services:
       - JENKINS_MOCK_MODE=true
       - GITHUB_MOCK_MODE=true
       - LLM_MOCK_MODE=true
+      - SLACK_MOCK_MODE=true
       - RCA_LLM_MODEL=gemini-1.5-pro
       - RCA_MAX_LOG_CHARS=100000
       - RCA_MAX_DIFF_CHARS=50000
+      # Auto-trigger and notification settings
+      - RCA_AUTO_ANALYZE=true
+      - SLACK_AGENT_URL=http://slack-agent:8084
+      - SLACK_RELEASE_CHANNEL=#release-notifications
+      - SLACK_NOTIFY_ON_FAILURE=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      - slack-agent
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
       interval: 30s

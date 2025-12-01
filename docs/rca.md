@@ -2,6 +2,14 @@
 
 The Nexus RCA Agent provides intelligent analysis of failed CI/CD builds by correlating error logs with code changes to automatically identify root causes and suggest fixes.
 
+## Key Features
+
+- **Auto-Trigger on Failures**: Jenkins webhook integration for automatic RCA
+- **Slack Notifications**: Sends analysis to release channel with PR owner tagging
+- **LLM-Powered Analysis**: Uses Google Gemini 1.5 Pro for deep log analysis
+- **Git Correlation**: Maps errors to specific code changes
+- **Confidence Scoring**: Rates analysis reliability
+
 ## Overview
 
 ```
@@ -74,6 +82,129 @@ Uses Google Gemini (1.5 Pro) for intelligent analysis:
 - Identifies root cause with confidence score
 - Suggests specific code fixes
 - Provides additional recommendations
+
+## Auto-Trigger on Build Failures
+
+The RCA Agent can automatically analyze failed builds and notify your team via Slack.
+
+### How It Works
+
+```
+┌─────────────┐      Webhook       ┌─────────────┐
+│   Jenkins   │ ─────────────────▶ │  RCA Agent  │
+│ Build Fails │                    │  /webhook/  │
+└─────────────┘                    │   jenkins   │
+                                   └──────┬──────┘
+                                          │
+                                          ▼
+                                   ┌─────────────┐
+                                   │  Analyze &  │
+                                   │  Generate   │
+                                   │  RCA Report │
+                                   └──────┬──────┘
+                                          │
+                                          ▼
+                                   ┌─────────────────────────────────────┐
+                                   │         Slack Notification          │
+                                   │  #release-notifications             │
+                                   │  @pr-owner tagged                   │
+                                   │  • Root cause summary               │
+                                   │  • Suspected files                  │
+                                   │  • Fix suggestion                   │
+                                   └─────────────────────────────────────┘
+```
+
+### Configuring Jenkins Webhook
+
+1. Install the **Generic Webhook Trigger** plugin in Jenkins
+2. Configure your pipeline:
+
+```groovy
+pipeline {
+    agent any
+    
+    stages {
+        stage('Build') { ... }
+        stage('Test') { ... }
+    }
+    
+    post {
+        failure {
+            script {
+                def payload = [
+                    name: env.JOB_NAME,
+                    number: env.BUILD_NUMBER,
+                    url: env.BUILD_URL,
+                    result: currentBuild.result,
+                    git_url: env.GIT_URL,
+                    git_branch: env.GIT_BRANCH,
+                    git_commit: env.GIT_COMMIT,
+                    pr_number: env.CHANGE_ID?.toInteger(),
+                    pr_author_email: env.CHANGE_AUTHOR_EMAIL,
+                    release_channel: '#release-notifications'
+                ]
+                
+                httpRequest(
+                    url: 'http://rca-agent:8006/webhook/jenkins',
+                    httpMode: 'POST',
+                    contentType: 'APPLICATION_JSON',
+                    requestBody: groovy.json.JsonOutput.toJson(payload)
+                )
+            }
+        }
+    }
+}
+```
+
+### Slack Notification Example
+
+When a build fails, the team receives a notification like this:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  🔍 Build Failure Analysis                                      │
+│                                                                  │
+│  Analysis ID: rca-nexus-main-142-1732976400                     │
+│  Build: http://jenkins:8080/job/nexus-main/142/                 │
+│                                                                  │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                  │
+│  🧪 Error Type: Test Failure                                    │
+│                                                                  │
+│  Root Cause:                                                     │
+│  Test failure in TestUserService.test_validate_email due to     │
+│  validate_user_email() returning None instead of ValidationResult│
+│                                                                  │
+│  🟢 Confidence: 92% (high)    Suspected Author: @john.doe       │
+│                                                                  │
+│  📁 Suspected Files:                                            │
+│  • src/api/users.py (lines: 87, 88, 89)                        │
+│                                                                  │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                  │
+│  💡 Suggested Fix:                                              │
+│  Add null check before accessing is_valid attribute...          │
+│                                                                  │
+│  ```python                                                       │
+│  if result is not None:                                          │
+│      return result.is_valid                                      │
+│  ```                                                             │
+│                                                                  │
+│  [📋 View Full Analysis]  [🔄 Re-run Analysis]                  │
+│                                                                  │
+│  💡 Additional: Add type hints | Add edge case tests            │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Environment Variables for Auto-Trigger
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RCA_AUTO_ANALYZE` | `true` | Enable auto-analysis on webhooks |
+| `SLACK_AGENT_URL` | `http://slack-agent:8084` | Slack agent URL |
+| `SLACK_RELEASE_CHANNEL` | `#release-notifications` | Default notification channel |
+| `SLACK_NOTIFY_ON_FAILURE` | `true` | Send Slack notifications |
+| `SLACK_MOCK_MODE` | `true` | Use mock Slack (for testing) |
 
 ## Quick Start
 
@@ -161,10 +292,42 @@ curl -X POST http://localhost:8006/analyze \
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/analyze` | Analyze a failed build |
+| `POST` | `/analyze` | Analyze a failed build (with optional notification) |
+| `POST` | `/webhook/jenkins` | Jenkins webhook for auto-trigger |
 | `POST` | `/execute` | Generic execution (orchestrator) |
 | `GET` | `/health` | Health check |
 | `GET` | `/metrics` | Prometheus metrics |
+
+### Webhook Endpoint
+
+```http
+POST /webhook/jenkins
+Content-Type: application/json
+
+{
+  "name": "nexus-main",
+  "number": 142,
+  "url": "http://jenkins:8080/job/nexus-main/142/",
+  "result": "FAILURE",
+  "git_url": "https://github.com/org/repo.git",
+  "git_branch": "feature/new-api",
+  "git_commit": "a1b2c3d4e5f6",
+  "pr_number": 123,
+  "pr_author_email": "developer@example.com",
+  "release_channel": "#release-notifications"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "queued",
+  "message": "RCA analysis queued, Slack notification will be sent",
+  "job": "nexus-main",
+  "build": 142,
+  "channel": "#release-notifications"
+}
+```
 
 ### Request Schema
 
@@ -179,7 +342,12 @@ curl -X POST http://localhost:8006/analyze \
   "commit_sha": "string (optional)",
   "include_git_diff": "boolean (default: true)",
   "include_test_output": "boolean (default: true)",
-  "max_log_lines": "integer (default: 5000)"
+  "max_log_lines": "integer (default: 5000)",
+  
+  // Notification options
+  "notify": "boolean (default: false)",
+  "channel": "string (optional, uses SLACK_RELEASE_CHANNEL if not set)",
+  "pr_owner_email": "string (optional, for Slack user tagging)"
 }
 ```
 
@@ -248,9 +416,18 @@ curl -X POST http://localhost:8006/analyze \
 ## Prometheus Metrics
 
 ```prometheus
-# RCA request counts
-nexus_rca_requests_total{status="success",error_type="test_failure"} 150
-nexus_rca_requests_total{status="error",error_type="exception"} 5
+# RCA request counts (with trigger type)
+nexus_rca_requests_total{status="success",error_type="test_failure",trigger="webhook"} 150
+nexus_rca_requests_total{status="success",error_type="test_failure",trigger="manual"} 50
+nexus_rca_requests_total{status="error",error_type="exception",trigger="webhook"} 5
+
+# Jenkins webhook counts
+nexus_rca_webhooks_total{job_name="nexus-main",status="queued"} 200
+nexus_rca_webhooks_total{job_name="nexus-main",status="skipped"} 50
+
+# Slack notification counts
+nexus_rca_notifications_total{channel="#release-notifications",status="success"} 180
+nexus_rca_notifications_total{channel="#release-notifications",status="error"} 5
 
 # Analysis duration
 nexus_rca_duration_seconds_bucket{job_name="nexus-main",le="5.0"} 120
