@@ -4,33 +4,17 @@ The Nexus Analytics Service provides comprehensive insights into your release au
 
 ## Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     NEXUS ANALYTICS DASHBOARD                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
-│  │  DORA METRICS   │  │ QUALITY SCORES  │  │   PREDICTIONS   │         │
-│  │  ─────────────  │  │  ─────────────  │  │  ─────────────  │         │
-│  │  Deploy: 8.5/wk │  │  Build: 94%     │  │  Release: Dec 8 │         │
-│  │  Lead: 18.5h    │  │  Hygiene: 87%   │  │  Quality: 89%   │         │
-│  │  MTTR: 1.2h     │  │  Security: 96%  │  │  Conf: 85%      │         │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    TIME SERIES VISUALIZATION                      │   │
-│  │                                                                   │   │
-│  │  100 ┤                                    ╭──╮                    │   │
-│  │   80 ┤              ╭────╮    ╭───╮      │  │    ╭──             │   │
-│  │   60 ┤    ╭────╮   │    ╰───╯   ╰─────╯  ╰──╯                   │   │
-│  │   40 ┤───╯                                                       │   │
-│  │   20 ┤                                                           │   │
-│  │    0 └──────────────────────────────────────────────────────     │   │
-│  │        Mon    Tue    Wed    Thu    Fri    Sat    Sun             │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+![Nexus Analytics Dashboard](assets/mockups/analytics-dashboard.svg)
+
+The dashboard provides a unified view of:
+
+- **DORA Metrics** - Deployment frequency, lead time, MTTR, change failure rate
+- **Quality Scores** - Build success, hygiene score, security score
+- **Time Series Charts** - Historical trends with interactive visualization
+- **Predictions** - AI-powered release date and quality forecasts
+- **Anomaly Detection** - Real-time alerts for unusual patterns
+- **Team Performance** - Compare teams by velocity, quality, and efficiency
+- **AI Insights** - Intelligent recommendations based on your data
 
 ## Features
 
