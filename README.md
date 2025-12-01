@@ -2,152 +2,258 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.3.0-blue)
-![Python](https://img.shields.io/badge/python-3.10+-green)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
-![LLM](https://img.shields.io/badge/LLM-Gemini%202.0-4285F4)
+<img src="docs/assets/mockups/nexus-logo.svg" alt="Nexus Logo" width="200" onerror="this.style.display='none'"/>
 
-**Intelligent Multi-Agent System for Automated Release Readiness Assessments**
+### **Intelligent Multi-Agent System for Automated Release Readiness Assessments**
 
-*Now with Admin Dashboard, Dynamic Configuration, Analytics, Webhooks, Google Gemini 2.0, and more!*
+[![Version](https://img.shields.io/badge/version-2.4.0-blue?style=for-the-badge)](CHANGELOG.md)
+[![Python](https://img.shields.io/badge/python-3.10+-green?style=for-the-badge&logo=python)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
+[![Build](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/actions)
+[![LLM](https://img.shields.io/badge/LLM-Gemini%202.0-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?style=for-the-badge&logo=docker)](https://docker.com)
+[![Kubernetes](https://img.shields.io/badge/k8s-helm-326CE5?style=for-the-badge&logo=kubernetes)](https://kubernetes.io)
 
-[Documentation](docs/index.md) • [User Guide](docs/user_guide.md) • [Architecture](docs/architecture.md) • [Demo](demo/feature_walkthrough_script.md)
+*Transform your release process with AI-powered automation, real-time insights, and intelligent decision-making.*
+
+[📚 Documentation](docs/index.md) • [🚀 Quick Start](#-quick-start) • [💬 Slack Commands](#-slack-integration) • [📊 Demo](demo/feature_walkthrough_script.md)
+
+---
 
 </div>
 
----
+## 🎯 What is Nexus?
 
-## 🎯 Overview
+**Nexus** is an enterprise-grade, AI-powered release automation platform that revolutionizes how teams manage software releases. Using a sophisticated **ReAct (Reasoning + Acting)** architecture powered by Google Gemini, Nexus coordinates specialized agents to deliver intelligent **Go/No-Go release decisions** through natural language conversations.
 
-Nexus is an AI-powered release automation system that uses a **ReAct (Reasoning + Acting)** architecture to coordinate specialized agents. It connects to your existing tools—Jira, GitHub, Jenkins, and Confluence—to provide intelligent **Go/No-Go release decisions** through natural language interactions.
+> **"Is v2.0 ready for release?"** — Ask Nexus in plain English, and get a comprehensive analysis of your Jira tickets, CI/CD pipelines, security scans, and code quality metrics in seconds.
 
-### ✨ Key Features
+### 🌟 Why Choose Nexus?
 
-- 🎛️ **Admin Dashboard** - Web UI for system management, mode switching, and credential configuration
-- 🔍 **Smart Root Cause Analysis** - AI-powered build failure diagnosis with auto-trigger and Slack notifications
-- 📊 **Advanced Analytics Dashboard** - DORA metrics, predictive analytics, anomaly detection
-- 🔔 **Webhook Integrations** - Real-time notifications to external systems with HMAC security
-- 🤖 **Google Gemini Integration** - Production-ready LLM with streaming and function calling
-- 🧠 **Intelligent Orchestration** - ReAct engine that reasons and acts with transparent traces
-- 💡 **AI Recommendations** - Pattern-based intelligent suggestions for release optimization
-- 🏠 **Slack App Home** - Rich dashboard with quick actions and real-time widgets
-- 🏢 **Multi-Tenant Support** - Enterprise-ready organization isolation with plan tiers
-- 🔗 **Multi-Tool Integration** - Jira, GitHub, Jenkins, Confluence, Slack
-- 📋 **Rich Reports** - Beautiful HTML reports with Go/No-Go decisions
-- 💬 **Natural Language** - Ask questions in plain English via Slack
-- 🔧 **Proactive Hygiene** - Automated Jira data quality checks with interactive fixes
-- 📈 **Full Observability** - Prometheus metrics, Grafana dashboards, OpenTelemetry tracing
-- 🔐 **Production Ready** - JWT auth, Kubernetes deployment, Helm charts
+| Challenge | Traditional Approach | Nexus Solution |
+|-----------|---------------------|----------------|
+| **Release Readiness** | Manual spreadsheets, meetings | AI-powered instant assessment |
+| **Data Collection** | Hours gathering from multiple tools | Automatic aggregation in seconds |
+| **Build Failures** | Manual log analysis | Smart RCA with fix suggestions |
+| **Jira Hygiene** | Periodic manual audits | Proactive daily checks with auto-fix |
+| **Stakeholder Updates** | Email chains, status meetings | Real-time Slack notifications |
+| **Decision Making** | Gut feeling, incomplete data | Data-driven Go/No-Go with confidence scores |
 
 ---
 
-## 🏗️ Architecture
+## ✨ Key Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🧠 **AI-Powered Intelligence**
+- **ReAct Engine**: Transparent reasoning with thought → action → observation loops
+- **Google Gemini 2.0**: State-of-the-art LLM with streaming and function calling
+- **Smart Recommendations**: Pattern-based suggestions from historical data
+- **Root Cause Analysis**: Automatic build failure diagnosis with fix suggestions
+
+</td>
+<td width="50%">
+
+### 🎛️ **Admin Dashboard**
+- **Web-based UI**: Modern React dashboard for system management
+- **Dynamic Configuration**: Change settings without service restarts
+- **Live Mode Switching**: Toggle Mock/Production instantly
+- **Release Management**: Track versions, dates, and metrics from external sources
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 📊 **Advanced Analytics**
+- **DORA Metrics**: Deployment frequency, lead time, MTTR, change failure rate
+- **Predictive Analytics**: ML-powered release date predictions
+- **Anomaly Detection**: Automatic identification of unusual patterns
+- **Team Performance**: Velocity and quality comparisons
+
+</td>
+<td width="50%">
+
+### 💬 **Slack-First Experience**
+- **Natural Language**: Ask questions in plain English
+- **App Home Dashboard**: Rich widgets with quick actions
+- **Interactive Modals**: Fix Jira tickets directly from Slack
+- **Proactive Notifications**: RCA results, hygiene alerts, release updates
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🔗 **Multi-Tool Integration**
+- **Jira**: Tickets, epics, sprints, story points
+- **GitHub**: PRs, commits, code reviews
+- **Jenkins**: Builds, artifacts, console logs
+- **Confluence**: Auto-publish release reports
+- **Smartsheet**: Import release schedules
+
+</td>
+<td width="50%">
+
+### 🏢 **Enterprise Ready**
+- **Multi-Tenant**: Organization isolation with plan tiers
+- **JWT Authentication**: Secure inter-service communication
+- **Full Observability**: Prometheus, Grafana, OpenTelemetry
+- **Kubernetes Native**: Production-ready Helm charts
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Architecture Overview
+
+Nexus uses a **Hub-and-Spoke** architecture where the Central Orchestrator coordinates specialized agents:
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Slack Workspace                                 │
-│              (User: /nexus status v2.0 | App Home Dashboard)                 │
-└───────────────────────────────┬─────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Slack Agent                                     │
-│           (Commands, Modals, DMs, App Home, Notifications)                   │
-└───────────────────────────────┬─────────────────────────────────────────────┘
-                                │
-                ┌───────────────┼───────────────┐
-                │               │               │
-                ▼               ▼               ▼
-┌───────────────────────┐ ┌──────────────┐ ┌──────────────────────────────────┐
-│  Central Orchestrator │ │Hygiene Agent │ │        Advanced Services         │
-│  ┌─────────────────┐  │ │  Scheduled   │ │ ┌──────────────┐ ┌─────────────┐ │
-│  │ReAct + Gemini   │  │ │  Checks      │ │ │  Analytics   │ │  Webhooks   │ │
-│  │Thought→Act→Obs  │  │ │  Validation  │ │ │  Dashboard   │ │  Service    │ │
-│  └─────────────────┘  │ │  Scoring     │ │ │  DORA/KPIs   │ │  Events     │ │
-│  ┌──────┐ ┌────────┐  │ │  Modals      │ │ │  Predictions │ │  Delivery   │ │
-│  │Memory│ │AI Recs │  │ └──────────────┘ │ │  Anomalies   │ │  Retries    │ │
-│  └──────┘ └────────┘  │                  │ └──────────────┘ └─────────────┘ │
-│  ┌─────────────────┐  │                  └──────────────────────────────────┘
-│  │ Multi-Tenancy   │  │                                  │
-│  └─────────────────┘  │                                  ▼
-└───────┬───────────────┘                         ┌──────────────────┐
-        │                                         │ External Systems │
-  ┌─────┴────────────┬──────────────┐             │ CI/CD, PagerDuty │
-  ▼                  ▼              ▼             │ Datadog, Slack   │
-┌─────────┐  ┌─────────────┐  ┌──────────┐        └──────────────────┘
-│  Jira   │  │   Git/CI    │  │Reporting │
-│  Agent  │  │    Agent    │  │  Agent   │
-└────┬────┘  └──────┬──────┘  └────┬─────┘
-     │              │              │
-     ▼              ▼              ▼
-┌─────────┐  ┌───────────┐  ┌───────────┐
-│  Jira   │  │  GitHub   │  │Confluence │
-│  Cloud  │  │  Jenkins  │  │           │
-└─────────┘  └───────────┘  └───────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           USER INTERFACES                                        │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │  Slack App      │  │  Admin Dashboard│  │  REST API                       │  │
+│  │  - Commands     │  │  - Config UI    │  │  - /query                       │  │
+│  │  - App Home     │  │  - Health       │  │  - /reports                     │  │
+│  │  - Modals       │  │  - Releases     │  │  - /agents/*                    │  │
+│  └────────┬────────┘  └────────┬────────┘  └────────────────┬────────────────┘  │
+└───────────┼─────────────────────┼───────────────────────────┼───────────────────┘
+            │                     │                           │
+            └─────────────────────┼───────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        CENTRAL ORCHESTRATOR                                      │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │                        ReAct Engine (Gemini 2.0)                          │  │
+│  │  ┌─────────┐    ┌─────────┐    ┌─────────────┐    ┌─────────────────┐    │  │
+│  │  │ Thought │ -> │  Action │ -> │ Observation │ -> │  Final Answer   │    │  │
+│  │  └─────────┘    └─────────┘    └─────────────┘    └─────────────────┘    │  │
+│  └───────────────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐   │
+│  │Vector Memory│  │AI Recommender│  │ Multi-Tenancy │  │ Tool Registry    │   │
+│  └─────────────┘  └──────────────┘  └───────────────┘  └──────────────────┘   │
+└─────────────────────────────────────┬───────────────────────────────────────────┘
+                                      │
+        ┌─────────────┬───────────────┼───────────────┬─────────────┐
+        ▼             ▼               ▼               ▼             ▼
+┌─────────────┐ ┌───────────┐ ┌─────────────┐ ┌───────────┐ ┌─────────────┐
+│ Jira Agent  │ │ Git/CI    │ │ Reporting   │ │ Hygiene   │ │ RCA Agent   │
+│             │ │ Agent     │ │ Agent       │ │ Agent     │ │             │
+│ - Tickets   │ │ - PRs     │ │ - HTML      │ │ - Checks  │ │ - Log Parse │
+│ - Sprints   │ │ - Builds  │ │ - Confluence│ │ - Scoring │ │ - Git Diff  │
+│ - Hierarchy │ │ - Commits │ │ - Preview   │ │ - DM      │ │ - LLM Fix   │
+└──────┬──────┘ └─────┬─────┘ └──────┬──────┘ └─────┬─────┘ └──────┬──────┘
+       │              │              │              │              │
+       ▼              ▼              ▼              ▼              ▼
+┌─────────────┐ ┌───────────┐ ┌─────────────┐ ┌───────────┐ ┌─────────────┐
+│    Jira     │ │  GitHub   │ │ Confluence  │ │   Slack   │ │  Jenkins    │
+│    Cloud    │ │  Jenkins  │ │             │ │           │ │             │
+└─────────────┘ └───────────┘ └─────────────┘ └───────────┘ └─────────────┘
+
+                        SUPPORTING SERVICES
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐    │
+│  │  Analytics  │  │  Webhooks   │  │   Redis     │  │    PostgreSQL       │    │
+│  │  - DORA     │  │  - Events   │  │  - Config   │  │    - Data Store     │    │
+│  │  - Predict  │  │  - Delivery │  │  - Cache    │  │    - Tenant Data    │    │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### One-Click Setup (Recommended)
+### Prerequisites
 
-The easiest way to get started is using our automated setup script:
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| Python | 3.10+ | Runtime |
+| Docker | 20.10+ | Containerization |
+| Docker Compose | 2.0+ | Local orchestration |
+| Git | 2.0+ | Source control |
+
+### Option 1: One-Click Setup (Recommended)
 
 ```bash
+# Clone the repository
 git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
 cd Nexus-Release-Readiness-Bot
 
-# Run the one-click setup
+# Run automated setup
 ./scripts/setup.sh
 ```
 
 The setup script automatically:
-- ✅ Checks all prerequisites (Python, Docker, etc.)
+- ✅ Validates all prerequisites
 - ✅ Creates Python virtual environment
-- ✅ Installs all dependencies
+- ✅ Installs dependencies
 - ✅ Configures environment variables
 - ✅ Builds and starts Docker services
-- ✅ Verifies everything is working
+- ✅ Runs health verification
 
 **Setup Options:**
 ```bash
 ./scripts/setup.sh --help        # Show all options
-./scripts/setup.sh --dev         # Include dev tools (pytest, black, etc.)
-./scripts/setup.sh --skip-docker # Python setup only (no Docker)
-./scripts/setup.sh --clean       # Fresh install (removes existing setup)
+./scripts/setup.sh --dev         # Include dev tools (pytest, black, mypy)
+./scripts/setup.sh --skip-docker # Python setup only
+./scripts/setup.sh --clean       # Fresh install
 ```
 
-### Prerequisites
-
-- Python 3.10+
-- Docker & Docker Compose
-- (Optional) Kubernetes for production
-
-### Manual Setup
-
-If you prefer manual setup:
+### Option 2: Docker Compose
 
 ```bash
-# Start with Docker Compose
+# Clone and start
+git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
+cd Nexus-Release-Readiness-Bot
 docker-compose up -d
+
+# Verify
+docker-compose ps
+curl http://localhost:8080/health
 ```
 
-### 2. Verify Services
+### Option 3: Manual Setup
 
 ```bash
-# Check orchestrator health
-curl http://localhost:8080/health
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate
 
-# Check hygiene agent health
-curl http://localhost:8005/health
+# Install shared library
+pip install -e shared/
 
-# View all services
-docker-compose ps
+# Install service dependencies
+pip install -r services/orchestrator/requirements.txt
+
+# Start a service
+cd services/orchestrator
+uvicorn main:app --reload --port 8080
 ```
 
-### 3. Try a Query
+---
+
+## 🖥️ Service Endpoints
+
+Once running, access these services:
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Orchestrator API** | http://localhost:8080/docs | Central brain, query endpoint |
+| **Admin Dashboard** | http://localhost:8088 | Web UI for configuration |
+| **Jira Hygiene Agent** | http://localhost:8005/docs | Proactive quality checks |
+| **RCA Agent** | http://localhost:8006/docs | Build failure analysis |
+| **Analytics Service** | http://localhost:8086/docs | DORA metrics & predictions |
+| **Grafana** | http://localhost:3000 | Dashboards (admin/nexus_admin) |
+| **Prometheus** | http://localhost:9090 | Metrics |
+| **Jaeger** | http://localhost:16686 | Distributed tracing |
+
+### Try Your First Query
 
 ```bash
 curl -X POST http://localhost:8080/query \
@@ -155,75 +261,138 @@ curl -X POST http://localhost:8080/query \
   -d '{"query": "Is the v2.0 release ready?"}'
 ```
 
-### 4. Run a Hygiene Check
+---
+
+## 💬 Slack Integration
+
+### Available Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/nexus status <version>` | Check release readiness | `/nexus status v2.0` |
+| `/nexus ticket <key>` | Get ticket details | `/nexus ticket PROJ-123` |
+| `/nexus blockers` | List all blockers | `/nexus blockers` |
+| `/nexus report` | Generate release report | `/nexus report` |
+| `/nexus rca <job> <build>` | Analyze build failure | `/nexus rca backend-ci 42` |
+| `/nexus hygiene <project>` | Run hygiene check | `/nexus hygiene PROJ` |
+| `/nexus help` | Show all commands | `/nexus help` |
+
+### Slack App Home
+
+The App Home provides a rich dashboard with:
+- 📊 Release readiness overview
+- 🎯 Quick action buttons
+- 📋 Recent activities
+- ⚠️ Active blockers
+- 📈 Hygiene score widget
+
+### Interactive Notifications
+
+Nexus sends proactive notifications:
+- **Hygiene Violations**: DM with "Fix Now" button opening an interactive modal
+- **RCA Results**: Channel message with root cause, suspected file, and fix suggestion
+- **Release Updates**: Status changes and milestone completions
+
+---
+
+## 🎛️ Admin Dashboard
+
+The Admin Dashboard provides a web-based interface for managing Nexus:
+
+![Admin Dashboard](docs/assets/mockups/admin-dashboard.svg)
+
+### Features
+
+| Tab | Functionality |
+|-----|---------------|
+| **Dashboard** | System overview, agent health, quick actions |
+| **Releases** | Track versions, target dates, import from Smartsheet/CSV |
+| **Observability** | Metrics, charts, LLM usage, integrated Grafana |
+| **Health Monitor** | Real-time agent status with auto-refresh |
+| **Configuration** | Manage credentials, URLs, API keys securely |
+
+### Mode Switching
+
+Instantly toggle between **Mock Mode** (development) and **Live Mode** (production):
 
 ```bash
-curl -X POST http://localhost:8005/run-check \
+# Via API
+curl -X POST http://localhost:8088/mode \
   -H "Content-Type: application/json" \
-  -d '{"project_key": "PROJ", "notify": false}'
+  -d '{"mode": "live"}'
 ```
-
-### 5. Access Dashboards
-
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| Orchestrator API | http://localhost:8080/docs | - |
-| Hygiene Agent API | http://localhost:8005/docs | - |
-| Report Preview | http://localhost:8083/preview | - |
-| Grafana | http://localhost:3000 | admin / nexus_admin |
-| Prometheus | http://localhost:9090 | - |
-| Jaeger | http://localhost:16686 | - |
 
 ---
 
-## 🆕 What's New
+## 📊 Analytics & Metrics
 
-### v2.3 - Admin Dashboard & Dynamic Configuration
-- 🎛️ **Admin Dashboard** - Web UI for managing system configuration
-- 🔄 **Dynamic Configuration** - Change settings without restart via Redis
-- ⚡ **Live Mode Switching** - Instantly toggle Mock/Live mode for all agents
-- 🔐 **Secure Credential Management** - Masked secrets with Redis storage
+### DORA Metrics
 
-### v2.2 - Smart Root Cause Analysis
-- 🔍 **RCA Agent** - AI-powered build failure analysis
-- 🔔 **Auto-Trigger** - Jenkins webhook triggers RCA on failure
-- 💬 **Slack Notifications** - RCA results sent to release channel
-- 🎯 **Fix Suggestions** - Actionable code fixes with confidence scores
+Nexus tracks key DevOps Research and Assessment metrics:
 
-### v2.1 - Analytics & Webhooks
-- 📊 **Advanced Analytics** - DORA metrics, KPIs, predictions, anomalies
-- 🔔 **Webhook Integrations** - Real-time event delivery to external systems
-- 📈 **Team Performance** - Compare teams by velocity and quality
+| Metric | Description |
+|--------|-------------|
+| **Deployment Frequency** | How often you deploy to production |
+| **Lead Time for Changes** | Time from commit to production |
+| **Mean Time to Recovery** | Time to restore service after incident |
+| **Change Failure Rate** | Percentage of deployments causing failures |
 
-### v2.0 - Core Platform
-- 🤖 **Google Gemini Integration** - Production LLM with streaming
-- 💡 **AI Recommendations Engine** - Pattern-based intelligent suggestions
-- 🏠 **Slack App Home Dashboard** - Rich widgets and quick actions
-- 🏢 **Multi-Tenant Support** - Enterprise organization isolation
+### Prometheus Metrics
+
+```prometheus
+# LLM Usage
+nexus_llm_tokens_total{model_name, type}
+nexus_llm_cost_dollars_total{model_name}
+
+# Agent Performance
+nexus_tool_usage_total{tool_name, status}
+http_request_duration_seconds{agent_type}
+
+# Business Metrics
+nexus_project_hygiene_score{project_key}
+nexus_release_decisions_total{decision}
+nexus_rca_requests_total{status}
+```
+
+### Grafana Dashboard
+
+Import `infrastructure/grafana/dashboard.json` for comprehensive observability:
+
+![Grafana Dashboard](docs/assets/mockups/grafana-dashboard.svg)
 
 ---
 
-## 💬 Slack Commands
+## 🧪 Testing
 
-Once configured with Slack:
+Nexus has a comprehensive test suite with **~370 tests** across 4 categories:
 
+| Category | Count | Purpose |
+|----------|-------|---------|
+| **Unit** | ~200 | Individual component testing |
+| **E2E** | ~100 | Service endpoint testing |
+| **Integration** | ~30 | Inter-service communication |
+| **Smoke** | ~40 | Quick health verification |
+
+### Running Tests
+
+```bash
+# All tests
+pytest
+
+# By category
+pytest -m unit
+pytest -m e2e
+pytest -m integration
+pytest -m smoke
+
+# With coverage
+pytest --cov=shared --cov=services --cov-report=html
+
+# Parallel execution
+pytest -n auto
 ```
-/nexus status v2.0       # Check release readiness
-/nexus ticket PROJ-123   # Get ticket details
-/nexus blockers          # List all blockers
-/jira-update             # Update ticket via modal
-/nexus report            # Generate release report
-/nexus help              # Show all commands
-```
 
-### 🔧 Jira Hygiene Notifications
-
-Nexus proactively monitors Jira data quality:
-
-1. **Scheduled Checks**: Weekdays at 9:00 AM
-2. **DM Notifications**: Sent to assignees with violations
-3. **Interactive Fixes**: Click "Fix Tickets Now" to open a modal
-4. **Update Fields**: Labels, Fix Version, Story Points, Team - directly from Slack!
+📖 See [Testing Documentation](docs/testing.md) for complete details.
 
 ---
 
@@ -231,62 +400,49 @@ Nexus proactively monitors Jira data quality:
 
 ```
 Nexus-Release-Readiness-Bot/
-├── services/
-│   ├── orchestrator/              # Central brain (ReAct engine)
-│   └── agents/
-│       ├── jira_agent/            # Jira integration
-│       ├── git_ci_agent/          # GitHub + Jenkins
-│       ├── reporting_agent/       # Report generation
-│       ├── slack_agent/           # Slack interface
-│       ├── jira_hygiene_agent/    # Proactive quality checks
-│       └── rca_agent/             # Root cause analysis
-│   ├── analytics/                 # 🆕 Advanced analytics service
-│   ├── webhooks/                  # 🆕 Webhook integrations
-│   └── admin_dashboard/           # 🆕 Admin Dashboard (React + FastAPI)
-├── shared/
-│   └── nexus_lib/                 # Shared library
-│       ├── schemas/               # Pydantic models
-│       ├── llm/                   # 🆕 LLM clients (Gemini, OpenAI)
-│       ├── multitenancy/          # 🆕 Tenant isolation
-│       ├── recommendations/       # 🆕 AI recommendations engine
-│       ├── middleware.py          # JWT auth, metrics, tenant
-│       ├── instrumentation.py     # OTEL, Prometheus
-│       └── utils.py               # HTTP client, helpers
+├── services/                        # Microservices
+│   ├── orchestrator/                # Central brain (ReAct engine)
+│   ├── agents/
+│   │   ├── jira_agent/              # Jira integration
+│   │   ├── git_ci_agent/            # GitHub + Jenkins
+│   │   ├── reporting_agent/         # Report generation
+│   │   ├── slack_agent/             # Slack interface
+│   │   ├── jira_hygiene_agent/      # Proactive quality checks
+│   │   └── rca_agent/               # Root cause analysis
+│   ├── analytics/                   # Advanced analytics
+│   ├── webhooks/                    # Event delivery
+│   └── admin_dashboard/             # Admin UI (React + FastAPI)
+│
+├── shared/nexus_lib/                # Shared library
+│   ├── schemas/                     # Pydantic models
+│   ├── llm/                         # LLM clients
+│   ├── multitenancy/                # Tenant isolation
+│   ├── recommendations/             # AI suggestions
+│   ├── config.py                    # Dynamic configuration
+│   ├── middleware.py                # Auth, metrics, tenant
+│   └── instrumentation.py           # OTEL, Prometheus
+│
 ├── infrastructure/
-│   ├── docker/                    # Dockerfiles
-│   ├── k8s/nexus-stack/           # Helm chart
-│   ├── grafana/                   # Dashboards
-│   └── terraform/                 # Cloud infrastructure
-├── scripts/                       # 🆕 Automation scripts
-│   ├── setup.sh                   # One-click setup
-│   ├── dev.sh                     # Development helper
-│   ├── verify.sh                  # Health verification
-│   └── uninstall.sh               # Clean uninstall
-├── docs/                          # MkDocs documentation
-├── tests/                         # Unit & E2E tests
-└── demo/                          # Demo scripts
+│   ├── docker/                      # Dockerfiles
+│   ├── k8s/nexus-stack/             # Helm chart
+│   ├── grafana/                     # Dashboards
+│   └── terraform/                   # Cloud infra
+│
+├── scripts/                         # Automation
+│   ├── setup.sh                     # One-click setup
+│   ├── dev.sh                       # Development helper
+│   ├── verify.sh                    # Health checks
+│   └── uninstall.sh                 # Clean removal
+│
+├── tests/                           # Test suite
+│   ├── unit/                        # Unit tests
+│   ├── e2e/                         # End-to-end tests
+│   ├── integration/                 # Integration tests
+│   └── smoke/                       # Smoke tests
+│
+├── docs/                            # Documentation
+└── demo/                            # Demo scripts
 ```
-
----
-
-## 🔌 Service Ports
-
-| Service | Port | Description |
-|---------|------|-------------|
-| Orchestrator | 8080 | Central coordination |
-| Jira Agent | 8081 | Jira operations |
-| Git/CI Agent | 8082 | GitHub + Jenkins |
-| Reporting Agent | 8083 | Report generation |
-| Slack Agent | 8084 | Slack interface |
-| **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
-| **RCA Agent** | **8006** | **Root cause analysis** |
-| **Analytics** | **8086** | **Advanced analytics** |
-| **Webhooks** | **8087** | **Webhook integrations** |
-| **Admin Dashboard** | **8088** | **System management UI** |
-| PostgreSQL | 5432 | Database |
-| Redis | 6379 | Cache + Dynamic Config |
-| Prometheus | 9090 | Metrics |
-| Grafana | 3000 | Dashboards |
 
 ---
 
@@ -298,228 +454,135 @@ Nexus-Release-Readiness-Bot/
 |----------|-------------|---------|
 | `NEXUS_ENV` | Environment (development/production) | development |
 | `LLM_PROVIDER` | LLM provider (google/openai/mock) | mock |
-| `LLM_MODEL` | Model name (gemini-2.0-flash, gpt-4o) | gemini-2.0-flash |
+| `LLM_MODEL` | Model name | gemini-2.0-flash |
 | `LLM_API_KEY` | API key for LLM | - |
-| `LLM_TEMPERATURE` | Generation temperature | 0.7 |
 | `MEMORY_BACKEND` | Vector store (chromadb/pgvector/mock) | mock |
 | `MULTI_TENANT_ENABLED` | Enable multi-tenancy | false |
-| `RECOMMENDATIONS_ENABLED` | Enable AI recommendations | true |
 | `JIRA_MOCK_MODE` | Use mock Jira data | true |
 | `GITHUB_MOCK_MODE` | Use mock GitHub data | true |
-| `HYGIENE_SCHEDULE_HOUR` | Hour for hygiene checks (0-23) | 9 |
-| `HYGIENE_SCHEDULE_DAYS` | Days for checks (mon-fri/daily) | mon-fri |
+| `REDIS_URL` | Redis connection URL | redis://localhost:6379 |
 
-### Production Configuration
+### Dynamic Configuration
 
-See [Deployment Runbook](docs/runbooks/deployment.md) for production setup.
+Use the Admin Dashboard or API to change configuration without restarts:
+
+```bash
+# Get current mode
+curl http://localhost:8088/mode
+
+# Update configuration
+curl -X POST http://localhost:8088/config \
+  -H "Content-Type: application/json" \
+  -d '{"key": "nexus:config:jira_url", "value": "https://your-org.atlassian.net"}'
+```
 
 ---
 
-## 📊 Observability
+## 🚢 Deployment
 
-### Prometheus Metrics
-
-```
-# LLM Usage
-nexus_llm_tokens_total{model_name, type}
-nexus_llm_latency_seconds{model_name}
-nexus_llm_cost_dollars_total{model_name}
-
-# Agent Performance
-nexus_tool_usage_total{tool_name, status}
-http_request_duration_seconds{agent_type}
-
-# ReAct Engine
-nexus_react_iterations_count{task_type}
-
-# Hygiene Metrics (NEW)
-nexus_project_hygiene_score{project_key}
-nexus_hygiene_checks_total{project_key, trigger_type}
-nexus_hygiene_violations_total{project_key, violation_type}
-
-# Business Metrics
-nexus_release_decisions_total{decision}
-```
-
-### Grafana Dashboard
-
-Import `infrastructure/grafana/dashboard.json` for comprehensive observability:
-
-![Grafana Dashboard](docs/assets/mockups/grafana-dashboard.svg)
-
-**Panels include:**
-- LLM economics (tokens, cost per provider)
-- Agent latency (P95/P99)
-- ReAct loop analytics
-- Hygiene score tracking
-- Release decision tracking
-
----
-
-## 🛠️ Development Scripts
-
-We provide helper scripts for common development tasks:
+### Kubernetes (Production)
 
 ```bash
-# Development helper (run from project root)
-./scripts/dev.sh <command>
-
-# Available commands:
-./scripts/dev.sh start        # Start all Docker services
-./scripts/dev.sh stop         # Stop all Docker services
-./scripts/dev.sh restart      # Restart all Docker services
-./scripts/dev.sh logs         # Follow Docker logs
-./scripts/dev.sh logs <svc>   # Follow specific service logs
-./scripts/dev.sh status       # Show service status
-./scripts/dev.sh health       # Run health checks
-./scripts/dev.sh test         # Run all tests
-./scripts/dev.sh test-unit    # Run unit tests only
-./scripts/dev.sh lint         # Run linters
-./scripts/dev.sh format       # Format code with black/isort
-./scripts/dev.sh query "..."  # Send a query to orchestrator
-./scripts/dev.sh hygiene PROJ # Run hygiene check
-./scripts/dev.sh rebuild      # Rebuild and restart services
-./scripts/dev.sh clean        # Remove containers and volumes
-```
-
-### Quick Health Check
-
-```bash
-./scripts/verify.sh    # Check all service health
-```
-
-## 🧪 Testing
-
-Nexus has a comprehensive test suite with ~370 tests across 4 categories:
-
-| Category | Tests | Purpose |
-|----------|-------|---------|
-| **Unit** | ~200 | Test individual components in isolation |
-| **E2E** | ~100 | Test complete service endpoints |
-| **Integration** | ~30 | Test inter-service communication |
-| **Smoke** | ~40 | Quick health verification |
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run by category (using markers)
-pytest -m unit           # Unit tests only
-pytest -m e2e            # E2E tests only
-pytest -m integration    # Integration tests only
-pytest -m smoke          # Smoke tests (quick health checks)
-
-# Exclude slow tests
-pytest -m "not slow"
-
-# Run specific test file
-pytest tests/unit/test_rca_logic.py -v
-
-# With coverage
-pytest --cov=shared --cov=services --cov-report=html
-
-# Run tests in parallel (faster)
-pytest -n auto
-
-# Or use the dev script
-./scripts/dev.sh test
-./scripts/dev.sh test-unit
-```
-
-### Test Structure
-
-```
-tests/
-├── conftest.py                      # Shared fixtures
-├── unit/                            # Unit tests
-│   ├── test_schemas.py              # Pydantic models
-│   ├── test_react_engine.py         # Orchestrator ReAct engine
-│   ├── test_hygiene_logic.py        # Hygiene agent logic
-│   ├── test_rca_logic.py            # RCA log parsing
-│   ├── test_config_manager.py       # Dynamic configuration
-│   ├── test_analytics.py            # Analytics engine
-│   ├── test_webhooks.py             # Webhook management
-│   ├── test_instrumentation.py      # Metrics & tracing
-│   └── test_llm_client.py           # LLM abstraction
-├── e2e/                             # End-to-end tests
-│   ├── test_release_flow.py         # Orchestrator E2E
-│   ├── test_slack_flow.py           # Slack agent E2E
-│   ├── test_reporting_flow.py       # Reporting agent E2E
-│   ├── test_jira_agent.py           # Jira agent E2E
-│   ├── test_git_ci_agent.py         # Git/CI agent E2E
-│   ├── test_hygiene_agent.py        # Hygiene agent E2E
-│   └── test_rca_agent.py            # RCA agent E2E
-├── integration/                     # Integration tests
-│   └── test_agent_communication.py  # Inter-agent workflows
-└── smoke/                           # Smoke tests
-    └── test_all_services.py         # All service health checks
-```
-
-📖 **[Full Testing Documentation](docs/testing.md)**
-
----
-
-## 🚢 Kubernetes Deployment
-
-```bash
-# Add Helm dependencies
 cd infrastructure/k8s/nexus-stack
 helm dependency update
 
-# Deploy
 helm upgrade --install nexus . \
   --namespace nexus \
   --create-namespace \
   --values production-values.yaml
 ```
 
+### Docker Compose (Development)
+
+```bash
+docker-compose up -d
+docker-compose logs -f
+```
+
+📖 See [Deployment Runbook](docs/runbooks/deployment.md) for complete production setup.
+
+---
+
+## 🆕 Version History
+
+### v2.4.0 - Release Management
+- 📅 **Release Management** - Track versions and target dates from Smartsheet/CSV/webhooks
+- 🎛️ **Enhanced Admin Dashboard** - New Releases page with metrics
+- 📊 **Updated Mockups** - All dashboards now show 5 navigation items
+
+### v2.3.0 - Admin Dashboard & Dynamic Configuration
+- 🎛️ **Admin Dashboard** - Web UI for system management
+- 🔄 **Dynamic Configuration** - Redis-backed settings without restarts
+- ⚡ **Live Mode Switching** - Toggle Mock/Live instantly
+
+### v2.2.0 - Smart Root Cause Analysis
+- 🔍 **RCA Agent** - AI-powered build failure analysis
+- 🔔 **Auto-Trigger** - Jenkins webhook triggers RCA
+- 💬 **Slack Notifications** - RCA results with fix suggestions
+
+### v2.1.0 - Analytics & Webhooks
+- 📊 **Advanced Analytics** - DORA metrics, predictions, anomalies
+- 🔔 **Webhook Integrations** - Real-time event delivery
+
+### v2.0.0 - Core Platform
+- 🤖 **Google Gemini Integration** - Production LLM
+- 💡 **AI Recommendations Engine** - Pattern-based suggestions
+- 🏠 **Slack App Home** - Rich dashboard
+- 🏢 **Multi-Tenant Support** - Enterprise isolation
+
+📖 See [CHANGELOG.md](CHANGELOG.md) for complete history.
+
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Core ReAct Engine
-- [x] Jira, GitHub, Jenkins integrations
-- [x] Confluence report publishing
-- [x] Slack Block Kit interface
-- [x] Prometheus/Grafana observability
-- [x] Kubernetes Helm charts
-- [x] **Jira Hygiene Agent with interactive fixes**
-- [x] **Google Gemini live integration**
-- [x] **Multi-tenant support**
-- [x] **AI-powered recommendations**
-- [x] **Slack App Home dashboard**
-- [x] **Advanced analytics dashboard**
-- [x] **Webhook integrations for external systems**
-- [x] **Smart Root Cause Analysis (RCA)** ✨ NEW in v2.2
-- [x] **Admin Dashboard with dynamic configuration** ✨ NEW in v2.3
+### Completed ✅
+- [x] Core ReAct Engine with Gemini 2.0
+- [x] Jira, GitHub, Jenkins, Confluence integrations
+- [x] Slack Block Kit with App Home
+- [x] Jira Hygiene Agent with interactive fixes
+- [x] Smart Root Cause Analysis (RCA)
+- [x] Advanced Analytics Dashboard
+- [x] Webhook Integrations
+- [x] Admin Dashboard with Dynamic Configuration
+- [x] Release Management from External Sources
+- [x] Multi-Tenant Support
+- [x] Kubernetes Helm Charts
+
+### In Progress 🚧
 - [ ] Anthropic Claude integration
-- [ ] Custom LLM model fine-tuning
+- [ ] Custom LLM fine-tuning for release domain
+- [ ] Enhanced security scanning integration
+
+### Planned 📋
 - [ ] Mobile app companion
+- [ ] GitLab integration
+- [ ] Azure DevOps integration
+- [ ] Automated rollback suggestions
+- [ ] Cost optimization recommendations
 
 ---
 
 ## 🤝 Contributing
 
-Contributions welcome! We value every contribution, whether it's code, documentation, bug reports, or feature suggestions.
+We welcome contributions! Every contribution matters, whether it's code, documentation, bug reports, or ideas.
 
-### Quick Start for Contributors
+### Quick Start
 
-1. Read our [Contributing Guide](CONTRIBUTING.md)
-2. Check open [issues](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues) (look for `good first issue`)
-3. Fork the repository
-4. Create your feature branch (`git checkout -b feature/amazing`)
-5. Make your changes and commit (`git commit -m 'feat: add amazing feature'`)
-6. Push and open a Pull Request
+1. **Read** our [Contributing Guide](CONTRIBUTING.md)
+2. **Find** an issue labeled [`good first issue`](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+3. **Fork** the repository
+4. **Create** a feature branch: `git checkout -b feature/amazing`
+5. **Commit** with conventional commits: `git commit -m 'feat: add amazing feature'`
+6. **Push** and open a Pull Request
 
-### Community Guidelines
+### Community
 
-- 📜 [Code of Conduct](CODE_OF_CONDUCT.md) - How we treat each other
-- 🔒 [Security Policy](SECURITY.md) - How to report vulnerabilities
-- 👥 [Contributors](CONTRIBUTORS.md) - Our amazing contributors
+- 📜 [Code of Conduct](CODE_OF_CONDUCT.md)
+- 🔒 [Security Policy](SECURITY.md)
+- 👥 [Contributors](CONTRIBUTORS.md)
 
-### Templates
+### Issue Templates
 
 - 🐛 [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md)
 - 💡 [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)
@@ -529,8 +592,6 @@ Contributions welcome! We value every contribution, whether it's code, documenta
 
 ## 🔄 CI/CD
 
-This project uses GitHub Actions for continuous integration and deployment:
-
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | **CI** | Push, PR | Lint, test, security scan, Docker build |
@@ -538,22 +599,96 @@ This project uses GitHub Actions for continuous integration and deployment:
 | **Dependabot** | Weekly | Automated dependency updates |
 | **Stale** | Daily | Clean up inactive issues/PRs |
 
-See [GitHub Setup Guide](docs/GITHUB_SETUP.md) for branch protection and configuration details.
+📖 See [CI/CD Documentation](docs/ci-cd/index.md) for details.
 
-## 📋 Changelog
+---
 
-See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [User Guide](docs/user_guide.md) | End-user documentation |
+| [Architecture](docs/architecture.md) | System design and components |
+| [API Reference](docs/api-specs/overview.md) | REST API documentation |
+| [Admin Dashboard](docs/admin-dashboard.md) | Dashboard features and API |
+| [Admin Tutorial](docs/admin-dashboard-tutorial.md) | Step-by-step dashboard guide |
+| [Testing Guide](docs/testing.md) | Test strategy and execution |
+| [Deployment](docs/runbooks/deployment.md) | Production deployment guide |
+| [RCA Documentation](docs/rca.md) | Root Cause Analysis feature |
+| [Analytics](docs/analytics.md) | Analytics dashboard features |
+| [Webhooks](docs/webhooks.md) | Webhook integrations |
+
+---
+
+## ❓ FAQ
+
+<details>
+<summary><strong>What LLM providers are supported?</strong></summary>
+
+Nexus supports:
+- **Google Gemini** (recommended): gemini-2.0-flash, gemini-1.5-pro
+- **OpenAI**: gpt-4o, gpt-4-turbo
+- **Mock**: For development without API costs
+
+</details>
+
+<details>
+<summary><strong>Can I use Nexus without Slack?</strong></summary>
+
+Yes! While Slack provides the best user experience, you can use Nexus via:
+- REST API (`POST /query`)
+- Admin Dashboard
+- Direct agent API calls
+
+</details>
+
+<details>
+<summary><strong>How do I switch from mock to production mode?</strong></summary>
+
+1. **Via Admin Dashboard**: Navigate to Dashboard → Click "Switch to Live Mode"
+2. **Via API**: `POST http://localhost:8088/mode` with `{"mode": "live"}`
+3. **Via Environment**: Set `LLM_PROVIDER=google`, `JIRA_MOCK_MODE=false`, etc.
+
+</details>
+
+<details>
+<summary><strong>What's the cost of running Nexus with Gemini?</strong></summary>
+
+Costs depend on usage. Typical costs:
+- **Gemini 2.0 Flash**: ~$0.001 per query
+- **Gemini 1.5 Pro**: ~$0.01 per complex query
+- Track costs via Grafana dashboard or `nexus_llm_cost_dollars_total` metric
+
+</details>
+
+<details>
+<summary><strong>Can I deploy Nexus on-premise?</strong></summary>
+
+Yes! Nexus is fully self-hosted. Use:
+- Docker Compose for small deployments
+- Kubernetes Helm charts for enterprise scale
+- Air-gapped deployment with mock LLM or self-hosted models
+
+</details>
+
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
 
-**Built with ❤️ by the Nexus Team**
+### Built with ❤️ by the Nexus Team
 
-[⬆ Back to top](#-nexus-release-automation-system)
+**[⭐ Star us on GitHub](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot)** — it helps!
+
+[Documentation](docs/index.md) • [Report Bug](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues/new?template=bug_report.md) • [Request Feature](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues/new?template=feature_request.md)
+
+---
+
+*Making release management intelligent, one decision at a time.*
 
 </div>
