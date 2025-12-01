@@ -1,7 +1,7 @@
 # Nexus Release Automation System
 
 <div style="text-align: center; margin-bottom: 2em;">
-  <img src="https://img.shields.io/badge/version-2.2.1-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.3.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.10+-green" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
 </div>
@@ -137,6 +137,15 @@ flowchart TB
 
 ## 🎯 Key Features
 
+### 🎛️ Admin Dashboard
+Web-based UI for system management and configuration:
+- **Mode Switching**: Toggle Mock/Live mode instantly for all agents
+- **Credential Management**: Securely update API keys and URLs
+- **Health Monitoring**: Real-time status of all connected agents
+- **Dynamic Configuration**: Change settings without service restart
+
+![Admin Dashboard Preview](assets/mockups/admin-dashboard.svg)
+
 ### 🤖 Google Gemini Integration
 Production-ready LLM client with full Gemini 2.0 support:
 - **Async Generation**: Non-blocking API calls
@@ -244,9 +253,29 @@ Natural Slack interface with:
 | Reporting Agent | 8083 | Reports |
 | Slack Agent | 8084 | Slack interface + App Home |
 | **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
+| **RCA Agent** | **8006** | **Root cause analysis** |
+| **Analytics** | **8086** | **Advanced analytics** |
+| **Webhooks** | **8087** | **Webhook integrations** |
+| **Admin Dashboard** | **8088** | **System management UI** |
 
-## 🆕 What's New in v2.0
+## 🆕 What's New
 
+### v2.3 - Admin Dashboard
+- ✅ **Admin Dashboard** - Web UI for system management
+- ✅ **Dynamic Configuration** - Redis-backed live configuration
+- ✅ **Mode Switching** - Instant Mock/Live toggle
+- ✅ **Secure Credentials** - Masked secrets management
+
+### v2.2 - Smart RCA
+- ✅ **RCA Agent** - AI-powered build failure analysis
+- ✅ **Auto-Trigger** - Jenkins webhook integration
+- ✅ **Slack Notifications** - Results to release channel
+
+### v2.1 - Analytics & Webhooks
+- ✅ **Analytics Dashboard** - DORA metrics, predictions
+- ✅ **Webhook Service** - Event delivery to external systems
+
+### v2.0 - Core Platform
 - ✅ **Google Gemini 2.0 Flash** - Production LLM integration
 - ✅ **Multi-tenant Architecture** - Enterprise organization isolation
 - ✅ **AI Recommendations Engine** - Intelligent pattern-based suggestions
