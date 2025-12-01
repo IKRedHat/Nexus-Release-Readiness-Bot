@@ -1,7 +1,7 @@
 # Nexus Release Automation System
 
 <div style="text-align: center; margin-bottom: 2em;">
-  <img src="https://img.shields.io/badge/version-2.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.2.1-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.10+-green" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
 </div>
@@ -30,6 +30,7 @@ docker-compose up -d
 # Access services
 # - Orchestrator: http://localhost:8080
 # - Jira Hygiene Agent: http://localhost:8085
+# - RCA Agent: http://localhost:8006
 # - Analytics Dashboard: http://localhost:8086
 # - Webhook Service: http://localhost:8087
 # - Grafana: http://localhost:3000 (admin/nexus_admin)
@@ -63,6 +64,16 @@ curl http://localhost:8086/api/v1/kpis?time_range=7d
 curl -X POST http://localhost:8087/api/v1/subscriptions \
   -H "Content-Type: application/json" \
   -d '{"name": "My Webhook", "url": "https://example.com/hook", "events": ["release.completed"]}'
+
+# Analyze a build failure (RCA)
+curl -X POST http://localhost:8006/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"job_name": "nexus-main", "build_number": 142, "notify": true}'
+
+# Or ask naturally via the orchestrator
+curl -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Why did the last build fail?"}'
 ```
 
 ## 🏗️ Architecture Overview
@@ -101,6 +112,10 @@ flowchart TB
         Orchestrator --> JiraAgent[Jira Agent]
         Orchestrator --> GitAgent[Git/CI Agent]
         Orchestrator --> ReportAgent[Reporting Agent]
+        Orchestrator --> RCAAgent[RCA Agent]
+        
+        RCAAgent --> GitAgent
+        RCAAgent --> SlackAgent
         
         HygieneAgent[Jira Hygiene Agent] --> JiraAgent
         HygieneAgent --> SlackAgent
@@ -159,12 +174,21 @@ The Jira Hygiene Agent ensures data quality:
 - **Interactive Fixes**: Fix violations directly from Slack modals
 - **Hygiene Scoring**: Track compliance percentage
 
+### 🔍 Smart Root Cause Analysis (RCA)
+AI-powered build failure analysis with auto-trigger:
+- **Auto-Trigger**: Jenkins webhook for automatic analysis
+- **Slack Notifications**: Results sent to release channel with @PR-owner
+- **LLM Analysis**: Gemini 1.5 Pro correlates logs with code changes
+- **Fix Suggestions**: Actionable code fixes with confidence scores
+- **Git Correlation**: Maps errors to specific commits and files
+
 ### 📈 Real-time Observability
 Full visibility into system performance:
 - LLM token usage and costs
 - Agent latency and error rates
 - ReAct loop analytics
 - Hygiene score tracking
+- RCA analysis metrics
 - Business metrics (Go/No-Go decisions)
 
 ### 💬 Slack Integration

@@ -12,6 +12,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.1] - 2025-12-01
+
+### Added
+
+#### 🔔 RCA Auto-Trigger & Slack Notifications
+- Jenkins webhook endpoint (`/webhook/jenkins`) for automatic RCA on build failures
+- Background analysis task for async processing
+- SlackNotificationClient for sending RCA results to release channels
+- PR owner lookup by email and @mention in Slack notifications
+- Rich Block Kit notification formatting with:
+  - Root cause summary with color-coded confidence
+  - Suspected files with line numbers
+  - Fix suggestions with code snippets
+  - Action buttons (View Full Analysis, Re-run)
+
+#### New Environment Variables
+- `RCA_AUTO_ANALYZE` - Enable/disable auto-trigger (default: true)
+- `SLACK_AGENT_URL` - Slack agent endpoint
+- `SLACK_RELEASE_CHANNEL` - Default notification channel
+- `SLACK_NOTIFY_ON_FAILURE` - Enable/disable notifications
+- `SLACK_MOCK_MODE` - Mock mode for testing
+
+#### New Prometheus Metrics
+- `nexus_rca_webhooks_total{job_name, status}` - Webhook tracking
+- `nexus_rca_notifications_total{channel, status}` - Notification tracking
+- Updated `nexus_rca_requests_total` with `trigger` label (manual/webhook/orchestrator)
+
+### Changed
+- Updated `/analyze` endpoint to accept `notify`, `channel`, `pr_owner_email` params
+- RCA analysis now returns `notification_sent`, `notification_channel`, `pr_owner_tagged` fields
+- Docker Compose RCA agent now depends on slack-agent
+
+---
+
 ## [2.2.0] - 2025-12-01
 
 ### Added

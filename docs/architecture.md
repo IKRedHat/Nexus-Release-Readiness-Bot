@@ -29,6 +29,7 @@ flowchart TB
         GitAgent[Git/CI Agent<br/>Port 8082]
         ReportAgent[Reporting Agent<br/>Port 8083]
         HygieneAgent[Jira Hygiene Agent<br/>Port 8005]
+        RCAAgent[RCA Agent<br/>Port 8006]
     end
     
     subgraph External["External Systems"]
@@ -59,6 +60,13 @@ flowchart TB
     HygieneAgent --> JiraAgent
     HygieneAgent --> SlackAgent
     HygieneAgent --> Jira
+    
+    Orchestrator --> RCAAgent
+    RCAAgent --> GitAgent
+    RCAAgent --> SlackAgent
+    RCAAgent --> Jenkins
+    RCAAgent --> GitHub
+    Jenkins -.->|Webhook| RCAAgent
     
     JiraAgent --> Jira
     GitAgent --> GitHub
@@ -405,6 +413,112 @@ sequenceDiagram
     Jira-->>JiraAgent: Success
     JiraAgent-->>SlackAgent: Confirmation
     SlackAgent->>User: Success DM
+```
+
+---
+
+### RCA Agent (Port 8006) 🆕
+
+Smart Root Cause Analysis agent that automatically diagnoses build failures using LLM-powered log analysis and git correlation.
+
+```mermaid
+flowchart TB
+    subgraph Trigger["Trigger Sources"]
+        Webhook[Jenkins Webhook<br/>Build Failure]
+        Manual[Manual Request<br/>/analyze API]
+        Orchestrator[Orchestrator<br/>Natural Language]
+    end
+    
+    subgraph RCA["RCA Agent"]
+        Fetch[Fetch Console Logs]
+        Truncate[Truncate for LLM]
+        GitDiff[Fetch Git Diff]
+        LLM[Gemini 1.5 Pro<br/>Analysis]
+        Format[Format Results]
+    end
+    
+    subgraph Output["Output"]
+        Response[API Response]
+        Slack[Slack Notification<br/>@PR Owner]
+    end
+    
+    Webhook --> Fetch
+    Manual --> Fetch
+    Orchestrator --> Fetch
+    
+    Fetch --> Truncate
+    Truncate --> GitDiff
+    GitDiff --> LLM
+    LLM --> Format
+    
+    Format --> Response
+    Format --> Slack
+```
+
+**Capabilities:**
+- **Auto-Trigger**: Jenkins webhook triggers RCA on FAILURE/UNSTABLE builds
+- **Slack Notifications**: Sends analysis to release channel with @PR-owner mention
+- **Log Truncation**: Smart truncation preserves errors while fitting LLM context
+- **Git Correlation**: Maps errors to specific files and commits
+- **Confidence Scoring**: Rates analysis reliability (high/medium/low/uncertain)
+
+**Analysis Flow:**
+
+```mermaid
+sequenceDiagram
+    participant Jenkins
+    participant RCA as RCA Agent
+    participant GitHub
+    participant Gemini as Gemini LLM
+    participant Slack
+    
+    Jenkins->>RCA: POST /webhook/jenkins
+    Note over RCA: Build FAILURE detected
+    
+    RCA->>Jenkins: Fetch Console Output
+    Jenkins-->>RCA: Build Logs (100KB+)
+    
+    RCA->>RCA: Truncate Logs<br/>(keep errors, head, tail)
+    
+    RCA->>GitHub: Fetch Commit Diff
+    GitHub-->>RCA: File Changes
+    
+    RCA->>Gemini: Send [Logs + Diff]<br/>System: "You are a DevOps Debugger"
+    Gemini-->>RCA: Analysis Result
+    
+    RCA->>RCA: Parse & Score Confidence
+    
+    RCA->>Slack: POST /notify
+    Note over Slack: @pr-owner tagged<br/>Root cause + Fix suggestion
+```
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check with config status |
+| `/analyze` | POST | Analyze build failure (with optional notify) |
+| `/webhook/jenkins` | POST | Jenkins auto-trigger webhook |
+| `/execute` | POST | Orchestrator integration |
+| `/metrics` | GET | Prometheus metrics |
+
+**Prometheus Metrics:**
+
+```
+# Request Metrics
+nexus_rca_requests_total{status, error_type, trigger}
+nexus_rca_duration_seconds{job_name}
+nexus_rca_confidence_score  # Histogram 0.0-1.0
+
+# Webhook Metrics
+nexus_rca_webhooks_total{job_name, status}
+
+# Notification Metrics
+nexus_rca_notifications_total{channel, status}
+
+# LLM Usage
+nexus_llm_tokens_total{model, task_type="rca"}
+nexus_rca_active_analyses  # Gauge
 ```
 
 ---

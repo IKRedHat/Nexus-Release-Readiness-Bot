@@ -494,6 +494,138 @@ Content-Type: application/json
 
 ---
 
+## RCA Agent API (Port 8006) 🆕
+
+Smart Root Cause Analysis for build failures with auto-trigger and Slack notifications.
+
+### Health Check
+
+```http
+GET /health
+```
+
+Response:
+```json
+{
+  "status": "healthy",
+  "service": "rca-agent",
+  "version": "2.2.0",
+  "timestamp": "2025-12-01T10:30:00Z",
+  "config": {
+    "jenkins_mock": true,
+    "github_mock": true,
+    "llm_mock": true,
+    "llm_model": "gemini-1.5-pro",
+    "slack_mock": true,
+    "auto_analyze": true,
+    "release_channel": "#release-notifications"
+  }
+}
+```
+
+### Analyze Build Failure
+
+```http
+POST /analyze
+Content-Type: application/json
+
+{
+  "job_name": "nexus-main",
+  "build_number": 142,
+  "build_url": "http://jenkins:8080/job/nexus-main/142/",
+  "repo_name": "nexus-backend",
+  "branch": "feature/new-api",
+  "pr_id": 123,
+  "commit_sha": "a1b2c3d4e5f6",
+  "include_git_diff": true,
+  "notify": true,
+  "channel": "#release-notifications",
+  "pr_owner_email": "developer@example.com"
+}
+```
+
+Response:
+```json
+{
+  "analysis_id": "rca-nexus-main-142-1701432600",
+  "root_cause_summary": "Test failure in TestUserService due to validate_email returning None",
+  "error_type": "test_failure",
+  "error_message": "AttributeError: 'NoneType' object has no attribute 'is_valid'",
+  "confidence_score": 0.92,
+  "confidence_level": "high",
+  "suspected_commit": "a1b2c3d4e5f6",
+  "suspected_author": "developer@example.com",
+  "suspected_files": [
+    {
+      "file_path": "src/api/users.py",
+      "change_type": "modified",
+      "lines_added": 6,
+      "lines_deleted": 1,
+      "relevant_lines": [87, 88, 89]
+    }
+  ],
+  "fix_suggestion": "Add null check before accessing is_valid attribute...",
+  "fix_code_snippet": "if result is not None:\n    return result.is_valid",
+  "analyzed_at": "2025-12-01T10:30:00Z",
+  "analysis_duration_seconds": 8.5,
+  "notification_sent": true,
+  "notification_channel": "#release-notifications",
+  "pr_owner_tagged": "developer@example.com"
+}
+```
+
+### Jenkins Webhook (Auto-Trigger)
+
+Configure Jenkins to call this endpoint on build failures:
+
+```http
+POST /webhook/jenkins
+Content-Type: application/json
+
+{
+  "name": "nexus-main",
+  "number": 142,
+  "url": "http://jenkins:8080/job/nexus-main/142/",
+  "result": "FAILURE",
+  "git_url": "https://github.com/org/repo.git",
+  "git_branch": "feature/new-api",
+  "git_commit": "a1b2c3d4e5f6",
+  "pr_number": 123,
+  "pr_author_email": "developer@example.com",
+  "release_channel": "#release-notifications"
+}
+```
+
+Response:
+```json
+{
+  "status": "queued",
+  "message": "RCA analysis queued, Slack notification will be sent",
+  "job": "nexus-main",
+  "build": 142,
+  "channel": "#release-notifications"
+}
+```
+
+### Execute Task (Orchestrator Integration)
+
+```http
+POST /execute
+Content-Type: application/json
+
+{
+  "task_id": "custom-id",
+  "action": "analyze_build_failure",
+  "payload": {
+    "job_name": "nexus-main",
+    "build_number": 142,
+    "notify": true
+  }
+}
+```
+
+---
+
 ## Prometheus Metrics Endpoints
 
 All agents expose Prometheus metrics:
@@ -522,6 +654,15 @@ nexus_hygiene_checks_total{project_key, trigger_type}
 nexus_hygiene_violations_total{project_key, violation_type}
 nexus_hygiene_tickets_checked{project_key}
 nexus_hygiene_compliant_tickets{project_key}
+
+# RCA (Port 8006)
+nexus_rca_requests_total{status, error_type, trigger}
+nexus_rca_duration_seconds{job_name}
+nexus_rca_confidence_score                 # Histogram
+nexus_rca_active_analyses                  # Gauge
+nexus_rca_webhooks_total{job_name, status}
+nexus_rca_notifications_total{channel, status}
+nexus_llm_tokens_total{model, task_type}   # task_type=rca
 
 # Business
 nexus_release_decisions_total{decision}
@@ -573,6 +714,8 @@ Slack requests are verified using the signing secret.
 | Query endpoints | 100 req/min |
 | Tool execution | 50 req/min |
 | Hygiene checks | 10 req/min |
+| RCA analysis | 20 req/min |
+| RCA webhooks | 100 req/min |
 
 ---
 
