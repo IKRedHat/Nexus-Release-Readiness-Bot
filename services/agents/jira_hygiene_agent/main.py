@@ -4,6 +4,8 @@ Quality Gatekeeper for Jira Data - Validates ticket completeness and notifies as
 
 This agent runs scheduled hygiene checks on Jira tickets to ensure data quality
 by validating required fields and calculating compliance scores.
+
+Now with dynamic configuration via ConfigManager - supports live mode switching from Admin Dashboard.
 """
 import os
 import sys
@@ -36,6 +38,7 @@ from nexus_lib.instrumentation import (
     create_metrics_endpoint,
 )
 from nexus_lib.utils import AsyncHttpClient, generate_task_id
+from nexus_lib.config import ConfigManager, ConfigKeys, is_mock_mode
 
 # Configure logging
 logging.basicConfig(
@@ -179,36 +182,77 @@ class HygieneCheckRequest(BaseModel):
 class JiraHygieneClient:
     """
     Jira client for hygiene checks
+    
+    Now uses ConfigManager for dynamic configuration.
     """
     
     def __init__(self, config: HygieneConfig):
         self.config = config
-        self.mock_mode = os.environ.get("JIRA_MOCK_MODE", "true").lower() == "true"
-        self.jira = None
-        self.jira_url = os.environ.get("JIRA_URL", "https://jira.example.com")
-        
-        if not self.mock_mode:
-            try:
-                from atlassian import Jira
-                self.jira = Jira(
-                    url=self.jira_url,
-                    username=os.environ.get("JIRA_USERNAME"),
-                    password=os.environ.get("JIRA_API_TOKEN"),
-                    cloud=os.environ.get("JIRA_CLOUD", "true").lower() == "true"
-                )
-                logger.info("Jira Hygiene client initialized in LIVE mode")
-            except ImportError:
-                logger.warning("atlassian-python-api not installed, using mock mode")
-                self.mock_mode = True
-            except Exception as e:
-                logger.error(f"Failed to initialize Jira client: {e}")
-                self.mock_mode = True
-        
-        if self.mock_mode:
-            logger.info("Jira Hygiene client running in MOCK mode")
+        self._jira = None
+        self._jira_url = None
+        self._last_mode = None
+        self._initialized = False
+        logger.info("Jira Hygiene client created - will initialize on first use")
     
-    def get_active_sprint_tickets(self, project_key: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def _ensure_initialized(self):
+        """Lazy initialization - checks config on each operation."""
+        current_mock_mode = await is_mock_mode()
+        
+        if self._last_mode != current_mock_mode or not self._initialized:
+            self._last_mode = current_mock_mode
+            self._initialized = True
+            
+            if current_mock_mode:
+                logger.info("Jira Hygiene client operating in MOCK mode")
+                self._jira = None
+            else:
+                await self._init_live_client()
+    
+    async def _init_live_client(self):
+        """Initialize the live Jira client with credentials from ConfigManager."""
+        try:
+            from atlassian import Jira
+            
+            self._jira_url = await ConfigManager.get(ConfigKeys.JIRA_URL)
+            jira_username = await ConfigManager.get(ConfigKeys.JIRA_USERNAME)
+            jira_token = await ConfigManager.get(ConfigKeys.JIRA_API_TOKEN)
+            
+            if all([self._jira_url, jira_username, jira_token]):
+                self._jira = Jira(
+                    url=self._jira_url,
+                    username=jira_username,
+                    password=jira_token,
+                    cloud=True
+                )
+                logger.info(f"Jira Hygiene client initialized in LIVE mode - {self._jira_url}")
+            else:
+                logger.warning("Jira credentials incomplete, using mock mode")
+                self._last_mode = True
+                self._jira = None
+        except ImportError:
+            logger.warning("atlassian-python-api not installed, using mock mode")
+            self._last_mode = True
+            self._jira = None
+        except Exception as e:
+            logger.error(f"Failed to initialize Jira client: {e}")
+            self._last_mode = True
+            self._jira = None
+    
+    @property
+    def mock_mode(self) -> bool:
+        return self._last_mode if self._last_mode is not None else True
+    
+    @property
+    def jira(self):
+        return self._jira
+    
+    @property
+    def jira_url(self):
+        return self._jira_url or "https://jira.example.com"
+    
+    async def get_active_sprint_tickets(self, project_key: Optional[str] = None) -> List[Dict[str, Any]]:
         """Fetch tickets from active sprints/releases"""
+        await self._ensure_initialized()
         if self.mock_mode:
             return self._get_mock_tickets(project_key)
         
@@ -544,7 +588,7 @@ class HygieneChecker:
         Returns number of notifications sent
         """
         notifications_sent = 0
-        slack_agent_url = os.environ.get("SLACK_AGENT_URL", "http://slack-agent:8000")
+        slack_agent_url = await ConfigManager.get(ConfigKeys.SLACK_AGENT_URL) or "http://slack-agent:8084"
         
         for assignee in result.violations_by_assignee:
             # Skip unassigned
