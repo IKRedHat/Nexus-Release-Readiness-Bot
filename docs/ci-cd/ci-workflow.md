@@ -107,11 +107,27 @@ pip install --upgrade <vulnerable-package>
 - Coverage reports uploaded to Codecov
 - XML and terminal reports generated
 
+**Test Files (9 files, ~200 tests):**
+
+| File | Coverage |
+|------|----------|
+| `test_schemas.py` | Pydantic models (JiraTicket, BuildStatus, etc.) |
+| `test_react_engine.py` | ReAct engine, LLM client, vector memory |
+| `test_hygiene_logic.py` | Hygiene validation, scoring, notifications |
+| `test_rca_logic.py` | Log parsing, error extraction, stack traces |
+| `test_config_manager.py` | Dynamic configuration, Redis fallback |
+| `test_analytics.py` | DORA metrics, KPIs, trend analysis |
+| `test_webhooks.py` | Webhook subscriptions, HMAC, delivery |
+| `test_instrumentation.py` | Prometheus metrics, OpenTelemetry |
+| `test_llm_client.py` | LLM factory, Gemini, OpenAI clients |
+
 **What It Tests:**
-- `tests/unit/` directory
-- Shared library functions
-- Agent logic
-- Orchestrator components
+- ✅ Pydantic model validation and serialization
+- ✅ Business logic correctness
+- ✅ Error handling and edge cases
+- ✅ Configuration management
+- ✅ Metrics and instrumentation
+- ✅ LLM client abstraction
 
 **How to Run Locally:**
 ```bash
@@ -123,6 +139,9 @@ pytest tests/unit/ --cov=shared --cov-report=html
 
 # Run specific test file
 pytest tests/unit/test_hygiene_logic.py -v
+
+# Run by marker
+pytest -m unit -v
 ```
 
 **Artifacts:**
@@ -137,11 +156,24 @@ pytest tests/unit/test_hygiene_logic.py -v
 
 **Dependencies:** Runs after `lint` and `test-unit` pass.
 
+**Test Files (7 files, ~100 tests):**
+
+| File | Service | Coverage |
+|------|---------|----------|
+| `test_release_flow.py` | Orchestrator | Query execution, memory, metrics |
+| `test_slack_flow.py` | Slack Agent | Commands, interactions, modals |
+| `test_reporting_flow.py` | Reporting Agent | Report generation, previews |
+| `test_jira_agent.py` | Jira Agent | Ticket CRUD, hierarchy, sprints |
+| `test_git_ci_agent.py` | Git/CI Agent | GitHub, Jenkins, security |
+| `test_hygiene_agent.py` | Hygiene Agent | Checks, scheduler, notifications |
+| `test_rca_agent.py` | RCA Agent | Analysis, webhooks, Slack alerts |
+
 **What It Tests:**
-- `tests/e2e/` directory
-- API endpoint integration
-- Service communication
-- Full request/response cycles
+- ✅ All API endpoints per service
+- ✅ Request/response validation
+- ✅ AgentTaskRequest handling
+- ✅ Webhook processing
+- ✅ Mock mode behavior
 
 **How to Run Locally:**
 ```bash
@@ -151,8 +183,69 @@ pytest tests/unit/test_hygiene_logic.py -v
 # Run E2E tests
 pytest tests/e2e/ -v
 
+# Run by marker
+pytest -m e2e -v
+
 # Or use dev script
 ./scripts/dev.sh test-e2e
+```
+
+---
+
+### 4.1 Integration Tests (`test-integration`)
+
+**Purpose:** Verify inter-service communication workflows.
+
+**Test Files (1 file, ~30 tests):**
+
+| File | Coverage |
+|------|----------|
+| `test_agent_communication.py` | Orchestrator ↔ Agent calls, workflow chains |
+
+**What It Tests:**
+- ✅ Orchestrator → Agent tool execution
+- ✅ Agent → Agent communication (Hygiene → Slack)
+- ✅ Complete release readiness workflow
+- ✅ Build failure → RCA → notification workflow
+- ✅ Error handling and recovery
+
+**How to Run Locally:**
+```bash
+pytest tests/integration/ -v
+
+# Run by marker
+pytest -m integration -v
+```
+
+---
+
+### 4.2 Smoke Tests (`test-smoke`)
+
+**Purpose:** Quick health verification after deployments.
+
+**Test Files (1 file, ~40 tests):**
+
+| File | Coverage |
+|------|----------|
+| `test_all_services.py` | Health checks for all 10 services |
+
+**What It Tests:**
+- ✅ Service health endpoints
+- ✅ Basic functionality
+- ✅ Metrics endpoints
+- ✅ Inter-service connectivity
+- ✅ Database connectivity
+
+**How to Run Locally:**
+```bash
+# Ensure services are running
+./scripts/dev.sh start
+
+# Run smoke tests
+pytest tests/smoke/ -v
+
+# Run by marker
+pytest -m smoke -v
 ```
 
 ---
