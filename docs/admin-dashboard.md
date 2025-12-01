@@ -119,6 +119,8 @@ The Admin Dashboard includes a comprehensive observability page that consolidate
 
 The Admin Dashboard includes a comprehensive Release Management system that allows you to:
 
+![Release Management](assets/mockups/admin-releases.svg)
+
 - **Track Release Versions**: Define and monitor multiple releases
 - **Set Target Dates**: Configure release schedules with milestones
 - **Import from External Sources**: Sync from Smartsheet, CSV, or webhooks
