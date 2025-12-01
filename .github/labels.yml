@@ -1,0 +1,248 @@
+# =============================================================================
+# Nexus Project GitHub Labels Configuration
+# =============================================================================
+# Use this file with github-label-sync or similar tools to manage labels:
+#   npx github-label-sync --access-token $GITHUB_TOKEN --labels .github/labels.yml IKRedHat/Nexus-Release-Readiness-Bot
+#
+# Or manually create these labels in GitHub: Settings → Labels
+# =============================================================================
+
+# =============================================================================
+# Type Labels (PR/Issue Type)
+# =============================================================================
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: "feature"
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: "enhancement"
+  color: "84b6eb"
+  description: "Improvement to existing functionality"
+
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "refactor"
+  color: "fbca04"
+  description: "Code refactoring without functional changes"
+
+- name: "performance"
+  color: "ff7619"
+  description: "Performance improvement"
+
+- name: "security"
+  color: "ee0701"
+  description: "Security related changes"
+
+- name: "breaking-change"
+  color: "b60205"
+  description: "Breaking change that affects backwards compatibility"
+
+# =============================================================================
+# Component Labels (Service/Module)
+# =============================================================================
+- name: "orchestrator"
+  color: "5319e7"
+  description: "Central orchestrator service"
+
+- name: "jira-agent"
+  color: "0052cc"
+  description: "Jira integration agent"
+
+- name: "hygiene-agent"
+  color: "1d76db"
+  description: "Jira hygiene checking agent"
+
+- name: "slack-agent"
+  color: "4a154b"
+  description: "Slack integration agent"
+
+- name: "git-ci-agent"
+  color: "24292e"
+  description: "GitHub and Jenkins agent"
+
+- name: "reporting-agent"
+  color: "006b75"
+  description: "Report generation agent"
+
+- name: "rca-agent"
+  color: "d93f0b"
+  description: "Root cause analysis agent"
+
+- name: "analytics"
+  color: "0e8a16"
+  description: "Analytics service"
+
+- name: "webhooks"
+  color: "c5def5"
+  description: "Webhooks service"
+
+- name: "admin-dashboard"
+  color: "00ff88"
+  description: "Admin dashboard frontend and backend"
+
+- name: "shared-lib"
+  color: "e99695"
+  description: "Shared nexus_lib library"
+
+# =============================================================================
+# Infrastructure Labels
+# =============================================================================
+- name: "infrastructure"
+  color: "d4c5f9"
+  description: "Infrastructure changes (Docker, K8s, etc.)"
+
+- name: "ci"
+  color: "ededed"
+  description: "CI/CD pipeline changes"
+
+- name: "docker"
+  color: "2496ed"
+  description: "Docker related changes"
+
+- name: "kubernetes"
+  color: "326ce5"
+  description: "Kubernetes related changes"
+
+- name: "terraform"
+  color: "7b42bc"
+  description: "Terraform infrastructure code"
+
+# =============================================================================
+# Technology Labels
+# =============================================================================
+- name: "python"
+  color: "3572A5"
+  description: "Python code changes"
+
+- name: "typescript"
+  color: "2b7489"
+  description: "TypeScript/React code changes"
+
+- name: "tests"
+  color: "bfd4f2"
+  description: "Test related changes"
+
+- name: "scripts"
+  color: "c2e0c6"
+  description: "Script changes"
+
+# =============================================================================
+# Priority Labels
+# =============================================================================
+- name: "critical"
+  color: "b60205"
+  description: "Critical issue requiring immediate attention"
+
+- name: "high-priority"
+  color: "e11d21"
+  description: "High priority issue"
+
+- name: "medium-priority"
+  color: "fbca04"
+  description: "Medium priority issue"
+
+- name: "low-priority"
+  color: "c2e0c6"
+  description: "Low priority issue"
+
+# =============================================================================
+# Status Labels
+# =============================================================================
+- name: "in-progress"
+  color: "ededed"
+  description: "Currently being worked on"
+
+- name: "blocked"
+  color: "d73a4a"
+  description: "Blocked by external dependency"
+
+- name: "needs-review"
+  color: "fbca04"
+  description: "Ready for review"
+
+- name: "needs-info"
+  color: "d876e3"
+  description: "Needs more information from reporter"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or PR already exists"
+
+- name: "invalid"
+  color: "e4e669"
+  description: "This doesn't seem right"
+
+# =============================================================================
+# Community Labels
+# =============================================================================
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: "discussion"
+  color: "d4c5f9"
+  description: "Needs team discussion"
+
+- name: "question"
+  color: "cc317c"
+  description: "Further information is requested"
+
+# =============================================================================
+# Size Labels (for PRs)
+# =============================================================================
+- name: "size/XS"
+  color: "3CBF00"
+  description: "Very small PR (1-10 lines)"
+
+- name: "size/S"
+  color: "5D9801"
+  description: "Small PR (11-50 lines)"
+
+- name: "size/M"
+  color: "7F7203"
+  description: "Medium PR (51-200 lines)"
+
+- name: "size/L"
+  color: "A14C05"
+  description: "Large PR (201-500 lines)"
+
+- name: "size/XL"
+  color: "C32607"
+  description: "Very large PR (500+ lines)"
+
+# =============================================================================
+# Dependency Labels (for Dependabot)
+# =============================================================================
+- name: "dependencies"
+  color: "0366d6"
+  description: "Dependency updates"
+
+- name: "python-deps"
+  color: "3572A5"
+  description: "Python dependency updates"
+
+- name: "js-deps"
+  color: "f1e05a"
+  description: "JavaScript/TypeScript dependency updates"
+
+- name: "docker-deps"
+  color: "2496ed"
+  description: "Docker dependency updates"
+
+- name: "github-actions"
+  color: "2088FF"
+  description: "GitHub Actions updates"
+

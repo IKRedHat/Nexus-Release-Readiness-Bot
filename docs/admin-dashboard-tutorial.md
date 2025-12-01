@@ -200,7 +200,161 @@ Scroll down to see the **"All Configuration Values"** table showing:
 
 ---
 
-## 6. Monitoring Agents
+## 6. Configuration Tab - Going from Mock to Live
+
+The Configuration tab is where you set up all your integrations to move from Mock mode to Live mode. This is the most important section for production deployment.
+
+![Configuration Tab](assets/mockups/admin-dashboard-config.svg)
+
+### Understanding Configuration Sources
+
+Configuration values come from three sources (in priority order):
+
+| Source | Color | Description |
+|--------|-------|-------------|
+| **Redis** | 🟢 Green | Dynamically set via Admin Dashboard |
+| **Environment** | 🔵 Blue | Set via Docker/K8s environment variables |
+| **Default** | ⚪ Gray | Built-in fallback values |
+
+### Step 1: Navigate to Configuration
+
+1. Click **"Configuration"** (⚙️) in the sidebar
+2. You'll see tabs for each integration category
+
+### Step 2: Configure Jira
+
+1. Click the **"Jira"** tab
+2. Fill in the following fields:
+
+| Field | What to Enter | How to Get It |
+|-------|---------------|---------------|
+| **Jira URL** | `https://your-org.atlassian.net` | Your Jira Cloud URL |
+| **Username/Email** | Your Atlassian email | e.g., `user@company.com` |
+| **API Token** | Jira API token | Create at [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |
+| **Default Project** | Project key | e.g., `PROJ`, `NEXUS` |
+
+3. Click **"Save"** after each field
+4. Wait for the green success message
+
+### Step 3: Configure GitHub
+
+1. Click the **"GitHub"** tab
+2. Fill in:
+
+| Field | What to Enter | How to Get It |
+|-------|---------------|---------------|
+| **Personal Access Token** | `ghp_xxxxxxxxxxxx` | Create at GitHub → Settings → Developer Settings → Personal access tokens |
+| **Organization** | Your GitHub org name | e.g., `mycompany` |
+| **Default Repository** | Main repo name | e.g., `nexus-app` |
+
+**Required Token Scopes:**
+- `repo` - Full repository access
+- `read:org` - Read organization data
+- `workflow` - Trigger GitHub Actions
+
+### Step 4: Configure Jenkins
+
+1. Click the **"Jenkins"** tab
+2. Fill in:
+
+| Field | What to Enter | How to Get It |
+|-------|---------------|---------------|
+| **Jenkins URL** | `http://jenkins.company.com:8080` | Your Jenkins server URL |
+| **Username** | Jenkins username | Usually your login |
+| **API Token** | Jenkins API token | Jenkins → User → Configure → API Token |
+
+### Step 5: Configure LLM (AI Provider)
+
+1. Click the **"LLM"** tab
+2. Choose your provider and configure:
+
+**For Google Gemini (Recommended):**
+
+| Field | Value |
+|-------|-------|
+| **Provider** | `google` |
+| **Model** | `gemini-1.5-pro` (or `gemini-2.0-flash`) |
+| **Gemini API Key** | Get from [Google AI Studio](https://aistudio.google.com/app/apikey) |
+
+**For OpenAI:**
+
+| Field | Value |
+|-------|-------|
+| **Provider** | `openai` |
+| **Model** | `gpt-4o` or `gpt-4-turbo` |
+| **OpenAI API Key** | Get from [OpenAI Platform](https://platform.openai.com/api-keys) |
+
+**For Mock Mode (Testing):**
+
+| Field | Value |
+|-------|-------|
+| **Provider** | `mock` |
+
+### Step 6: Configure Slack (Optional)
+
+1. Click the **"Slack"** tab
+2. Fill in:
+
+| Field | What to Enter | How to Get It |
+|-------|---------------|---------------|
+| **Bot Token** | `xoxb-xxxx` | Slack App → OAuth & Permissions |
+| **Signing Secret** | `xxxxxxxx` | Slack App → Basic Information |
+| **App Token** | `xapp-xxxx` | Slack App → Basic Information → App-Level Tokens |
+
+### Step 7: Configure Confluence (Optional)
+
+1. Click the **"Confluence"** tab
+2. Fill in:
+
+| Field | What to Enter |
+|-------|---------------|
+| **Confluence URL** | `https://your-org.atlassian.net/wiki` |
+| **Username/Email** | Same as Jira |
+| **API Token** | Same as Jira API token |
+| **Space Key** | Target space key (e.g., `DOCS`) |
+
+### Step 8: Verify Configuration
+
+After configuring all integrations:
+
+1. Scroll down to **"All Configuration Values"** table
+2. Verify each key shows:
+   - ✅ Your entered value (or masked for secrets)
+   - ✅ Source shows "redis" (green)
+   - ✅ Correct category
+
+### Step 9: Switch to Live Mode
+
+Once all configurations are saved:
+
+1. Go back to **Dashboard**
+2. Click the **Mode Switch** to toggle from Mock → Live
+3. The switch will turn green
+4. Go to **Health Monitor** to verify all agents connect successfully
+
+### Troubleshooting Configuration
+
+| Problem | Solution |
+|---------|----------|
+| "Save" button stays gray | Enter a different value than current |
+| Value not saving | Check Redis connection in health check |
+| Source shows "env" not "redis" | Click Save again to override |
+| Agent unhealthy after config | Verify credentials are correct, check agent logs |
+
+### Quick Reference: Required vs Optional
+
+| Integration | Required for Live? | Notes |
+|-------------|-------------------|-------|
+| Jira | ✅ Required | Core functionality |
+| GitHub | ✅ Required | For PR and repo analysis |
+| Jenkins | ⚠️ Recommended | For build status |
+| LLM | ✅ Required | For AI reasoning |
+| Slack | ⚠️ Recommended | For notifications |
+| Confluence | ⚪ Optional | For report publishing |
+
+---
+
+## 7. Monitoring Agents
 
 ### Step 1: Go to Health Monitor
 

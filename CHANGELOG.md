@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.1] - 2025-12-01
+
+### Changed
+- Refactored all agents to use ConfigManager for dynamic configuration
+- All agents now support live mode switching without restart
+- Version bumped to 2.3.1 across all services
+
+### Added
+- GitHub labels configuration file (`.github/labels.yml`)
+- Admin Dashboard configuration mockup visual
+- Enhanced Admin Dashboard tutorial with detailed configuration steps
+
+---
+
 ## [2.3.0] - 2025-12-01
 
 ### Added

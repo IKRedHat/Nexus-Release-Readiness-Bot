@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.2.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10+-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
@@ -10,7 +10,7 @@
 
 **Intelligent Multi-Agent System for Automated Release Readiness Assessments**
 
-*Now with Analytics Dashboard, Webhook Integrations, Google Gemini 2.0, and more!*
+*Now with Admin Dashboard, Dynamic Configuration, Analytics, Webhooks, Google Gemini 2.0, and more!*
 
 [Documentation](docs/index.md) • [User Guide](docs/user_guide.md) • [Architecture](docs/architecture.md) • [Demo](demo/feature_walkthrough_script.md)
 
@@ -176,31 +176,30 @@ curl -X POST http://localhost:8005/run-check \
 
 ---
 
-## 🆕 What's New in v2.0
+## 🆕 What's New
 
-### 🤖 Google Gemini Integration
-- Production-ready LLM client with Gemini 2.0 Flash
-- Streaming, function calling, and embeddings support
-- Automatic token usage and cost tracking
-- Fallback to mock mode for development
+### v2.3 - Admin Dashboard & Dynamic Configuration
+- 🎛️ **Admin Dashboard** - Web UI for managing system configuration
+- 🔄 **Dynamic Configuration** - Change settings without restart via Redis
+- ⚡ **Live Mode Switching** - Instantly toggle Mock/Live mode for all agents
+- 🔐 **Secure Credential Management** - Masked secrets with Redis storage
 
-### 💡 AI Recommendations Engine
-- Pattern-based intelligent suggestions
-- Release timing optimization
-- Hygiene improvement recommendations
-- Blocker and risk assessment
+### v2.2 - Smart Root Cause Analysis
+- 🔍 **RCA Agent** - AI-powered build failure analysis
+- 🔔 **Auto-Trigger** - Jenkins webhook triggers RCA on failure
+- 💬 **Slack Notifications** - RCA results sent to release channel
+- 🎯 **Fix Suggestions** - Actionable code fixes with confidence scores
 
-### 🏠 Slack App Home Dashboard
-- Rich personalized dashboard on app open
-- Quick action buttons for common tasks
-- Real-time release status widget
-- AI recommendations preview
+### v2.1 - Analytics & Webhooks
+- 📊 **Advanced Analytics** - DORA metrics, KPIs, predictions, anomalies
+- 🔔 **Webhook Integrations** - Real-time event delivery to external systems
+- 📈 **Team Performance** - Compare teams by velocity and quality
 
-### 🏢 Multi-Tenant Support
-- Enterprise-ready organization isolation
-- Plan tiers (Free, Starter, Professional, Enterprise)
-- Per-tenant resource limits and configuration
-- Feature flags per organization
+### v2.0 - Core Platform
+- 🤖 **Google Gemini Integration** - Production LLM with streaming
+- 💡 **AI Recommendations Engine** - Pattern-based intelligent suggestions
+- 🏠 **Slack App Home Dashboard** - Rich widgets and quick actions
+- 🏢 **Multi-Tenant Support** - Enterprise organization isolation
 
 ---
 
@@ -239,7 +238,11 @@ Nexus-Release-Readiness-Bot/
 │       ├── git_ci_agent/          # GitHub + Jenkins
 │       ├── reporting_agent/       # Report generation
 │       ├── slack_agent/           # Slack interface
-│       └── jira_hygiene_agent/    # 🆕 Proactive quality checks
+│       ├── jira_hygiene_agent/    # Proactive quality checks
+│       └── rca_agent/             # Root cause analysis
+│   ├── analytics/                 # 🆕 Advanced analytics service
+│   ├── webhooks/                  # 🆕 Webhook integrations
+│   └── admin_dashboard/           # 🆕 Admin Dashboard (React + FastAPI)
 ├── shared/
 │   └── nexus_lib/                 # Shared library
 │       ├── schemas/               # Pydantic models
@@ -276,8 +279,12 @@ Nexus-Release-Readiness-Bot/
 | Reporting Agent | 8083 | Report generation |
 | Slack Agent | 8084 | Slack interface |
 | **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
+| **RCA Agent** | **8006** | **Root cause analysis** |
+| **Analytics** | **8086** | **Advanced analytics** |
+| **Webhooks** | **8087** | **Webhook integrations** |
+| **Admin Dashboard** | **8088** | **System management UI** |
 | PostgreSQL | 5432 | Database |
-| Redis | 6379 | Cache |
+| Redis | 6379 | Cache + Dynamic Config |
 | Prometheus | 9090 | Metrics |
 | Grafana | 3000 | Dashboards |
 
@@ -434,8 +441,10 @@ helm upgrade --install nexus . \
 - [x] **Multi-tenant support**
 - [x] **AI-powered recommendations**
 - [x] **Slack App Home dashboard**
-- [x] **Advanced analytics dashboard** ✨ NEW in v2.1
-- [x] **Webhook integrations for external systems** ✨ NEW in v2.1
+- [x] **Advanced analytics dashboard**
+- [x] **Webhook integrations for external systems**
+- [x] **Smart Root Cause Analysis (RCA)** ✨ NEW in v2.2
+- [x] **Admin Dashboard with dynamic configuration** ✨ NEW in v2.3
 - [ ] Anthropic Claude integration
 - [ ] Custom LLM model fine-tuning
 - [ ] Mobile app companion

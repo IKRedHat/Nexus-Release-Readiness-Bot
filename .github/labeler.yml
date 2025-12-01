@@ -29,6 +29,22 @@ reporting-agent:
   - changed-files:
       - any-glob-to-any-file: 'services/agents/reporting_agent/**/*'
 
+rca-agent:
+  - changed-files:
+      - any-glob-to-any-file: 'services/agents/rca_agent/**/*'
+
+analytics:
+  - changed-files:
+      - any-glob-to-any-file: 'services/analytics/**/*'
+
+webhooks:
+  - changed-files:
+      - any-glob-to-any-file: 'services/webhooks/**/*'
+
+admin-dashboard:
+  - changed-files:
+      - any-glob-to-any-file: 'services/admin_dashboard/**/*'
+
 shared-lib:
   - changed-files:
       - any-glob-to-any-file: 'shared/**/*'
