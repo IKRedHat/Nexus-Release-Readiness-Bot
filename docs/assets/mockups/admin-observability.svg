@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900">
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#060a12"/>
+  
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,255,136,0.02)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="900" fill="url(#grid)"/>
+  
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="240" height="900" fill="#0a0f1a"/>
+  <rect x="239" y="0" width="1" height="900" fill="#1f2937"/>
+  
+  <!-- Logo -->
+  <rect x="20" y="20" width="200" height="60" rx="8" fill="#111827"/>
+  <rect x="30" y="30" width="40" height="40" rx="8" fill="#00ff88"/>
+  <text x="42" y="58" font-family="Arial" font-size="20" fill="#0a0f1a" font-weight="bold">⚡</text>
+  <text x="80" y="48" font-family="Inter, Arial" font-size="18" font-weight="bold" fill="#f1f5f9">Nexus</text>
+  <text x="80" y="65" font-family="Inter, Arial" font-size="11" fill="#6b7280">Admin Dashboard</text>
+  
+  <!-- Nav items -->
+  <rect x="20" y="100" width="200" height="44" rx="8" fill="transparent"/>
+  <text x="55" y="128" font-family="Inter, Arial" font-size="14" fill="#6b7280">📊 Dashboard</text>
+  
+  <rect x="20" y="150" width="200" height="44" rx="8" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+  <text x="55" y="178" font-family="Inter, Arial" font-size="14" fill="#00ff88">📈 Observability</text>
+  
+  <rect x="20" y="200" width="200" height="44" rx="8" fill="transparent"/>
+  <text x="55" y="228" font-family="Inter, Arial" font-size="14" fill="#6b7280">❤️ Health Monitor</text>
+  
+  <rect x="20" y="250" width="200" height="44" rx="8" fill="transparent"/>
+  <text x="55" y="278" font-family="Inter, Arial" font-size="14" fill="#6b7280">⚙️ Configuration</text>
+  
+  <!-- Version footer -->
+  <text x="30" y="880" font-family="Inter, Arial" font-size="11" fill="#4b5563">🛡️ Version 2.3.0</text>
+  
+  <!-- Main content -->
+  <!-- Header -->
+  <text x="270" y="50" font-family="Inter, Arial" font-size="24" font-weight="bold" fill="#f1f5f9">📈 Observability Dashboard</text>
+  <text x="270" y="72" font-family="Inter, Arial" font-size="13" fill="#6b7280">Real-time metrics and system performance</text>
+  
+  <!-- Time range selector -->
+  <rect x="920" y="30" width="250" height="40" rx="6" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <rect x="925" y="35" width="45" height="30" rx="4" fill="#00ff88"/>
+  <text x="938" y="55" font-family="Inter, Arial" font-size="12" fill="#0a0f1a" font-weight="600">1h</text>
+  <text x="985" y="55" font-family="Inter, Arial" font-size="12" fill="#6b7280">6h</text>
+  <text x="1025" y="55" font-family="Inter, Arial" font-size="12" fill="#6b7280">24h</text>
+  <text x="1070" y="55" font-family="Inter, Arial" font-size="12" fill="#6b7280">7d</text>
+  <text x="1120" y="55" font-family="Inter, Arial" font-size="12" fill="#6b7280">🔄</text>
+  <text x="1145" y="55" font-family="Inter, Arial" font-size="12" fill="#6b7280">↗️ Grafana</text>
+  
+  <!-- Summary Cards Row -->
+  <!-- Card 1: Total Requests -->
+  <rect x="270" y="95" width="220" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <rect x="285" y="110" width="36" height="36" rx="8" fill="rgba(0,255,136,0.1)"/>
+  <text x="295" y="135" font-family="Arial" font-size="16" fill="#00ff88">📊</text>
+  <rect x="430" y="108" width="50" height="22" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="440" y="123" font-family="Inter, Arial" font-size="10" fill="#22c55e">+12%</text>
+  <text x="285" y="165" font-family="Inter, Arial" font-size="12" fill="#6b7280">Total Requests</text>
+  <text x="285" y="185" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#f1f5f9">12,847</text>
+  
+  <!-- Card 2: Avg Latency -->
+  <rect x="505" y="95" width="220" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <rect x="520" y="110" width="36" height="36" rx="8" fill="rgba(59,130,246,0.1)"/>
+  <text x="530" y="135" font-family="Arial" font-size="16" fill="#3b82f6">⏱️</text>
+  <rect x="665" y="108" width="50" height="22" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="677" y="123" font-family="Inter, Arial" font-size="10" fill="#22c55e">-8%</text>
+  <text x="520" y="165" font-family="Inter, Arial" font-size="12" fill="#6b7280">Avg Latency</text>
+  <text x="520" y="185" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#f1f5f9">145ms</text>
+  
+  <!-- Card 3: Error Rate -->
+  <rect x="740" y="95" width="220" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <rect x="755" y="110" width="36" height="36" rx="8" fill="rgba(245,158,11,0.1)"/>
+  <text x="765" y="135" font-family="Arial" font-size="16" fill="#f59e0b">⚠️</text>
+  <rect x="900" y="108" width="50" height="22" rx="4" fill="rgba(239,68,68,0.2)"/>
+  <text x="909" y="123" font-family="Inter, Arial" font-size="10" fill="#ef4444">+0.1%</text>
+  <text x="755" y="165" font-family="Inter, Arial" font-size="12" fill="#6b7280">Error Rate</text>
+  <text x="755" y="185" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#f1f5f9">0.3%</text>
+  
+  <!-- Card 4: LLM Cost -->
+  <rect x="975" y="95" width="195" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <rect x="990" y="110" width="36" height="36" rx="8" fill="rgba(139,92,246,0.1)"/>
+  <text x="1000" y="135" font-family="Arial" font-size="16" fill="#8b5cf6">💰</text>
+  <rect x="1110" y="108" width="50" height="22" rx="4" fill="rgba(107,114,128,0.2)"/>
+  <text x="1117" y="123" font-family="Inter, Arial" font-size="10" fill="#6b7280">+$0.50</text>
+  <text x="990" y="165" font-family="Inter, Arial" font-size="12" fill="#6b7280">LLM Cost</text>
+  <text x="990" y="185" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#f1f5f9">$4.27</text>
+  
+  <!-- Request Traffic Chart -->
+  <rect x="270" y="210" width="450" height="220" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="290" y="240" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">📈 Request Traffic</text>
+  
+  <!-- Area chart -->
+  <path d="M300 400 L350 380 L400 390 L450 360 L500 340 L550 350 L600 320 L650 340 L700 310 L700 400 Z" fill="url(#areaGradient)"/>
+  <path d="M300 400 L350 380 L400 390 L450 360 L500 340 L550 350 L600 320 L650 340 L700 310" fill="none" stroke="#00ff88" stroke-width="2"/>
+  <circle cx="700" cy="310" r="4" fill="#00ff88" filter="url(#glow)"/>
+  
+  <!-- X axis labels -->
+  <text x="300" y="420" font-family="Inter, Arial" font-size="10" fill="#6b7280">10:00</text>
+  <text x="400" y="420" font-family="Inter, Arial" font-size="10" fill="#6b7280">10:15</text>
+  <text x="500" y="420" font-family="Inter, Arial" font-size="10" fill="#6b7280">10:30</text>
+  <text x="600" y="420" font-family="Inter, Arial" font-size="10" fill="#6b7280">10:45</text>
+  <text x="690" y="420" font-family="Inter, Arial" font-size="10" fill="#6b7280">11:00</text>
+  
+  <!-- Latency Chart -->
+  <rect x="735" y="210" width="435" height="220" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="755" y="240" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">⏱️ Latency Over Time</text>
+  
+  <!-- Line chart -->
+  <path d="M765 380 L815 360 L865 370 L915 340 L965 350 L1015 330 L1065 360 L1115 340 L1150 320" fill="none" stroke="url(#lineGradient)" stroke-width="2"/>
+  <circle cx="1150" cy="320" r="4" fill="#8b5cf6" filter="url(#glow)"/>
+  
+  <!-- Y axis labels -->
+  <text x="755" y="280" font-family="Inter, Arial" font-size="10" fill="#6b7280">200ms</text>
+  <text x="755" y="340" font-family="Inter, Arial" font-size="10" fill="#6b7280">150ms</text>
+  <text x="755" y="400" font-family="Inter, Arial" font-size="10" fill="#6b7280">100ms</text>
+  
+  <!-- Agent Performance Table -->
+  <rect x="270" y="445" width="580" height="280" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="290" y="475" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">🖥️ Agent Performance</text>
+  
+  <!-- Table header -->
+  <text x="290" y="510" font-family="Inter, Arial" font-size="11" fill="#6b7280">AGENT</text>
+  <text x="450" y="510" font-family="Inter, Arial" font-size="11" fill="#6b7280">STATUS</text>
+  <text x="550" y="510" font-family="Inter, Arial" font-size="11" fill="#6b7280">REQUESTS</text>
+  <text x="650" y="510" font-family="Inter, Arial" font-size="11" fill="#6b7280">ERRORS</text>
+  <text x="750" y="510" font-family="Inter, Arial" font-size="11" fill="#6b7280">LATENCY</text>
+  
+  <!-- Table rows -->
+  <rect x="280" y="520" width="560" height="1" fill="#1f2937"/>
+  
+  <text x="290" y="545" font-family="Inter, Arial" font-size="12" fill="#f1f5f9">Orchestrator</text>
+  <rect x="450" y="532" width="60" height="22" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="462" y="547" font-family="Inter, Arial" font-size="10" fill="#22c55e">healthy</text>
+  <text x="550" y="545" font-family="Inter, Arial" font-size="12" fill="#d1d5db">3,420</text>
+  <text x="650" y="545" font-family="Inter, Arial" font-size="12" fill="#ef4444">12</text>
+  <text x="750" y="545" font-family="Inter, Arial" font-size="12" fill="#d1d5db">234ms</text>
+  
+  <text x="290" y="575" font-family="Inter, Arial" font-size="12" fill="#f1f5f9">Jira Agent</text>
+  <rect x="450" y="562" width="60" height="22" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="462" y="577" font-family="Inter, Arial" font-size="10" fill="#22c55e">healthy</text>
+  <text x="550" y="575" font-family="Inter, Arial" font-size="12" fill="#d1d5db">2,180</text>
+  <text x="650" y="575" font-family="Inter, Arial" font-size="12" fill="#ef4444">5</text>
+  <text x="750" y="575" font-family="Inter, Arial" font-size="12" fill="#d1d5db">156ms</text>
+  
+  <text x="290" y="605" font-family="Inter, Arial" font-size="12" fill="#f1f5f9">RCA Agent</text>
+  <rect x="450" y="592" width="60" height="22" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="462" y="607" font-family="Inter, Arial" font-size="10" fill="#22c55e">healthy</text>
+  <text x="550" y="605" font-family="Inter, Arial" font-size="12" fill="#d1d5db">156</text>
+  <text x="650" y="605" font-family="Inter, Arial" font-size="12" fill="#ef4444">1</text>
+  <text x="750" y="605" font-family="Inter, Arial" font-size="12" fill="#d1d5db">2,340ms</text>
+  
+  <text x="290" y="635" font-family="Inter, Arial" font-size="12" fill="#f1f5f9">Analytics</text>
+  <rect x="450" y="622" width="60" height="22" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="462" y="637" font-family="Inter, Arial" font-size="10" fill="#22c55e">healthy</text>
+  <text x="550" y="635" font-family="Inter, Arial" font-size="12" fill="#d1d5db">1,234</text>
+  <text x="650" y="635" font-family="Inter, Arial" font-size="12" fill="#6b7280">0</text>
+  <text x="750" y="635" font-family="Inter, Arial" font-size="12" fill="#d1d5db">87ms</text>
+  
+  <text x="290" y="665" font-family="Inter, Arial" font-size="12" fill="#f1f5f9">Webhooks</text>
+  <rect x="450" y="652" width="60" height="22" rx="4" fill="rgba(245,158,11,0.2)"/>
+  <text x="458" y="667" font-family="Inter, Arial" font-size="10" fill="#f59e0b">degraded</text>
+  <text x="550" y="665" font-family="Inter, Arial" font-size="12" fill="#d1d5db">621</text>
+  <text x="650" y="665" font-family="Inter, Arial" font-size="12" fill="#ef4444">4</text>
+  <text x="750" y="665" font-family="Inter, Arial" font-size="12" fill="#d1d5db">45ms</text>
+  
+  <!-- LLM Usage Pie Chart -->
+  <rect x="865" y="445" width="305" height="175" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="885" y="475" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">⚡ LLM Token Usage</text>
+  
+  <!-- Pie chart -->
+  <circle cx="960" cy="555" r="50" fill="transparent" stroke="#00ff88" stroke-width="12" stroke-dasharray="120 200"/>
+  <circle cx="960" cy="555" r="50" fill="transparent" stroke="#3b82f6" stroke-width="12" stroke-dasharray="80 200" stroke-dashoffset="-120"/>
+  <circle cx="960" cy="555" r="50" fill="transparent" stroke="#f59e0b" stroke-width="12" stroke-dasharray="30 200" stroke-dashoffset="-200"/>
+  <circle cx="960" cy="555" r="50" fill="transparent" stroke="#8b5cf6" stroke-width="12" stroke-dasharray="20 200" stroke-dashoffset="-230"/>
+  
+  <!-- Legend -->
+  <rect x="1040" y="500" width="10" height="10" rx="2" fill="#00ff88"/>
+  <text x="1055" y="510" font-family="Inter, Arial" font-size="10" fill="#6b7280">gemini-1.5-pro</text>
+  <text x="1140" y="510" font-family="Inter, Arial" font-size="10" fill="#f1f5f9">$2.18</text>
+  
+  <rect x="1040" y="525" width="10" height="10" rx="2" fill="#3b82f6"/>
+  <text x="1055" y="535" font-family="Inter, Arial" font-size="10" fill="#6b7280">gemini-2.0-flash</text>
+  <text x="1140" y="535" font-family="Inter, Arial" font-size="10" fill="#f1f5f9">$1.34</text>
+  
+  <rect x="1040" y="550" width="10" height="10" rx="2" fill="#f59e0b"/>
+  <text x="1055" y="560" font-family="Inter, Arial" font-size="10" fill="#6b7280">gpt-4o</text>
+  <text x="1140" y="560" font-family="Inter, Arial" font-size="10" fill="#f1f5f9">$0.69</text>
+  
+  <rect x="1040" y="575" width="10" height="10" rx="2" fill="#8b5cf6"/>
+  <text x="1055" y="585" font-family="Inter, Arial" font-size="10" fill="#6b7280">mock</text>
+  <text x="1140" y="585" font-family="Inter, Arial" font-size="10" fill="#f1f5f9">$0.00</text>
+  
+  <!-- Hygiene Score -->
+  <rect x="865" y="635" width="150" height="90" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="885" y="660" font-family="Inter, Arial" font-size="12" font-weight="600" fill="#f1f5f9">Hygiene Score</text>
+  
+  <!-- Circular progress -->
+  <circle cx="940" cy="690" r="25" fill="transparent" stroke="#1f2937" stroke-width="6"/>
+  <circle cx="940" cy="690" r="25" fill="transparent" stroke="#00ff88" stroke-width="6" stroke-dasharray="137 157" transform="rotate(-90 940 690)"/>
+  <text x="925" y="695" font-family="Inter, Arial" font-size="14" font-weight="bold" fill="#f1f5f9">87%</text>
+  
+  <!-- External Links -->
+  <rect x="1020" y="635" width="150" height="90" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="1040" y="660" font-family="Inter, Arial" font-size="12" font-weight="600" fill="#f1f5f9">External</text>
+  
+  <rect x="1030" y="672" width="130" height="18" rx="4" fill="#0a0f1a"/>
+  <text x="1040" y="685" font-family="Inter, Arial" font-size="10" fill="#f59e0b">📊 Grafana</text>
+  <text x="1140" y="685" font-family="Inter, Arial" font-size="10" fill="#6b7280">↗</text>
+  
+  <rect x="1030" y="695" width="130" height="18" rx="4" fill="#0a0f1a"/>
+  <text x="1040" y="708" font-family="Inter, Arial" font-size="10" fill="#ef4444">🔥 Prometheus</text>
+  <text x="1140" y="708" font-family="Inter, Arial" font-size="10" fill="#6b7280">↗</text>
+  
+  <!-- Grafana Embed Section -->
+  <rect x="270" y="740" width="900" height="140" rx="10" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="290" y="770" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">🔗 Embedded Grafana Dashboard</text>
+  <text x="1000" y="770" font-family="Inter, Arial" font-size="11" fill="#00ff88">Open in Grafana ↗</text>
+  
+  <!-- Grafana embed placeholder -->
+  <rect x="285" y="785" width="870" height="80" rx="6" fill="#0a0f1a" stroke="#374151" stroke-width="1"/>
+  <text x="640" y="825" font-family="Inter, Arial" font-size="12" fill="#6b7280" text-anchor="middle">📊 Grafana Panel - Enable embedding: allow_embedding = true</text>
+  <text x="640" y="845" font-family="Inter, Arial" font-size="10" fill="#4b5563" text-anchor="middle">Real-time metrics visualization when Grafana is configured</text>
+</svg>
+

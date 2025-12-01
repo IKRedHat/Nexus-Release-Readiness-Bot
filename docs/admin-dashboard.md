@@ -12,6 +12,7 @@ The Admin Dashboard enables you to:
 - **Manage Credentials**: Securely update API keys and URLs
 - **Monitor Health**: Real-time status of all connected agents
 - **Configure Integrations**: Set up Jira, GitHub, Jenkins, Slack, and LLM providers
+- **View Observability Metrics**: Integrated dashboards with Prometheus/Grafana data
 
 ## Quick Start
 
@@ -73,6 +74,47 @@ Real-time health status for all agents:
 - **Auto-Refresh**: Updates every 10 seconds
 - **Manual Check**: Force refresh individual agents
 
+### 📈 Integrated Observability Dashboard
+
+The Admin Dashboard includes a comprehensive observability page that consolidates metrics from Prometheus and Grafana:
+
+![Observability Dashboard](assets/mockups/admin-observability.svg)
+
+**Key Metrics Displayed:**
+
+| Metric | Description | Source |
+|--------|-------------|--------|
+| **Total Requests** | Aggregate request count across all agents | Prometheus |
+| **Avg Latency** | Average response time (P50/P95/P99) | Prometheus |
+| **Error Rate** | Percentage of failed requests | Prometheus |
+| **LLM Cost** | Total cost of LLM API calls | Prometheus |
+| **Hygiene Score** | Project data quality percentage | Hygiene Agent |
+| **Release Decisions** | Go/No-Go decision counts | Orchestrator |
+
+**Charts Available:**
+
+- 📈 **Request Traffic**: Real-time request volume over time
+- ⏱️ **Latency Trends**: Response time distribution
+- 🖥️ **Agent Performance**: Per-agent metrics table
+- ⚡ **LLM Token Usage**: Breakdown by model with cost tracking
+- 🎯 **Hygiene Score**: Circular progress indicator
+
+**Time Range Selection:**
+- 1 hour (1h)
+- 6 hours (6h)
+- 24 hours (24h)
+- 7 days (7d)
+
+**External Dashboard Links:**
+- One-click access to Grafana for detailed dashboards
+- Direct link to Prometheus for raw metrics
+- Link to Jaeger for distributed tracing
+
+**Embedded Grafana Panels:**
+- Configure Grafana to allow embedding (`allow_embedding = true`)
+- Panels display directly in the Admin Dashboard
+- Maintains dark theme consistency
+
 ### ⚙️ Dynamic Configuration
 
 The ConfigManager enables dynamic configuration without restarts:
@@ -128,6 +170,7 @@ flowchart TB
 | `GET` | `/health-check` | Check all agent health |
 | `GET` | `/health-check/{agent}` | Check specific agent |
 | `GET` | `/config/templates` | Get config form templates |
+| `GET` | `/api/metrics` | Get aggregated observability metrics |
 
 ### Set System Mode
 

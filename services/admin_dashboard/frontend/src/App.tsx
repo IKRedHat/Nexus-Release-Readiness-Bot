@@ -6,18 +6,21 @@ import {
   Shield,
   Zap,
   Menu,
-  X
+  X,
+  BarChart3
 } from 'lucide-react'
 import { useState } from 'react'
 import Dashboard from './pages/Dashboard'
 import SettingsPage from './pages/Settings'
 import HealthPage from './pages/Health'
+import MetricsPage from './pages/Metrics'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/metrics', icon: BarChart3, label: 'Observability' },
     { to: '/health', icon: Activity, label: 'Health Monitor' },
     { to: '/settings', icon: Settings, label: 'Configuration' },
   ]
@@ -89,6 +92,7 @@ function App() {
         <div className="p-6 lg:p-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/metrics" element={<MetricsPage />} />
             <Route path="/health" element={<HealthPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
