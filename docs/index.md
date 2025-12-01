@@ -182,6 +182,18 @@ AI-powered build failure analysis with auto-trigger:
 - **Fix Suggestions**: Actionable code fixes with confidence scores
 - **Git Correlation**: Maps errors to specific commits and files
 
+### 📊 Advanced Analytics Dashboard
+Comprehensive insights into your release automation metrics:
+
+![Analytics Dashboard](assets/mockups/analytics-dashboard.svg)
+
+- **DORA Metrics**: Deployment frequency, lead time, MTTR, change failure rate
+- **Quality Scores**: Build success, hygiene, security scores in real-time
+- **Predictive Analytics**: AI-powered release date and quality forecasting
+- **Anomaly Detection**: Automatic alerts for unusual patterns
+- **Team Performance**: Compare teams by velocity, quality, and efficiency
+- **AI Insights**: Intelligent recommendations based on your data
+
 ### 📈 Real-time Observability
 Full visibility into system performance:
 - LLM token usage and costs

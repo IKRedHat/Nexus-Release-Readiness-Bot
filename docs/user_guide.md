@@ -11,6 +11,7 @@ Nexus is your AI-powered release automation assistant. It connects to your exist
 - 📊 **Release Assessments** - Automated Go/No-Go decisions
 - 🔧 **Jira Hygiene** - Proactive data quality management
 - 🔍 **Smart RCA** - AI-powered build failure analysis with auto-trigger
+- 📈 **Advanced Analytics** - DORA metrics, predictions, anomaly detection
 - 📝 **Rich Reports** - Beautiful Confluence reports
 - 💡 **AI Recommendations** - Pattern-based intelligent suggestions
 - 🏠 **App Home Dashboard** - Rich Slack dashboard with widgets
@@ -302,6 +303,91 @@ curl -X POST http://localhost:8006/analyze \
     "pr_owner_email": "developer@example.com"
   }'
 ```
+
+---
+
+## 📊 Advanced Analytics Dashboard
+
+Nexus provides a comprehensive analytics service for tracking DORA metrics, predictions, and anomaly detection.
+
+### Accessing Analytics
+
+**Via API:**
+```bash
+# Get KPI Dashboard
+curl "http://localhost:8086/api/v1/kpis?time_range=7d"
+
+# Get trend analysis
+curl "http://localhost:8086/api/v1/trends?time_range=30d"
+```
+
+**Via Slack:**
+```
+/nexus show analytics
+/nexus what are our DORA metrics?
+/nexus predict release date for v2.1
+```
+
+### Dashboard Overview
+
+![Analytics Dashboard](assets/mockups/analytics-dashboard.svg)
+
+The dashboard provides:
+
+#### DORA Metrics
+The four key DevOps Research and Assessment metrics:
+
+| Metric | Elite Benchmark | What It Measures |
+|--------|-----------------|------------------|
+| **Deployment Frequency** | Multiple/day | How often you deploy |
+| **Lead Time** | < 1 hour | Commit to production time |
+| **MTTR** | < 1 hour | Recovery time after incidents |
+| **Change Failure Rate** | < 15% | % of deployments causing failures |
+
+#### Quality Scores
+- **Build Success Rate**: CI/CD pipeline reliability
+- **Hygiene Score**: Jira data quality compliance
+- **Security Score**: Vulnerability assessment
+
+#### Predictions
+AI-powered forecasting:
+- **Release Date**: When the release will be ready
+- **Quality Score**: Predicted future quality
+- **Resource Needs**: Team capacity planning
+
+#### Anomaly Detection
+Automatic alerts for unusual patterns:
+- Build failure rate spikes
+- Velocity drops
+- Quality degradation
+
+### Using Predictions
+
+**Predict Release Date:**
+```bash
+curl -X POST "http://localhost:8086/api/v1/predict/release-date" \
+  -d '{"project": "NEXUS", "target_tickets": 100, "current_completed": 65}'
+```
+
+**Response:**
+```json
+{
+  "predicted_value": "2025-12-08T10:30:00Z",
+  "confidence": 0.85,
+  "factors": [
+    "Historical velocity: 5.2 tickets/day",
+    "Remaining tickets: 35"
+  ]
+}
+```
+
+### Anomaly Alerts
+
+When anomalies are detected, you'll see alerts in the dashboard with severity levels:
+- 🔴 **Critical**: Immediate action required
+- 🟠 **High**: Address within hours
+- 🟡 **Medium**: Monitor and address soon
+- ⚪ **Low**: Informational
 
 ---
 

@@ -30,6 +30,8 @@ flowchart TB
         ReportAgent[Reporting Agent<br/>Port 8083]
         HygieneAgent[Jira Hygiene Agent<br/>Port 8005]
         RCAAgent[RCA Agent<br/>Port 8006]
+        Analytics[Analytics Service<br/>Port 8086]
+        Webhooks[Webhooks Service<br/>Port 8087]
     end
     
     subgraph External["External Systems"]
@@ -72,6 +74,12 @@ flowchart TB
     GitAgent --> GitHub
     GitAgent --> Jenkins
     ReportAgent --> Confluence
+    
+    Analytics --> Prometheus
+    Analytics --> Memory
+    Orchestrator --> Analytics
+    
+    Webhooks --> External
     
     All --> Prometheus
     Prometheus --> Grafana
@@ -520,6 +528,115 @@ nexus_rca_notifications_total{channel, status}
 nexus_llm_tokens_total{model, task_type="rca"}
 nexus_rca_active_analyses  # Gauge
 ```
+
+---
+
+### Analytics Service (Port 8086) 🆕
+
+Advanced analytics and insights service providing DORA metrics, predictions, and anomaly detection.
+
+```mermaid
+flowchart TB
+    subgraph DataSources["Data Sources"]
+        Prometheus[Prometheus]
+        Postgres[(PostgreSQL)]
+        Redis[(Redis Cache)]
+    end
+    
+    subgraph Analytics["Analytics Service"]
+        Collector[Data Collector]
+        Aggregator[Metric Aggregator]
+        ML[ML Models]
+        Predictor[Prediction Engine]
+        Anomaly[Anomaly Detector]
+    end
+    
+    subgraph Output["Outputs"]
+        KPIs[KPI Dashboard]
+        Timeseries[Time Series API]
+        Predictions[Predictions API]
+        Alerts[Anomaly Alerts]
+        Insights[AI Insights]
+    end
+    
+    Prometheus --> Collector
+    Postgres --> Collector
+    Redis --> Collector
+    
+    Collector --> Aggregator
+    Aggregator --> ML
+    ML --> Predictor
+    ML --> Anomaly
+    
+    Aggregator --> KPIs
+    Aggregator --> Timeseries
+    Predictor --> Predictions
+    Anomaly --> Alerts
+    ML --> Insights
+```
+
+**Capabilities:**
+- **DORA Metrics**: Deployment frequency, lead time, MTTR, change failure rate
+- **KPI Dashboard**: Real-time quality scores and health indicators
+- **Time Series Analysis**: Historical trends with flexible granularity
+- **Predictive Analytics**: Release date and quality score forecasting
+- **Anomaly Detection**: Automatic detection of unusual patterns
+- **Team Performance**: Compare teams by velocity and quality
+- **AI Insights**: Intelligent recommendations based on patterns
+
+**Dashboard Preview:**
+
+![Analytics Dashboard](assets/mockups/analytics-dashboard.svg)
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/kpis` | GET | Get KPI dashboard data |
+| `/api/v1/timeseries/{metric}` | GET | Get time series data |
+| `/api/v1/trends` | GET | Get trend analysis |
+| `/api/v1/predict/release-date` | POST | Predict release date |
+| `/api/v1/predict/quality` | POST | Predict quality score |
+| `/api/v1/anomalies` | GET | Get detected anomalies |
+| `/api/v1/teams` | GET | Get team performance |
+| `/api/v1/insights` | GET | Get AI-powered insights |
+
+**Prometheus Metrics:**
+
+```
+# Analytics Queries
+nexus_analytics_queries_total{query_type, time_range}
+
+# KPIs
+nexus_release_velocity{project}
+nexus_quality_score{project}
+nexus_team_efficiency{team}
+
+# Predictions
+nexus_prediction_accuracy{prediction_type}
+```
+
+---
+
+### Webhooks Service (Port 8087)
+
+Event-driven webhook service for integrating with external systems.
+
+**Capabilities:**
+- **25+ Event Types**: Release, build, ticket, security, hygiene events
+- **HMAC Security**: Cryptographic signature verification
+- **Auto-Retry**: Exponential backoff with configurable attempts
+- **Rate Limiting**: Per-subscription and global limits
+- **Event Filtering**: Subscribe to specific event patterns
+- **Delivery Tracking**: Full audit trail of deliveries
+
+**Supported Event Types:**
+- `release.*` - Release lifecycle events
+- `build.*` - CI/CD pipeline events
+- `ticket.*` - Jira ticket events
+- `security.*` - Security scan events
+- `hygiene.*` - Hygiene check events
+- `rca.*` - RCA analysis events
 
 ---
 

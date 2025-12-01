@@ -494,6 +494,166 @@ Content-Type: application/json
 
 ---
 
+## Analytics Service API (Port 8086) 🆕
+
+Advanced analytics with DORA metrics, predictions, and anomaly detection.
+
+### Health Check
+
+```http
+GET /health
+```
+
+### Get KPI Dashboard
+
+```http
+GET /api/v1/kpis?time_range=7d&project=NEXUS
+```
+
+Response:
+```json
+{
+  "timestamp": "2025-12-01T10:30:00Z",
+  "time_range": "7d",
+  "kpis": {
+    "deployment_frequency": 8.5,
+    "lead_time_hours": 18.5,
+    "mttr_hours": 1.2,
+    "change_failure_rate": 0.05,
+    "build_success_rate": 0.94,
+    "hygiene_score": 0.87,
+    "security_score": 0.96,
+    "release_velocity": 2.3,
+    "llm_cost_daily": 52.30
+  },
+  "trends": {
+    "deployment_frequency": "up",
+    "lead_time_hours": "down",
+    "hygiene_score": "stable"
+  }
+}
+```
+
+### Get Time Series Data
+
+```http
+GET /api/v1/timeseries/build_success_rate?time_range=7d&granularity=hour
+```
+
+Response:
+```json
+{
+  "metric": "build_success_rate",
+  "time_range": "7d",
+  "granularity": "hour",
+  "data_points": [
+    {"timestamp": "2025-11-24T00:00:00Z", "value": 0.92},
+    {"timestamp": "2025-11-24T01:00:00Z", "value": 0.95},
+    ...
+  ]
+}
+```
+
+### Predict Release Date
+
+```http
+POST /api/v1/predict/release-date
+Content-Type: application/json
+
+{
+  "project": "NEXUS",
+  "target_tickets": 100,
+  "current_completed": 65
+}
+```
+
+Response:
+```json
+{
+  "prediction_type": "release_date",
+  "predicted_value": "2025-12-08T10:30:00Z",
+  "confidence": 0.85,
+  "confidence_interval": [
+    "2025-12-05T10:30:00Z",
+    "2025-12-12T10:30:00Z"
+  ],
+  "factors": [
+    "Historical velocity: 5.2 tickets/day",
+    "Remaining tickets: 35"
+  ]
+}
+```
+
+### Get Anomalies
+
+```http
+GET /api/v1/anomalies?time_range=24h&severity=high
+```
+
+Response:
+```json
+{
+  "anomalies": [
+    {
+      "id": "abc123",
+      "metric": "build_failure_rate",
+      "severity": "high",
+      "description": "Build failure rate spike - 3x normal",
+      "current_value": 0.25,
+      "expected_range": [0.05, 0.12],
+      "detected_at": "2025-11-30T08:15:00Z"
+    }
+  ]
+}
+```
+
+### Get Team Performance
+
+```http
+GET /api/v1/teams?time_range=30d
+```
+
+Response:
+```json
+{
+  "teams": [
+    {
+      "team_name": "Platform",
+      "members": 8,
+      "tickets_completed": 127,
+      "avg_cycle_time_hours": 42.5,
+      "quality_score": 0.94,
+      "velocity_trend": "up"
+    }
+  ]
+}
+```
+
+### Get AI Insights
+
+```http
+GET /api/v1/insights?time_range=7d
+```
+
+Response:
+```json
+{
+  "insights": [
+    {
+      "category": "Quality",
+      "title": "Excellent Build Stability",
+      "description": "Build success rate of 94% exceeds target",
+      "impact": "positive",
+      "recommendations": [
+        "Consider increasing deployment frequency"
+      ]
+    }
+  ]
+}
+```
+
+---
+
 ## RCA Agent API (Port 8006) 🆕
 
 Smart Root Cause Analysis for build failures with auto-trigger and Slack notifications.
@@ -664,6 +824,14 @@ nexus_rca_webhooks_total{job_name, status}
 nexus_rca_notifications_total{channel, status}
 nexus_llm_tokens_total{model, task_type}   # task_type=rca
 
+# Analytics (Port 8086)
+nexus_analytics_queries_total{query_type, time_range}
+nexus_release_velocity{project}
+nexus_quality_score{project}
+nexus_team_efficiency{team}
+nexus_prediction_accuracy{prediction_type}
+nexus_anomalies_detected_total{severity, metric}
+
 # Business
 nexus_release_decisions_total{decision}
 nexus_jira_tickets_processed_total{action, project_key}
@@ -716,6 +884,9 @@ Slack requests are verified using the signing secret.
 | Hygiene checks | 10 req/min |
 | RCA analysis | 20 req/min |
 | RCA webhooks | 100 req/min |
+| Analytics KPIs | 60 req/min |
+| Analytics predictions | 30 req/min |
+| Webhooks publish | 200 req/min |
 
 ---
 

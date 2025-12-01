@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650">
+  <defs>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.2"/>
+    </filter>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="900" height="650" fill="#0f172a"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="900" height="60" fill="#1e293b"/>
+  <text x="30" y="38" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#f1f5f9">📊 Nexus Analytics Dashboard</text>
+  <text x="680" y="38" font-family="Inter, Arial, sans-serif" font-size="14" fill="#94a3b8">Last updated: 2 min ago</text>
+  <circle cx="860" cy="30" r="8" fill="#22c55e"/>
+  
+  <!-- DORA Metrics Row -->
+  <text x="30" y="95" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" fill="#94a3b8">DORA METRICS</text>
+  
+  <!-- Deployment Frequency Card -->
+  <rect x="20" y="110" width="200" height="100" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <rect x="20" y="110" width="200" height="4" rx="2" fill="url(#blueGrad)"/>
+  <text x="35" y="140" font-family="Inter, Arial, sans-serif" font-size="12" fill="#94a3b8">Deployment Frequency</text>
+  <text x="35" y="175" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="bold" fill="#f1f5f9">8.5</text>
+  <text x="95" y="175" font-family="Inter, Arial, sans-serif" font-size="14" fill="#94a3b8">/week</text>
+  <text x="35" y="198" font-family="Inter, Arial, sans-serif" font-size="11" fill="#22c55e">↑ 12% vs last week</text>
+  
+  <!-- Lead Time Card -->
+  <rect x="235" y="110" width="200" height="100" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <rect x="235" y="110" width="200" height="4" rx="2" fill="url(#greenGrad)"/>
+  <text x="250" y="140" font-family="Inter, Arial, sans-serif" font-size="12" fill="#94a3b8">Lead Time for Changes</text>
+  <text x="250" y="175" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="bold" fill="#f1f5f9">18.5</text>
+  <text x="320" y="175" font-family="Inter, Arial, sans-serif" font-size="14" fill="#94a3b8">hours</text>
+  <text x="250" y="198" font-family="Inter, Arial, sans-serif" font-size="11" fill="#22c55e">↓ 8% improvement</text>
+  
+  <!-- MTTR Card -->
+  <rect x="450" y="110" width="200" height="100" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <rect x="450" y="110" width="200" height="4" rx="2" fill="url(#purpleGrad)"/>
+  <text x="465" y="140" font-family="Inter, Arial, sans-serif" font-size="12" fill="#94a3b8">Mean Time to Recovery</text>
+  <text x="465" y="175" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="bold" fill="#f1f5f9">1.2</text>
+  <text x="520" y="175" font-family="Inter, Arial, sans-serif" font-size="14" fill="#94a3b8">hours</text>
+  <text x="465" y="198" font-family="Inter, Arial, sans-serif" font-size="11" fill="#22c55e">↓ 15% faster</text>
+  
+  <!-- Change Failure Rate Card -->
+  <rect x="665" y="110" width="210" height="100" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <rect x="665" y="110" width="210" height="4" rx="2" fill="url(#orangeGrad)"/>
+  <text x="680" y="140" font-family="Inter, Arial, sans-serif" font-size="12" fill="#94a3b8">Change Failure Rate</text>
+  <text x="680" y="175" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="bold" fill="#f1f5f9">5%</text>
+  <text x="680" y="198" font-family="Inter, Arial, sans-serif" font-size="11" fill="#22c55e">Elite performer ⭐</text>
+  
+  <!-- Quality Scores Row -->
+  <text x="30" y="245" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" fill="#94a3b8">QUALITY SCORES</text>
+  
+  <!-- Build Success Card -->
+  <rect x="20" y="260" width="145" height="90" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <text x="35" y="290" font-family="Inter, Arial, sans-serif" font-size="11" fill="#94a3b8">Build Success</text>
+  <text x="35" y="325" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="bold" fill="#22c55e">94%</text>
+  
+  <!-- Hygiene Score Card -->
+  <rect x="175" y="260" width="145" height="90" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <text x="190" y="290" font-family="Inter, Arial, sans-serif" font-size="11" fill="#94a3b8">Hygiene Score</text>
+  <text x="190" y="325" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="bold" fill="#fbbf24">87%</text>
+  
+  <!-- Security Score Card -->
+  <rect x="330" y="260" width="145" height="90" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <text x="345" y="290" font-family="Inter, Arial, sans-serif" font-size="11" fill="#94a3b8">Security Score</text>
+  <text x="345" y="325" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="bold" fill="#22c55e">96%</text>
+  
+  <!-- Time Series Chart -->
+  <rect x="490" y="260" width="385" height="175" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <text x="510" y="290" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="#f1f5f9">Build Success Rate (7 days)</text>
+  
+  <!-- Chart axes -->
+  <line x1="530" y1="310" x2="530" y2="410" stroke="#334155" stroke-width="1"/>
+  <line x1="530" y1="410" x2="850" y2="410" stroke="#334155" stroke-width="1"/>
+  
+  <!-- Y-axis labels -->
+  <text x="515" y="320" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">100</text>
+  <text x="520" y="360" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">75</text>
+  <text x="520" y="400" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">50</text>
+  
+  <!-- X-axis labels -->
+  <text x="545" y="425" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">Mon</text>
+  <text x="595" y="425" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">Tue</text>
+  <text x="645" y="425" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">Wed</text>
+  <text x="695" y="425" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">Thu</text>
+  <text x="745" y="425" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">Fri</text>
+  <text x="795" y="425" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">Sat</text>
+  <text x="840" y="425" font-family="Inter, Arial, sans-serif" font-size="9" fill="#64748b">Sun</text>
+  
+  <!-- Line chart -->
+  <polyline points="555,340 605,335 655,365 705,330 755,325 805,340 845,320" 
+            fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="555" cy="340" r="4" fill="#3b82f6"/>
+  <circle cx="605" cy="335" r="4" fill="#3b82f6"/>
+  <circle cx="655" cy="365" r="4" fill="#3b82f6"/>
+  <circle cx="705" cy="330" r="4" fill="#3b82f6"/>
+  <circle cx="755" cy="325" r="4" fill="#3b82f6"/>
+  <circle cx="805" cy="340" r="4" fill="#3b82f6"/>
+  <circle cx="845" cy="320" r="4" fill="#3b82f6"/>
+  
+  <!-- Predictions Section -->
+  <text x="30" y="385" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" fill="#94a3b8">PREDICTIONS</text>
+  
+  <!-- Release Prediction Card -->
+  <rect x="20" y="400" width="225" height="110" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <text x="35" y="425" font-family="Inter, Arial, sans-serif" font-size="12" fill="#94a3b8">🎯 Predicted Release Date</text>
+  <text x="35" y="460" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="bold" fill="#f1f5f9">Dec 8, 2025</text>
+  <rect x="35" y="475" width="100" height="20" rx="4" fill="#22c55e20"/>
+  <text x="45" y="489" font-family="Inter, Arial, sans-serif" font-size="11" fill="#22c55e">85% confidence</text>
+  
+  <!-- Quality Prediction Card -->
+  <rect x="255" y="400" width="220" height="110" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <text x="270" y="425" font-family="Inter, Arial, sans-serif" font-size="12" fill="#94a3b8">📈 Predicted Quality Score</text>
+  <text x="270" y="460" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="bold" fill="#f1f5f9">89%</text>
+  <text x="315" y="460" font-family="Inter, Arial, sans-serif" font-size="14" fill="#94a3b8">in 7 days</text>
+  <rect x="270" y="475" width="95" height="20" rx="4" fill="#3b82f620"/>
+  <text x="280" y="489" font-family="Inter, Arial, sans-serif" font-size="11" fill="#3b82f6">82% confidence</text>
+  
+  <!-- Anomalies Section -->
+  <text x="30" y="545" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" fill="#94a3b8">ANOMALIES DETECTED</text>
+  
+  <!-- Anomaly Alert Card -->
+  <rect x="20" y="560" width="455" height="70" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <rect x="20" y="560" width="4" height="70" rx="2" fill="#f97316"/>
+  <text x="40" y="590" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600" fill="#f97316">⚠️ HIGH</text>
+  <text x="100" y="590" font-family="Inter, Arial, sans-serif" font-size="12" fill="#f1f5f9">Build failure rate spike detected - 3x normal rate</text>
+  <text x="40" y="612" font-family="Inter, Arial, sans-serif" font-size="11" fill="#64748b">Detected 2 hours ago • Current: 25% • Expected: 5-12%</text>
+  
+  <!-- Team Performance Section -->
+  <text x="505" y="470" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" fill="#94a3b8">TEAM PERFORMANCE</text>
+  
+  <!-- Team Cards -->
+  <rect x="490" y="485" width="190" height="75" rx="8" fill="#1e293b" filter="url(#cardShadow)"/>
+  <text x="505" y="510" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600" fill="#f1f5f9">Platform Team</text>
+  <text x="505" y="530" font-family="Inter, Arial, sans-serif" font-size="11" fill="#64748b">127 tickets • 42.5h cycle</text>
+  <text x="505" y="548" font-family="Inter, Arial, sans-serif" font-size="11" fill="#22c55e">94% quality ↑</text>
+  
+  <rect x="690" y="485" width="185" height="75" rx="8" fill="#1e293b" filter="url(#cardShadow)"/>
+  <text x="705" y="510" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600" fill="#f1f5f9">API Team</text>
+  <text x="705" y="530" font-family="Inter, Arial, sans-serif" font-size="11" fill="#64748b">98 tickets • 38.2h cycle</text>
+  <text x="705" y="548" font-family="Inter, Arial, sans-serif" font-size="11" fill="#22c55e">91% quality ↑</text>
+  
+  <!-- AI Insights Badge -->
+  <rect x="490" y="575" width="385" height="55" rx="12" fill="#1e293b" filter="url(#cardShadow)"/>
+  <rect x="490" y="575" width="4" height="55" rx="2" fill="#a855f7"/>
+  <text x="510" y="600" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600" fill="#a855f7">💡 AI INSIGHT</text>
+  <text x="510" y="618" font-family="Inter, Arial, sans-serif" font-size="11" fill="#94a3b8">Consider increasing deployment frequency - your build stability supports it</text>
+</svg>
+
