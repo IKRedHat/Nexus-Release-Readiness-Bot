@@ -8,10 +8,11 @@ A step-by-step guide for using the Nexus Admin Dashboard. This tutorial is desig
 2. [Understanding the Interface](#2-understanding-the-interface)
 3. [Checking System Health](#3-checking-system-health)
 4. [Switching Between Modes](#4-switching-between-modes)
-5. [Configuring Integrations](#5-configuring-integrations)
-6. [Monitoring Agents](#6-monitoring-agents)
-7. [Common Tasks](#7-common-tasks)
-8. [Troubleshooting](#8-troubleshooting)
+5. [Viewing Observability Metrics](#5-viewing-observability-metrics)
+6. [Configuration Tab - Going from Mock to Live](#6-configuration-tab---going-from-mock-to-live)
+7. [Monitoring Agents](#7-monitoring-agents)
+8. [Common Tasks](#8-common-tasks)
+9. [Troubleshooting](#9-troubleshooting)
 
 ---
 
@@ -43,11 +44,12 @@ You should see the Nexus Admin Dashboard with a dark theme and green accent colo
 
 ### Main Navigation
 
-The dashboard has a **sidebar** on the left with three main sections:
+The dashboard has a **sidebar** on the left with four main sections:
 
 | Icon | Section | Purpose |
 |------|---------|---------|
 | 📊 | **Dashboard** | System overview and quick actions |
+| 📈 | **Observability** | Metrics, charts, and performance data |
 | ❤️ | **Health Monitor** | Real-time agent status |
 | ⚙️ | **Configuration** | Manage settings and credentials |
 
@@ -136,7 +138,115 @@ Go to **Health Monitor** to ensure all agents are operating in the new mode.
 
 ---
 
-## 5. Configuring Integrations
+## 5. Viewing Observability Metrics
+
+The **Observability** page provides a consolidated view of all system metrics, integrating data from Prometheus and Grafana.
+
+![Observability Dashboard](assets/mockups/admin-observability.svg)
+
+### Step 1: Navigate to Observability
+
+Click **"📈 Observability"** in the sidebar (second item).
+
+### Step 2: Review Summary Cards
+
+At the top, you'll see four key metrics:
+
+| Card | What It Shows | Good Value |
+|------|---------------|------------|
+| **Total Requests** | All API requests processed | Depends on usage |
+| **Avg Latency** | Average response time | < 200ms |
+| **Error Rate** | Percentage of failed requests | < 1% |
+| **LLM Cost** | Total AI API costs | Budget-dependent |
+
+Each card shows:
+- Current value
+- Change percentage (green = good, red = bad)
+
+### Step 3: Select Time Range
+
+Use the time selector at the top right:
+
+| Option | Shows Data From |
+|--------|-----------------|
+| **1h** | Last 1 hour |
+| **6h** | Last 6 hours |
+| **24h** | Last 24 hours |
+| **7d** | Last 7 days |
+
+### Step 4: Analyze Traffic Chart
+
+The **Request Traffic** chart shows:
+- X-axis: Time
+- Y-axis: Number of requests
+- Area filled in green
+
+Look for:
+- 📈 **Spikes**: Sudden traffic increases
+- 📉 **Drops**: Possible issues
+- 📊 **Patterns**: Regular usage patterns
+
+### Step 5: Check Latency Trends
+
+The **Latency Over Time** chart shows response times:
+- Blue line = Average latency
+- Higher = Slower responses
+
+Watch for:
+- Sudden spikes (performance issues)
+- Gradual increases (capacity problems)
+
+### Step 6: Review Agent Performance Table
+
+The table shows per-agent metrics:
+
+| Column | Meaning |
+|--------|---------|
+| **Agent** | Service name |
+| **Status** | healthy/degraded/unhealthy |
+| **Requests** | Number of requests handled |
+| **Errors** | Failed requests |
+| **Latency** | Average response time |
+
+> 💡 **Tip**: Click on column headers to sort
+
+### Step 7: Analyze LLM Usage
+
+The **LLM Token Usage** pie chart shows:
+- Token distribution by model
+- Cost per model
+- Color-coded legend
+
+This helps you:
+- Understand AI costs
+- Optimize model selection
+- Track mock vs live usage
+
+### Step 8: Check Hygiene Score
+
+The circular **Hygiene Score** indicator shows:
+- Percentage of compliant Jira tickets
+- Color-coded: Green (>80%), Yellow (60-80%), Red (<60%)
+
+### Step 9: Access External Dashboards
+
+Click the quick links to open:
+- **Grafana**: Full detailed dashboards
+- **Prometheus**: Raw metrics queries
+- **Jaeger**: Distributed tracing
+
+### Step 10: View Embedded Grafana (Optional)
+
+If Grafana is configured for embedding:
+1. Scroll to the bottom
+2. View embedded Grafana panels
+3. Click "Open in Grafana" for full view
+
+> **Note**: To enable embedding, set `allow_embedding = true` in Grafana configuration.
+
+---
+
+## 6. Configuring Integrations
 
 ### Step 1: Go to Configuration
 
