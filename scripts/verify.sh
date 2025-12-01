@@ -30,13 +30,18 @@ declare -A SERVICES=(
     ["Reporting Agent"]="http://localhost:8083/health"
     ["Slack Agent"]="http://localhost:8084/health"
     ["Jira Hygiene Agent"]="http://localhost:8005/health"
+    ["RCA Agent"]="http://localhost:8006/health"
+    ["Analytics"]="http://localhost:8086/health"
+    ["Webhooks"]="http://localhost:8087/health"
+    ["Admin Dashboard"]="http://localhost:8088/health"
     ["Prometheus"]="http://localhost:9090/-/healthy"
     ["Grafana"]="http://localhost:3000/api/health"
+    ["Redis"]="http://localhost:6379"
 )
 
 all_healthy=true
 
-for service in "Orchestrator" "Jira Agent" "Git/CI Agent" "Reporting Agent" "Slack Agent" "Jira Hygiene Agent" "Prometheus" "Grafana"; do
+for service in "Orchestrator" "Jira Agent" "Git/CI Agent" "Reporting Agent" "Slack Agent" "Jira Hygiene Agent" "RCA Agent" "Analytics" "Webhooks" "Admin Dashboard" "Prometheus" "Grafana"; do
     url="${SERVICES[$service]}"
     printf "  %-20s " "$service"
     
