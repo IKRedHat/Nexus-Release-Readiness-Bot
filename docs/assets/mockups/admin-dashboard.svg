@@ -47,125 +47,132 @@
   <rect x="20" y="300" width="180" height="44" rx="8" fill="transparent"/>
   <text x="55" y="328" font-family="Inter, Arial" font-size="14" fill="#6b7280">⚙️ Configuration</text>
   
+  <!-- Architecture badge -->
+  <rect x="20" y="620" width="180" height="60" rx="8" fill="#111827"/>
+  <text x="40" y="645" font-family="Inter, Arial" font-size="10" fill="#6b7280">Powered by</text>
+  <text x="40" y="662" font-family="Inter, Arial" font-size="12" font-weight="bold" fill="#00ff88">LangGraph + MCP</text>
+  
   <!-- Version footer -->
-  <text x="30" y="680" font-family="Inter, Arial" font-size="11" fill="#4b5563">🛡️ Version 2.4.0</text>
+  <text x="30" y="680" font-family="Inter, Arial" font-size="11" fill="#4b5563">🛡️ Version 3.0.0</text>
   
   <!-- Main content area -->
   <!-- Header -->
   <text x="250" y="50" font-family="Inter, Arial" font-size="24" font-weight="bold" fill="#f1f5f9">⚡ System Dashboard</text>
-  <text x="250" y="72" font-family="Inter, Arial" font-size="13" fill="#6b7280">Monitor and control your Nexus instance</text>
+  <text x="250" y="72" font-family="Inter, Arial" font-size="13" fill="#6b7280">Monitor and control your Nexus instance • LangGraph + MCP Architecture</text>
   
   <!-- Mode Switch -->
   <rect x="820" y="30" width="150" height="50" rx="8" fill="#111827" filter="url(#cardShadow)"/>
-  <text x="835" y="48" font-family="Inter, Arial" font-size="11" fill="#fbbf24">Mock</text>
-  <rect x="870" y="42" width="60" height="28" rx="14" fill="linear-gradient(90deg, #f59e0b, #d97706)"/>
-  <circle cx="885" cy="56" r="10" fill="white"/>
-  <text x="895" y="61" font-family="Arial" font-size="12" fill="#f59e0b">🧪</text>
-  <text x="940" y="48" font-family="Inter, Arial" font-size="11" fill="#6b7280">Live</text>
+  <text x="835" y="48" font-family="Inter, Arial" font-size="11" fill="#6b7280">Mock</text>
+  <rect x="870" y="42" width="60" height="28" rx="14" fill="linear-gradient(90deg, #16a34a, #15803d)"/>
+  <circle cx="915" cy="56" r="10" fill="white"/>
+  <text x="940" y="48" font-family="Inter, Arial" font-size="11" fill="#22c55e">Live</text>
+  <text x="940" y="61" font-family="Inter, Arial" font-size="8" fill="#22c55e">●</text>
   
   <!-- Status Cards Row -->
   <!-- Card 1: System Mode -->
-  <rect x="250" y="100" width="175" height="100" rx="10" fill="#111827" stroke="rgba(251,191,36,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <rect x="250" y="100" width="175" height="100" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
   <text x="270" y="128" font-family="Inter, Arial" font-size="12" fill="#9ca3af">System Mode</text>
-  <text x="270" y="165" font-family="Inter, Arial" font-size="28" font-weight="bold" fill="#fbbf24">MOCK</text>
-  <text x="270" y="185" font-family="Inter, Arial" font-size="11" fill="#6b7280">Development</text>
-  <rect x="380" y="115" width="35" height="35" rx="8" fill="rgba(251,191,36,0.1)"/>
+  <text x="270" y="165" font-family="Inter, Arial" font-size="28" font-weight="bold" fill="#22c55e">LIVE</text>
+  <text x="270" y="185" font-family="Inter, Arial" font-size="11" fill="#6b7280">Production</text>
+  <rect x="380" y="115" width="35" height="35" rx="8" fill="rgba(34,197,94,0.1)"/>
   <text x="390" y="140" font-family="Arial" font-size="18">⚡</text>
   
-  <!-- Card 2: Agent Health -->
-  <rect x="440" y="100" width="175" height="100" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="460" y="128" font-family="Inter, Arial" font-size="12" fill="#9ca3af">Agent Health</text>
-  <text x="460" y="165" font-family="Inter, Arial" font-size="28" font-weight="bold" fill="#22c55e">8/9</text>
-  <text x="460" y="185" font-family="Inter, Arial" font-size="11" fill="#6b7280">Healthy</text>
-  <rect x="570" y="115" width="35" height="35" rx="8" fill="rgba(34,197,94,0.1)"/>
-  <text x="580" y="140" font-family="Arial" font-size="18">❤️</text>
+  <!-- Card 2: LLM Provider -->
+  <rect x="440" y="100" width="175" height="100" rx="10" fill="#111827" stroke="rgba(59,130,246,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <text x="460" y="128" font-family="Inter, Arial" font-size="12" fill="#9ca3af">LLM Provider</text>
+  <text x="460" y="165" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#3b82f6">OpenAI</text>
+  <text x="460" y="185" font-family="Inter, Arial" font-size="11" fill="#6b7280">gpt-4o</text>
+  <rect x="570" y="115" width="35" height="35" rx="8" fill="rgba(59,130,246,0.1)"/>
+  <text x="580" y="140" font-family="Arial" font-size="18">🤖</text>
   
-  <!-- Card 3: Redis -->
-  <rect x="630" y="100" width="175" height="100" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="650" y="128" font-family="Inter, Arial" font-size="12" fill="#9ca3af">Redis Connection</text>
-  <text x="650" y="165" font-family="Inter, Arial" font-size="22" font-weight="bold" fill="#22c55e">Connected</text>
-  <text x="650" y="185" font-family="Inter, Arial" font-size="11" fill="#6b7280">Config Store</text>
-  <rect x="760" y="115" width="35" height="35" rx="8" fill="rgba(34,197,94,0.1)"/>
-  <text x="770" y="140" font-family="Arial" font-size="18">🗄️</text>
+  <!-- Card 3: MCP Tools -->
+  <rect x="630" y="100" width="175" height="100" rx="10" fill="#111827" stroke="rgba(139,92,246,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <text x="650" y="128" font-family="Inter, Arial" font-size="12" fill="#9ca3af">MCP Tools</text>
+  <text x="650" y="165" font-family="Inter, Arial" font-size="28" font-weight="bold" fill="#8b5cf6">25</text>
+  <text x="650" y="185" font-family="Inter, Arial" font-size="11" fill="#6b7280">Available</text>
+  <rect x="760" y="115" width="35" height="35" rx="8" fill="rgba(139,92,246,0.1)"/>
+  <text x="770" y="140" font-family="Arial" font-size="18">🔌</text>
   
-  <!-- Card 4: Uptime -->
-  <rect x="820" y="100" width="155" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="840" y="128" font-family="Inter, Arial" font-size="12" fill="#9ca3af">Uptime</text>
-  <text x="840" y="165" font-family="Inter, Arial" font-size="28" font-weight="bold" fill="#f1f5f9">4h 32m</text>
-  <text x="840" y="185" font-family="Inter, Arial" font-size="11" fill="#6b7280">Since last restart</text>
-  <rect x="930" y="115" width="35" height="35" rx="8" fill="rgba(107,114,128,0.1)"/>
-  <text x="940" y="140" font-family="Arial" font-size="18">⏱️</text>
+  <!-- Card 4: Agent Health -->
+  <rect x="820" y="100" width="155" height="100" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <text x="840" y="128" font-family="Inter, Arial" font-size="12" fill="#9ca3af">Agent Health</text>
+  <text x="840" y="165" font-family="Inter, Arial" font-size="28" font-weight="bold" fill="#22c55e">9/9</text>
+  <text x="840" y="185" font-family="Inter, Arial" font-size="11" fill="#6b7280">Healthy</text>
+  <rect x="930" y="115" width="35" height="35" rx="8" fill="rgba(34,197,94,0.1)"/>
+  <text x="940" y="140" font-family="Arial" font-size="18">❤️</text>
   
-  <!-- Agent Status Section -->
-  <text x="250" y="240" font-family="Inter, Arial" font-size="16" font-weight="600" fill="#f1f5f9">🖥️ Agent Status</text>
+  <!-- MCP Agent Status Section -->
+  <text x="250" y="240" font-family="Inter, Arial" font-size="16" font-weight="600" fill="#f1f5f9">🔌 MCP Server Status</text>
   
   <!-- Agent cards grid -->
   <!-- Row 1 -->
   <rect x="250" y="260" width="230" height="90" rx="8" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
   <circle cx="275" cy="290" r="5" fill="#22c55e"/>
   <text x="290" y="295" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">Orchestrator</text>
-  <text x="290" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#6b7280">orchestrator:8080</text>
+  <text x="290" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#6b7280">LangGraph • :8080</text>
   <text x="290" y="338" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 12ms</text>
   
   <rect x="495" y="260" width="230" height="90" rx="8" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
   <circle cx="520" cy="290" r="5" fill="#22c55e"/>
   <text x="535" y="295" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">Jira Agent</text>
-  <text x="535" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#6b7280">jira-agent:8081</text>
-  <text x="535" y="338" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 8ms</text>
+  <text x="535" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b5cf6">MCP/SSE • :8001</text>
+  <text x="535" y="338" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 5 tools</text>
   
   <rect x="740" y="260" width="230" height="90" rx="8" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
   <circle cx="765" cy="290" r="5" fill="#22c55e"/>
   <text x="780" y="295" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">Git/CI Agent</text>
-  <text x="780" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#6b7280">git-agent:8082</text>
-  <text x="780" y="338" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 15ms</text>
+  <text x="780" y="312" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b5cf6">MCP/SSE • :8002</text>
+  <text x="780" y="338" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 6 tools</text>
   
   <!-- Row 2 -->
   <rect x="250" y="365" width="230" height="90" rx="8" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
   <circle cx="275" cy="395" r="5" fill="#22c55e"/>
-  <text x="290" y="400" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">Slack Agent</text>
-  <text x="290" y="417" font-family="JetBrains Mono, monospace" font-size="10" fill="#6b7280">slack-agent:8084</text>
-  <text x="290" y="443" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 10ms</text>
+  <text x="290" y="400" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">Hygiene Agent</text>
+  <text x="290" y="417" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b5cf6">MCP/SSE • :8005</text>
+  <text x="290" y="443" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 5 tools</text>
   
   <rect x="495" y="365" width="230" height="90" rx="8" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
   <circle cx="520" cy="395" r="5" fill="#22c55e"/>
   <text x="535" y="400" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">RCA Agent</text>
-  <text x="535" y="417" font-family="JetBrains Mono, monospace" font-size="10" fill="#6b7280">rca-agent:8006</text>
-  <text x="535" y="443" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 22ms</text>
+  <text x="535" y="417" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b5cf6">MCP/SSE • :8006</text>
+  <text x="535" y="443" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 4 tools</text>
   
-  <rect x="740" y="365" width="230" height="90" rx="8" fill="#111827" stroke="rgba(239,68,68,0.5)" stroke-width="1" filter="url(#cardShadow)"/>
-  <circle cx="765" cy="395" r="5" fill="#ef4444"/>
-  <text x="780" y="400" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">Analytics</text>
-  <text x="780" y="417" font-family="JetBrains Mono, monospace" font-size="10" fill="#6b7280">analytics:8086</text>
-  <text x="780" y="443" font-family="Inter, Arial" font-size="11" fill="#ef4444">✗ Unhealthy • Timeout</text>
+  <rect x="740" y="365" width="230" height="90" rx="8" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
+  <circle cx="765" cy="395" r="5" fill="#22c55e"/>
+  <text x="780" y="400" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">Reporting Agent</text>
+  <text x="780" y="417" font-family="JetBrains Mono, monospace" font-size="10" fill="#8b5cf6">MCP/SSE • :8003</text>
+  <text x="780" y="443" font-family="Inter, Arial" font-size="11" fill="#22c55e">✓ Healthy • 3 tools</text>
   
   <!-- Bottom panels -->
-  <!-- System Overview -->
+  <!-- LLM Configuration Overview -->
   <rect x="250" y="480" width="350" height="200" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="270" y="510" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">System Overview</text>
+  <text x="270" y="510" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">🤖 LLM Configuration</text>
   
-  <text x="270" y="545" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Configuration Keys</text>
-  <text x="550" y="545" font-family="JetBrains Mono, monospace" font-size="13" fill="#f1f5f9" text-anchor="end">32</text>
+  <text x="270" y="545" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Provider</text>
+  <text x="550" y="545" font-family="JetBrains Mono, monospace" font-size="13" fill="#3b82f6" text-anchor="end">OpenAI</text>
   
-  <text x="270" y="575" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Total Agents</text>
-  <text x="550" y="575" font-family="JetBrains Mono, monospace" font-size="13" fill="#f1f5f9" text-anchor="end">9</text>
+  <text x="270" y="575" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Model</text>
+  <text x="550" y="575" font-family="JetBrains Mono, monospace" font-size="13" fill="#f1f5f9" text-anchor="end">gpt-4o</text>
   
-  <text x="270" y="605" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Healthy Agents</text>
-  <text x="550" y="605" font-family="JetBrains Mono, monospace" font-size="13" fill="#22c55e" text-anchor="end">8</text>
+  <text x="270" y="605" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Temperature</text>
+  <text x="550" y="605" font-family="JetBrains Mono, monospace" font-size="13" fill="#f1f5f9" text-anchor="end">0.7</text>
   
-  <text x="270" y="635" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Last Health Check</text>
-  <text x="550" y="635" font-family="Inter, Arial" font-size="12" fill="#f1f5f9" text-anchor="end">10:42:15 AM</text>
+  <text x="270" y="635" font-family="Inter, Arial" font-size="13" fill="#9ca3af">Status</text>
+  <text x="550" y="635" font-family="Inter, Arial" font-size="12" fill="#22c55e" text-anchor="end">✓ Connected</text>
   
   <!-- Quick Actions -->
   <rect x="620" y="480" width="350" height="200" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="640" y="510" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">Quick Actions</text>
+  <text x="640" y="510" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#f1f5f9">⚡ Quick Actions</text>
   
   <rect x="640" y="530" width="310" height="40" rx="6" fill="#374151"/>
-  <text x="795" y="556" font-family="Inter, Arial" font-size="13" fill="#f1f5f9" text-anchor="middle">🔄 Refresh Health Status</text>
+  <text x="795" y="556" font-family="Inter, Arial" font-size="13" fill="#f1f5f9" text-anchor="middle">🔄 Refresh All Health Status</text>
   
-  <rect x="640" y="585" width="310" height="40" rx="6" fill="#16a34a"/>
-  <text x="795" y="611" font-family="Inter, Arial" font-size="13" fill="#f1f5f9" text-anchor="middle">⚡ Switch to Live Mode</text>
+  <rect x="640" y="585" width="150" height="40" rx="6" fill="#3b82f6"/>
+  <text x="715" y="611" font-family="Inter, Arial" font-size="13" fill="#f1f5f9" text-anchor="middle">🤖 Configure LLM</text>
+  
+  <rect x="800" y="585" width="150" height="40" rx="6" fill="#8b5cf6"/>
+  <text x="875" y="611" font-family="Inter, Arial" font-size="13" fill="#f1f5f9" text-anchor="middle">🔌 MCP Reconnect</text>
   
   <rect x="640" y="640" width="310" height="30" rx="6" fill="#1e40af"/>
   <text x="795" y="660" font-family="Inter, Arial" font-size="12" fill="#f1f5f9" text-anchor="middle">📋 Export Configuration</text>
 </svg>
-

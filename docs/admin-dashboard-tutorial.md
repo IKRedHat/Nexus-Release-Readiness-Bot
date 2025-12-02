@@ -8,13 +8,14 @@ A step-by-step guide for using the Nexus Admin Dashboard. This tutorial is desig
 2. [Understanding the Interface](#2-understanding-the-interface)
 3. [Checking System Health](#3-checking-system-health)
 4. [Switching Between Modes](#4-switching-between-modes)
-5. [Viewing Observability Metrics](#5-viewing-observability-metrics)
-6. [Managing Releases](#6-managing-releases)
-7. [Configuring Integrations](#7-configuring-integrations)
-8. [Configuration Tab - Going from Mock to Live](#8-configuration-tab---going-from-mock-to-live)
-9. [Monitoring Agents](#9-monitoring-agents)
-10. [Common Tasks](#10-common-tasks)
-11. [Troubleshooting](#11-troubleshooting)
+5. [Configuring LLM Provider](#5-configuring-llm-provider)
+6. [Viewing Observability Metrics](#6-viewing-observability-metrics)
+7. [Managing Releases](#7-managing-releases)
+8. [Configuring Integrations](#8-configuring-integrations)
+9. [Configuration Tab - Going from Mock to Live](#9-configuration-tab---going-from-mock-to-live)
+10. [Monitoring Agents & MCP Servers](#10-monitoring-agents--mcp-servers)
+11. [Common Tasks](#11-common-tasks)
+12. [Troubleshooting](#12-troubleshooting)
 
 ---
 
@@ -53,8 +54,8 @@ The dashboard has a **sidebar** on the left with five main sections:
 | 📊 | **Dashboard** | System overview and quick actions |
 | 📅 | **Releases** | Manage releases and target dates |
 | 📈 | **Observability** | Metrics, charts, and performance data |
-| ❤️ | **Health Monitor** | Real-time agent status |
-| ⚙️ | **Configuration** | Manage settings and credentials |
+| ❤️ | **Health Monitor** | Real-time agent and MCP server status |
+| ⚙️ | **Configuration** | Manage settings, credentials, and LLM providers |
 
 ### Dashboard Overview
 
@@ -62,8 +63,9 @@ The main dashboard shows:
 
 1. **Mode Switch** (top right) - Toggle between Mock and Live modes
 2. **Status Cards** - System mode, agent health, Redis connection, uptime
-3. **Agent Grid** - Health status of each agent
+3. **Agent Grid** - Health status of each agent and MCP server
 4. **Quick Actions** - Common tasks like refresh and mode switching
+5. **Architecture Badge** - Shows "LangGraph + MCP" indicating the v3.0 architecture
 
 ---
 
@@ -78,6 +80,7 @@ Click on **"Health Monitor"** in the sidebar.
 At the top, you'll see a banner showing:
 - **System Status**: Healthy (green), Degraded (yellow), or Unhealthy (red)
 - **Active Agents**: How many agents are running (e.g., "7 of 9 operational")
+- **MCP Servers**: Connection status for all MCP tool servers
 - **Current Mode**: Mock or Live
 
 ### Step 3: Review Individual Agents
@@ -87,6 +90,7 @@ Each agent is shown in a card with:
 - **Status**: Green dot = healthy, Red dot = unhealthy
 - **Response Time**: How fast the agent responds (in milliseconds)
 - **URL**: The agent's internal address
+- **MCP Status**: SSE connection status (for v3.0 agents)
 
 ### Step 4: Click for Details
 
@@ -94,6 +98,7 @@ Click on any agent card to see more information:
 - Detailed status
 - Last check time
 - Error messages (if any)
+- Available MCP tools (for v3.0 agents)
 
 ### Step 5: Enable Auto-Refresh
 
@@ -137,11 +142,144 @@ You'll see:
 
 Go to **Health Monitor** to ensure all agents are operating in the new mode.
 
-> ⚠️ **Warning**: Switching to Live mode will make real API calls to Jira, GitHub, etc. Make sure your credentials are configured first!
+> ⚠️ **Warning**: Switching to Live mode will make real API calls to Jira, GitHub, LLM providers, etc. Make sure your credentials are configured first!
 
 ---
 
-## 5. Viewing Observability Metrics
+## 5. Configuring LLM Provider
+
+The LLM Configuration page allows you to select and configure your AI model provider. Nexus 3.0 supports 7 different providers through the LLM Factory.
+
+![LLM Configuration](assets/mockups/admin-llm-config.svg)
+
+### Step 1: Navigate to LLM Configuration
+
+1. Click **"⚙️ Configuration"** in the sidebar
+2. Click the **"🤖 LLM"** tab at the top
+
+### Step 2: Select Your Provider
+
+The provider grid shows all available options:
+
+| Provider | Best For | Requirements |
+|----------|----------|--------------|
+| **OpenAI** | General use, high quality | API Key |
+| **Azure OpenAI** | Enterprise compliance | API Key, Endpoint, Deployment Name |
+| **Google Gemini** | Large context, cost-effective | API Key |
+| **Anthropic** | Code analysis, detailed responses | API Key |
+| **Ollama** | Self-hosted, privacy-focused | Local server URL |
+| **Groq** | Ultra-fast inference | API Key |
+| **vLLM** | Self-hosted at scale | Server URL |
+| **Mock** | Testing and development | None |
+
+To select a provider:
+1. Click on the provider card
+2. The card will highlight with a colored border
+3. The configuration form below will update with provider-specific fields
+
+### Step 3: Configure Provider Settings
+
+#### For OpenAI:
+
+| Field | What to Enter | Example |
+|-------|---------------|---------|
+| **API Key** | Your OpenAI API key | `sk-proj-abc123...` |
+| **Model** | Select from dropdown | `gpt-4o`, `gpt-4-turbo` |
+| **Temperature** | Generation randomness (0.0-2.0) | `0.7` |
+| **Max Tokens** | Maximum output length | `4096` |
+
+#### For Google Gemini:
+
+| Field | What to Enter | Example |
+|-------|---------------|---------|
+| **API Key** | Your Google AI API key | `AIzaSy...` |
+| **Model** | Select from dropdown | `gemini-2.0-flash`, `gemini-1.5-pro` |
+| **Temperature** | Generation randomness | `0.7` |
+| **Max Tokens** | Maximum output length | `8192` |
+
+#### For Anthropic:
+
+| Field | What to Enter | Example |
+|-------|---------------|---------|
+| **API Key** | Your Anthropic API key | `sk-ant-api03-...` |
+| **Model** | Select from dropdown | `claude-3-5-sonnet-20241022` |
+| **Temperature** | Generation randomness | `0.7` |
+| **Max Tokens** | Maximum output length | `4096` |
+
+#### For Azure OpenAI:
+
+| Field | What to Enter | Example |
+|-------|---------------|---------|
+| **API Key** | Your Azure OpenAI API key | `abc123...` |
+| **Endpoint** | Your Azure endpoint | `https://myorg.openai.azure.com` |
+| **Deployment Name** | Your deployment name | `gpt-4o-deployment` |
+| **API Version** | API version | `2024-02-15-preview` |
+| **Temperature** | Generation randomness | `0.7` |
+| **Max Tokens** | Maximum output length | `4096` |
+
+#### For Ollama (Self-hosted):
+
+| Field | What to Enter | Example |
+|-------|---------------|---------|
+| **Base URL** | Your Ollama server URL | `http://localhost:11434` |
+| **Model** | Model name | `llama3`, `mistral`, `codellama` |
+| **Temperature** | Generation randomness | `0.7` |
+
+#### For Groq:
+
+| Field | What to Enter | Example |
+|-------|---------------|---------|
+| **API Key** | Your Groq API key | `gsk_...` |
+| **Model** | Select from dropdown | `llama-3.1-70b-versatile` |
+| **Temperature** | Generation randomness | `0.7` |
+| **Max Tokens** | Maximum output length | `4096` |
+
+#### For vLLM (Self-hosted):
+
+| Field | What to Enter | Example |
+|-------|---------------|---------|
+| **API Base** | Your vLLM server URL | `http://vllm-server:8000/v1` |
+| **Model** | Model name | `meta-llama/Llama-3.1-8B-Instruct` |
+| **Temperature** | Generation randomness | `0.7` |
+| **Max Tokens** | Maximum output length | `4096` |
+
+### Step 4: Test the Connection
+
+Before saving, always test your configuration:
+
+1. Click the **"🔌 Test Connection"** button
+2. Wait for the test to complete (1-3 seconds)
+3. Check the result:
+   - ✅ **Green**: "Connected • 145ms latency" - Configuration is correct
+   - ❌ **Red**: "Connection failed: Invalid API key" - Fix the error
+
+### Step 5: Save the Configuration
+
+Once the test passes:
+1. Click the **"💾 Save"** button next to each field
+2. Wait for the success message
+3. The configuration is now stored in Redis
+
+### Step 6: Verify in Configuration Table
+
+Scroll down to the **"All Configuration Values"** table to verify:
+- `nexus:config:llm_provider` shows your selected provider
+- `nexus:config:llm_model` shows your selected model
+- Source column shows "redis" (green badge)
+
+### Switching Providers
+
+You can switch providers at any time:
+1. Select a different provider from the grid
+2. Enter the required credentials
+3. Test the connection
+4. Save the configuration
+
+The change takes effect immediately - no restart required!
+
+---
+
+## 6. Viewing Observability Metrics
 
 The **Observability** page provides a consolidated view of all system metrics, integrating data from Prometheus and Grafana.
 
@@ -149,7 +287,7 @@ The **Observability** page provides a consolidated view of all system metrics, i
 
 ### Step 1: Navigate to Observability
 
-Click **"📈 Observability"** in the sidebar (second item).
+Click **"📈 Observability"** in the sidebar (third item).
 
 ### Step 2: Review Summary Cards
 
@@ -210,19 +348,20 @@ The table shows per-agent metrics:
 | **Requests** | Number of requests handled |
 | **Errors** | Failed requests |
 | **Latency** | Average response time |
+| **MCP Tools** | Available tools (v3.0) |
 
 > 💡 **Tip**: Click on column headers to sort
 
 ### Step 7: Analyze LLM Usage
 
-The **LLM Token Usage** pie chart shows:
-- Token distribution by model
-- Cost per model
-- Color-coded legend
+The **LLM Token Usage** section shows:
+- Token distribution by provider/model
+- Cost per provider
+- Color-coded by provider
 
 This helps you:
-- Understand AI costs
-- Optimize model selection
+- Understand AI costs per provider
+- Compare provider efficiency
 - Track mock vs live usage
 
 ### Step 8: Check Hygiene Score
@@ -249,7 +388,7 @@ If Grafana is configured for embedding:
 
 ---
 
-## 6. Managing Releases
+## 7. Managing Releases
 
 The **Releases** page allows you to track release versions, target dates, and readiness metrics. You can create releases manually or import from external sources like Smartsheet, CSV, or webhooks.
 
@@ -390,7 +529,7 @@ Metrics include:
 
 ---
 
-## 7. Configuring Integrations
+## 8. Configuring Integrations
 
 ### Step 1: Go to Configuration
 
@@ -402,9 +541,10 @@ At the top, you'll see tabs for different integrations:
 - **Jira** - Issue tracking
 - **GitHub** - Code repository
 - **Jenkins** - CI/CD pipelines
-- **LLM** - AI/Language models
+- **LLM** - AI/Language models (see Section 5)
 - **Slack** - Messaging
 - **Confluence** - Documentation
+- **MCP** - Model Context Protocol servers
 
 Click on the tab you want to configure.
 
@@ -429,14 +569,14 @@ Each integration has specific fields:
 | Organization | Your org name | `mycompany` |
 | Default Repository | Main repo | `main-app` |
 
-#### LLM Configuration
+#### MCP Configuration (v3.0)
 
 | Field | What to Enter | Example |
 |-------|---------------|---------|
-| Provider | Select from dropdown | `google` |
-| Model | Model name | `gemini-1.5-pro` |
-| Gemini API Key | Google AI key | `AIzaxxxxxxx` |
-| OpenAI API Key | OpenAI key | `sk-xxxxxxx` |
+| Jira Agent URL | Jira MCP server | `http://jira-agent:8001/sse` |
+| Git/CI Agent URL | Git MCP server | `http://git-agent:8002/sse` |
+| Reporting Agent URL | Reports MCP server | `http://reporting-agent:8003/sse` |
+| Auto-Reconnect | Enable auto-reconnect | `true` |
 
 ### Step 4: Save Each Field
 
@@ -454,7 +594,7 @@ Scroll down to see the **"All Configuration Values"** table showing:
 
 ---
 
-## 8. Configuration Tab - Going from Mock to Live
+## 9. Configuration Tab - Going from Mock to Live
 
 The Configuration tab is where you set up all your integrations to move from Mock mode to Live mode. This is the most important section for production deployment.
 
@@ -475,7 +615,17 @@ Configuration values come from three sources (in priority order):
 1. Click **"Configuration"** (⚙️) in the sidebar
 2. You'll see tabs for each integration category
 
-### Step 2: Configure Jira
+### Step 2: Configure LLM Provider (CRITICAL)
+
+1. Click the **"LLM"** tab
+2. Select your preferred provider (OpenAI, Gemini, Anthropic, etc.)
+3. Enter API credentials
+4. Click **"Test Connection"** to verify
+5. Save the configuration
+
+See [Section 5: Configuring LLM Provider](#5-configuring-llm-provider) for detailed instructions.
+
+### Step 3: Configure Jira
 
 1. Click the **"Jira"** tab
 2. Fill in the following fields:
@@ -490,7 +640,7 @@ Configuration values come from three sources (in priority order):
 3. Click **"Save"** after each field
 4. Wait for the green success message
 
-### Step 3: Configure GitHub
+### Step 4: Configure GitHub
 
 1. Click the **"GitHub"** tab
 2. Fill in:
@@ -506,7 +656,7 @@ Configuration values come from three sources (in priority order):
 - `read:org` - Read organization data
 - `workflow` - Trigger GitHub Actions
 
-### Step 4: Configure Jenkins
+### Step 5: Configure Jenkins
 
 1. Click the **"Jenkins"** tab
 2. Fill in:
@@ -516,33 +666,6 @@ Configuration values come from three sources (in priority order):
 | **Jenkins URL** | `http://jenkins.company.com:8080` | Your Jenkins server URL |
 | **Username** | Jenkins username | Usually your login |
 | **API Token** | Jenkins API token | Jenkins → User → Configure → API Token |
-
-### Step 5: Configure LLM (AI Provider)
-
-1. Click the **"LLM"** tab
-2. Choose your provider and configure:
-
-**For Google Gemini (Recommended):**
-
-| Field | Value |
-|-------|-------|
-| **Provider** | `google` |
-| **Model** | `gemini-1.5-pro` (or `gemini-2.0-flash`) |
-| **Gemini API Key** | Get from [Google AI Studio](https://aistudio.google.com/app/apikey) |
-
-**For OpenAI:**
-
-| Field | Value |
-|-------|-------|
-| **Provider** | `openai` |
-| **Model** | `gpt-4o` or `gpt-4-turbo` |
-| **OpenAI API Key** | Get from [OpenAI Platform](https://platform.openai.com/api-keys) |
-
-**For Mock Mode (Testing):**
-
-| Field | Value |
-|-------|-------|
-| **Provider** | `mock` |
 
 ### Step 6: Configure Slack (Optional)
 
@@ -594,21 +717,22 @@ Once all configurations are saved:
 | Value not saving | Check Redis connection in health check |
 | Source shows "env" not "redis" | Click Save again to override |
 | Agent unhealthy after config | Verify credentials are correct, check agent logs |
+| LLM test fails | Verify API key and provider selection |
 
 ### Quick Reference: Required vs Optional
 
 | Integration | Required for Live? | Notes |
 |-------------|-------------------|-------|
+| LLM | ✅ Required | Choose a provider (OpenAI, Gemini, etc.) |
 | Jira | ✅ Required | Core functionality |
 | GitHub | ✅ Required | For PR and repo analysis |
 | Jenkins | ⚠️ Recommended | For build status |
-| LLM | ✅ Required | For AI reasoning |
 | Slack | ⚠️ Recommended | For notifications |
 | Confluence | ⚪ Optional | For report publishing |
 
 ---
 
-## 9. Monitoring Agents
+## 10. Monitoring Agents & MCP Servers
 
 ### Step 1: Go to Health Monitor
 
@@ -628,8 +752,21 @@ Each card shows:
 - **Status Dot**: Green (healthy) or Red (unhealthy)
 - **Connection**: "Connected" or "Disconnected"
 - **Response Time**: Speed in milliseconds
+- **MCP Tools**: Number of tools available (v3.0 agents)
 
-### Step 4: Investigate Issues
+### Step 4: Review MCP Server Status
+
+In v3.0, agents expose tools via MCP (Model Context Protocol):
+
+| Agent | MCP Port | Tools |
+|-------|----------|-------|
+| Jira Agent | 8001 | get_ticket, search_tickets, update_ticket |
+| Git/CI Agent | 8002 | get_pr_status, trigger_build, get_logs |
+| Reporting Agent | 8003 | generate_report, publish_confluence |
+| Hygiene Agent | 8005 | check_hygiene, get_violations |
+| RCA Agent | 8006 | analyze_failure, get_build_logs |
+
+### Step 5: Investigate Issues
 
 If an agent shows red:
 1. Click on the card
@@ -637,13 +774,20 @@ If an agent shows red:
 3. Note the error message
 4. Check the agent logs for more information
 
-### Step 5: Manual Refresh
+### Step 6: Manual Refresh
 
 Click **"Refresh Now"** to immediately check all agents.
 
+### Step 7: Reconnect MCP Servers
+
+If an MCP server disconnects:
+1. Go to **Configuration** → **MCP** tab
+2. Click **"Reconnect All"** button
+3. Wait for SSE connections to re-establish
+
 ---
 
-## 10. Common Tasks
+## 11. Common Tasks
 
 ### Task 1: Preparing for a Demo
 
@@ -651,32 +795,43 @@ Click **"Refresh Now"** to immediately check all agents.
 2. Ensure the mode is set to **Mock**
 3. Check **Health Monitor** - all agents should be green
 4. Go to **Configuration** → **LLM**
-5. Set Provider to `mock`
+5. Select **Mock** provider
 6. Save the setting
 
 ### Task 2: Going Live for Production
 
-1. Go to **Configuration**
-2. Configure all integrations:
+1. Go to **Configuration** → **LLM**
+2. Select your LLM provider (OpenAI, Gemini, Anthropic, etc.)
+3. Enter API key and test connection
+4. Save the configuration
+5. Configure all other integrations:
    - Jira URL and credentials
    - GitHub token
    - Jenkins credentials
-   - LLM API keys (Gemini or OpenAI)
-   - Slack tokens
-3. Go to **Dashboard**
-4. Click the mode switch to **Live**
-5. Monitor **Health Monitor** for any issues
+   - Slack tokens (optional)
+6. Go to **Dashboard**
+7. Click the mode switch to **Live**
+8. Monitor **Health Monitor** for any issues
 
-### Task 3: Updating API Credentials
+### Task 3: Changing LLM Provider
+
+1. Go to **Configuration** → **LLM**
+2. Click on a different provider card
+3. Enter the required credentials
+4. Click **"Test Connection"**
+5. If successful, click **"Save"**
+6. The change takes effect immediately
+
+### Task 4: Updating API Credentials
 
 1. Go to **Configuration**
-2. Select the integration (e.g., Jira)
+2. Select the integration (e.g., Jira, LLM)
 3. Find the credential field (e.g., API Token)
 4. Enter the new value
 5. Click **Save**
 6. Verify in the table below that the source shows "redis"
 
-### Task 4: Troubleshooting an Agent
+### Task 5: Troubleshooting an Agent
 
 1. Go to **Health Monitor**
 2. Find the unhealthy agent (red status)
@@ -686,10 +841,11 @@ Click **"Refresh Now"** to immediately check all agents.
    - Check credentials in Configuration
    - Verify the external service is accessible
    - Restart the agent container
+   - Check MCP SSE connection status
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### Problem: Dashboard Won't Load
 
@@ -723,6 +879,18 @@ Click **"Refresh Now"** to immediately check all agents.
 2. Check the error message
 3. Verify the agent container is running
 4. Check agent-specific credentials in Configuration
+5. For MCP agents, verify SSE connection is established
+
+### Problem: LLM Connection Failed
+
+**Symptoms**: Test connection shows error
+
+**Solutions**:
+1. Verify the API key is correct
+2. Check if the provider is selected correctly
+3. For self-hosted (Ollama/vLLM), verify server is running
+4. Check network connectivity to the LLM service
+5. Verify API key has required permissions
 
 ### Problem: Configuration Not Saving
 
@@ -743,6 +911,16 @@ Click **"Refresh Now"** to immediately check all agents.
 2. Refresh the page
 3. Check if Redis is connected
 4. Verify no other errors are shown
+
+### Problem: MCP Server Disconnected
+
+**Symptoms**: Agent shows "SSE Disconnected"
+
+**Solutions**:
+1. Check if the agent container is running
+2. Verify the SSE endpoint is accessible
+3. Go to Configuration → MCP and click "Reconnect"
+4. Check agent logs for SSE errors
 
 ### Problem: Health Checks Are Slow
 
@@ -774,6 +952,8 @@ Click **"Refresh Now"** to immediately check all agents.
 | 🟢 Green | Healthy / Success / Live Mode |
 | 🟡 Yellow/Amber | Warning / Mock Mode |
 | 🔴 Red | Error / Unhealthy |
+| 🔵 Blue | LLM / Information |
+| 🟣 Purple | MCP / Self-hosted |
 | ⚪ Gray | Disabled / Neutral |
 
 ### Status Icons
@@ -785,6 +965,19 @@ Click **"Refresh Now"** to immediately check all agents.
 | ⟳ | Loading / Refreshing |
 | ⚠ | Warning |
 | 🔒 | Sensitive / Secure |
+| 🔌 | MCP Connected |
+
+### LLM Provider Quick Reference
+
+| Provider | API Key Format | Endpoint |
+|----------|---------------|----------|
+| OpenAI | `sk-proj-...` | api.openai.com |
+| Azure OpenAI | Custom | your-resource.openai.azure.com |
+| Google Gemini | `AIzaSy...` | generativelanguage.googleapis.com |
+| Anthropic | `sk-ant-api03-...` | api.anthropic.com |
+| Groq | `gsk_...` | api.groq.com |
+| Ollama | N/A | localhost:11434 |
+| vLLM | Optional | your-server:8000 |
 
 ---
 
@@ -799,5 +992,4 @@ If you encounter issues not covered in this tutorial:
 
 ---
 
-*Last updated: December 2025*
-
+*Last updated: December 2025 • Nexus v3.0 (LangGraph + MCP)*

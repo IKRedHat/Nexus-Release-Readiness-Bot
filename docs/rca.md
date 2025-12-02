@@ -6,20 +6,56 @@ The Nexus RCA Agent provides intelligent analysis of failed CI/CD builds by corr
 
 - **Auto-Trigger on Failures**: Jenkins webhook integration for automatic RCA
 - **Slack Notifications**: Sends analysis to release channel with PR owner tagging
-- **LLM-Powered Analysis**: Uses Google Gemini 1.5 Pro for deep log analysis
+- **Multi-Provider LLM Support**: Choose from OpenAI, Gemini, Anthropic, Ollama, or Groq
+- **MCP Tool Exposure**: Tools available via Model Context Protocol over SSE
 - **Git Correlation**: Maps errors to specific code changes
 - **Confidence Scoring**: Rates analysis reliability
+
+## What's New in v3.0
+
+### 🧠 LangGraph Integration
+
+The RCA Agent now integrates with the LangGraph orchestrator:
+
+- **Stateful Analysis**: RCA results are persisted in the graph state
+- **Human-in-the-Loop**: Optional approval workflow for fix suggestions
+- **Tool Binding**: RCA tools are bound to the LangGraph agent via MCP
+
+### 🤖 Multi-Provider LLM Support
+
+RCA now supports multiple LLM providers via the LLM Factory:
+
+| Provider | Model | Best For |
+|----------|-------|----------|
+| **Google Gemini** | gemini-1.5-pro | Large logs (1M context) |
+| **OpenAI** | gpt-4o | High-quality analysis |
+| **Anthropic** | claude-3.5-sonnet | Code-focused analysis |
+| **Ollama** | codellama | Self-hosted, privacy |
+| **Groq** | llama-3.1-70b | Fast inference |
+
+Configure the provider in Admin Dashboard → Configuration → LLM.
+
+### 🔌 MCP Tool Exposure
+
+The RCA Agent exposes tools via MCP over SSE:
+
+| Tool | Description |
+|------|-------------|
+| `analyze_build_failure` | Analyze a failed build and generate RCA |
+| `get_build_logs` | Fetch build logs from Jenkins |
+| `get_commit_changes` | Get git diff for a commit or PR |
+| `get_rca_history` | Get historical RCA analyses |
 
 ## Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         RCA ANALYSIS WORKFLOW                                │
+│                         RCA ANALYSIS WORKFLOW (v3.0)                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐                │
-│  │   Jenkins    │     │   GitHub     │     │    Gemini    │                │
-│  │  Build Logs  │     │   Git Diff   │     │     LLM      │                │
+│  │   Jenkins    │     │   GitHub     │     │  LLM Factory │                │
+│  │  Build Logs  │     │   Git Diff   │     │  (Dynamic)   │                │
 │  └──────┬───────┘     └──────┬───────┘     └──────┬───────┘                │
 │         │                    │                    │                         │
 │         └────────────────────┼────────────────────┘                         │
@@ -27,6 +63,7 @@ The Nexus RCA Agent provides intelligent analysis of failed CI/CD builds by corr
 │                              ▼                                              │
 │                    ┌─────────────────────┐                                  │
 │                    │     RCA Agent       │                                  │
+│                    │  MCP Server :8006   │                                  │
 │                    │  ┌───────────────┐  │                                  │
 │                    │  │ 1. Fetch Logs │  │                                  │
 │                    │  │ 2. Parse Errors│  │                                  │
@@ -36,14 +73,13 @@ The Nexus RCA Agent provides intelligent analysis of failed CI/CD builds by corr
 │                    │  └───────────────┘  │                                  │
 │                    └──────────┬──────────┘                                  │
 │                               │                                             │
-│                               ▼                                             │
-│                    ┌─────────────────────┐                                  │
-│                    │   RCA Analysis      │                                  │
-│                    │  • Root Cause       │                                  │
-│                    │  • Suspected File   │                                  │
-│                    │  • Fix Suggestion   │                                  │
-│                    │  • Confidence Score │                                  │
-│                    └─────────────────────┘                                  │
+│                    ┌──────────┼──────────┐                                  │
+│                    │          │          │                                  │
+│                    ▼          ▼          ▼                                  │
+│            ┌───────────┐ ┌─────────┐ ┌─────────────┐                       │
+│            │ LangGraph │ │  Slack  │ │  PostgreSQL │                       │
+│            │ StateGraph│ │Notifier │ │   State     │                       │
+│            └───────────┘ └─────────┘ └─────────────┘                       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -76,12 +112,21 @@ Maps errors to specific code changes:
 
 ### 🤖 LLM-Powered Analysis
 
-Uses Google Gemini (1.5 Pro) for intelligent analysis:
+Uses your configured LLM provider (via LLM Factory) for intelligent analysis:
 
 - Correlates error logs with code changes
 - Identifies root cause with confidence score
 - Suggests specific code fixes
 - Provides additional recommendations
+
+**Recommended Providers for RCA:**
+
+| Provider | Pros | Cons |
+|----------|------|------|
+| **Gemini 1.5 Pro** | 1M context window, handles huge logs | Slightly slower |
+| **GPT-4o** | Best quality analysis | Smaller context, higher cost |
+| **Claude 3.5 Sonnet** | Excellent code understanding | Limited availability |
+| **Groq (Llama 3.1)** | Ultra-fast analysis | May miss nuances |
 
 ## Auto-Trigger on Build Failures
 
@@ -111,6 +156,7 @@ The RCA Agent can automatically analyze failed builds and notify your team via S
                                    │  • Root cause summary               │
                                    │  • Suspected files                  │
                                    │  • Fix suggestion                   │
+                                   │  • LLM provider used                │
                                    └─────────────────────────────────────┘
 ```
 
@@ -169,6 +215,7 @@ The notification includes:
 - **@PR Owner**: Tagged so they get notified immediately
 - **Suspected Files**: With specific line numbers
 - **Fix Suggestion**: Actionable recommendation
+- **LLM Used**: Shows which provider generated the analysis
 - **Action Buttons**: View full analysis or re-run
 
 ### Environment Variables for Auto-Trigger
@@ -211,6 +258,8 @@ Root Cause Analysis:
 💡 Additional Recommendations:
    • Add type hints to ensure consistent return types
    • Consider adding more edge case tests
+
+🤖 Analyzed by: OpenAI gpt-4o
 ```
 
 ### Via API
@@ -224,6 +273,20 @@ curl -X POST http://localhost:8006/analyze \
     "repo_name": "nexus-backend",
     "include_git_diff": true
   }'
+```
+
+### Via MCP Tool Call (LangGraph)
+
+```python
+# The LangGraph orchestrator calls RCA tools via MCP
+tools = await mcp_client.get_tools()
+rca_tool = tools["analyze_build_failure"]
+
+result = await rca_tool.invoke({
+    "job_name": "nexus-main",
+    "build_number": 142,
+    "include_git_diff": True
+})
 ```
 
 ### Response
@@ -256,9 +319,43 @@ curl -X POST http://localhost:8006/analyze \
   ],
   "analyzed_at": "2025-11-30T14:30:00Z",
   "analysis_duration_seconds": 3.45,
-  "model_used": "gemini-1.5-pro",
+  "llm_provider": "openai",
+  "model_used": "gpt-4o",
   "tokens_used": 1250
 }
+```
+
+## MCP Server Interface
+
+The RCA Agent runs as an MCP server on port 8006, exposing tools via SSE:
+
+### Available Tools
+
+| Tool | Description | Required Params |
+|------|-------------|-----------------|
+| `analyze_build_failure` | Perform full RCA analysis | `job_name`, `build_number` |
+| `get_build_logs` | Fetch raw build logs | `job_name`, `build_number` |
+| `get_commit_changes` | Get git diff | `repo`, `commit_sha` or `pr_id` |
+| `get_rca_history` | Get past analyses | `job_name` (optional) |
+
+### Connecting to RCA MCP Server
+
+```python
+from nexus_lib.mcp import MCPClientConnection
+
+# Connect to RCA agent
+rca_client = MCPClientConnection("rca", "http://rca-agent:8006/sse")
+await rca_client.connect()
+
+# List available tools
+tools = await rca_client.list_tools()
+print(tools)  # ['analyze_build_failure', 'get_build_logs', ...]
+
+# Call a tool
+result = await rca_client.call_tool("analyze_build_failure", {
+    "job_name": "nexus-main",
+    "build_number": 142
+})
 ```
 
 ## API Reference
@@ -269,7 +366,7 @@ curl -X POST http://localhost:8006/analyze \
 |--------|----------|-------------|
 | `POST` | `/analyze` | Analyze a failed build (with optional notification) |
 | `POST` | `/webhook/jenkins` | Jenkins webhook for auto-trigger |
-| `POST` | `/execute` | Generic execution (orchestrator) |
+| `GET` | `/sse` | MCP SSE endpoint for tool exposure |
 | `GET` | `/health` | Health check |
 | `GET` | `/metrics` | Prometheus metrics |
 
@@ -319,7 +416,6 @@ Content-Type: application/json
   "include_test_output": "boolean (default: true)",
   "max_log_lines": "integer (default: 5000)",
   
-  // Notification options
   "notify": "boolean (default: false)",
   "channel": "string (optional, uses SLACK_RELEASE_CHANNEL if not set)",
   "pr_owner_email": "string (optional, for Slack user tagging)"
@@ -362,7 +458,8 @@ Content-Type: application/json
   "additional_recommendations": "[string]",
   "analyzed_at": "datetime",
   "analysis_duration_seconds": "float",
-  "model_used": "string (optional)",
+  "llm_provider": "string",
+  "model_used": "string",
   "tokens_used": "integer"
 }
 ```
@@ -391,9 +488,9 @@ Content-Type: application/json
 ## Prometheus Metrics
 
 ```prometheus
-# RCA request counts (with trigger type)
-nexus_rca_requests_total{status="success",error_type="test_failure",trigger="webhook"} 150
-nexus_rca_requests_total{status="success",error_type="test_failure",trigger="manual"} 50
+# RCA request counts (with trigger type and provider)
+nexus_rca_requests_total{status="success",error_type="test_failure",trigger="webhook",llm_provider="openai"} 150
+nexus_rca_requests_total{status="success",error_type="test_failure",trigger="manual",llm_provider="gemini"} 50
 nexus_rca_requests_total{status="error",error_type="exception",trigger="webhook"} 5
 
 # Jenkins webhook counts
@@ -413,8 +510,12 @@ nexus_rca_confidence_score_bucket{le="0.5"} 20
 nexus_rca_confidence_score_bucket{le="0.8"} 100
 nexus_rca_confidence_score_bucket{le="1.0"} 150
 
-# LLM token usage (labeled for cost tracking)
-nexus_llm_tokens_total{model="gemini-1.5-pro",task_type="rca"} 125000
+# LLM token usage (labeled by provider and task)
+nexus_llm_tokens_total{provider="openai",model="gpt-4o",task_type="rca"} 125000
+nexus_llm_tokens_total{provider="google",model="gemini-1.5-pro",task_type="rca"} 80000
+
+# MCP tool calls
+nexus_mcp_tool_calls_total{server="rca",tool="analyze_build_failure",status="success"} 200
 
 # Active analyses
 nexus_rca_active_analyses 2
@@ -433,24 +534,43 @@ nexus_rca_active_analyses 2
 | `GITHUB_TOKEN` | - | GitHub personal access token |
 | `GITHUB_ORG` | - | GitHub organization |
 | `GITHUB_MOCK_MODE` | `true` | Use mock data |
-| `GEMINI_API_KEY` | - | Google Gemini API key |
-| `RCA_LLM_MODEL` | `gemini-1.5-pro` | LLM model for analysis |
-| `LLM_MOCK_MODE` | `true` | Use mock responses |
 | `RCA_MAX_LOG_CHARS` | `100000` | Max log characters |
 | `RCA_MAX_DIFF_CHARS` | `50000` | Max diff characters |
 
-### Why Gemini 1.5 Pro?
+### LLM Configuration (via Admin Dashboard)
 
-We recommend Gemini 1.5 Pro for RCA because:
+Configure in Admin Dashboard → Configuration → LLM:
 
-- **1M Token Context**: Can handle very large build logs
-- **Strong Code Understanding**: Excellent at correlating errors with code
-- **Cost Effective**: Competitive pricing for large inputs
-- **Fast Response**: Good latency for interactive use
+| Setting | Description |
+|---------|-------------|
+| `nexus:config:llm_provider` | LLM provider (openai, google, anthropic, etc.) |
+| `nexus:config:llm_model` | Model name |
+| `nexus:config:openai_api_key` | OpenAI API key |
+| `nexus:config:gemini_api_key` | Google Gemini API key |
+| `nexus:config:anthropic_api_key` | Anthropic API key |
+
+### Recommended LLM Settings for RCA
+
+For best RCA results, we recommend:
+
+**Large Logs (> 50K chars):**
+- Provider: `google`
+- Model: `gemini-1.5-pro`
+- Reason: 1M token context window
+
+**Highest Quality:**
+- Provider: `openai`
+- Model: `gpt-4o`
+- Reason: Best reasoning for complex failures
+
+**Fast Turnaround:**
+- Provider: `groq`
+- Model: `llama-3.1-70b-versatile`
+- Reason: Sub-second inference
 
 ## Orchestrator Integration
 
-The RCA agent is automatically available to the Nexus orchestrator:
+The RCA agent is automatically available to the LangGraph orchestrator via MCP:
 
 ### Trigger Phrases
 
@@ -462,18 +582,17 @@ The orchestrator will route these queries to the RCA agent:
 - "Debug the last build"
 - "Analyze build failure"
 
-### Tool Registration
+### LangGraph Tool Binding
 
 ```python
-# In react_engine.py
-"analyze_build_failure": Tool(
-    name="analyze_build_failure",
-    description="Analyze a failed Jenkins build to determine root cause...",
-    agent_type="rca",
-    endpoint="/analyze",
-    method="POST",
-    required_params=["job_name", "build_number"]
-)
+# In graph.py - tools are automatically discovered via MCP
+mcp_client = MCPClientManager()
+await mcp_client.connect_all()
+
+tools = mcp_client.get_langchain_tools()
+# Includes: analyze_build_failure, get_build_logs, etc.
+
+llm_with_tools = llm.bind_tools(tools)
 ```
 
 ## Log Truncation Strategy
@@ -534,9 +653,15 @@ When confidence is `low` or `uncertain`:
 - Check if the error is in infrastructure vs code
 - Consider if this is a flaky test
 
-### 4. Track Costs
+### 4. Choose Right LLM Provider
 
-Monitor `nexus_llm_tokens_total{task_type="rca"}` to track analysis costs.
+- Use **Gemini 1.5 Pro** for very large logs
+- Use **GPT-4o** for complex analysis
+- Use **Groq** for quick turnaround
+
+### 5. Track Costs
+
+Monitor `nexus_llm_tokens_total{task_type="rca"}` to track analysis costs by provider.
 
 ## Troubleshooting
 
@@ -556,6 +681,7 @@ Monitor `nexus_llm_tokens_total{task_type="rca"}` to track analysis costs.
 
 - Reduce `max_log_lines` for faster processing
 - Check if LLM service is responding
+- Switch to a faster provider (Groq)
 - Consider using mock mode for testing
 
 ### Missing Suspected Files
@@ -564,3 +690,15 @@ Monitor `nexus_llm_tokens_total{task_type="rca"}` to track analysis costs.
 - Check if `commit_sha` or `pr_id` is correct
 - Verify the build actually contains code changes
 
+### LLM Provider Errors
+
+- Verify API key in Admin Dashboard → Configuration → LLM
+- Check provider rate limits
+- Try switching to a different provider
+- Test connection in Admin Dashboard
+
+### MCP Connection Issues
+
+- Verify RCA agent is running: `docker ps | grep rca`
+- Check SSE endpoint: `curl http://localhost:8006/health`
+- Review agent logs: `docker logs rca-agent`

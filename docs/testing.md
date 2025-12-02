@@ -36,6 +36,18 @@ Nexus uses a multi-layered testing strategy to ensure reliability across all ser
 - **Mocking:** unittest.mock, AsyncMock
 - **Coverage:** pytest-cov
 
+### Architecture Changes in v3.0
+
+With the LangGraph + MCP refactor, testing has been updated:
+
+- ❌ **Removed**: `test_react_engine.py` (legacy ReAct loop)
+- ✅ **Added**: `test_graph.py` (LangGraph StateGraph)
+- ✅ **Added**: `test_llm_factory.py` (Multi-provider LLM Factory)
+- ✅ **Added**: `test_mcp_client.py` (MCP Client Manager)
+- ✅ **Updated**: `test_rca_logic.py` (MCP structure)
+- ✅ **Updated**: `test_hygiene_logic.py` (MCP structure)
+- ✅ **Updated**: `test_release_flow.py` (LangGraph + MCP)
+
 ---
 
 ## Test Categories
@@ -47,17 +59,21 @@ Unit tests verify individual components in isolation.
 | Test File | Coverage |
 |-----------|----------|
 | `test_schemas.py` | Pydantic models (JiraTicket, BuildStatus, etc.) |
-| `test_react_engine.py` | Orchestrator ReAct engine, LLM client, memory |
-| `test_hygiene_logic.py` | Jira hygiene validation, scoring, notifications |
-| `test_rca_logic.py` | RCA log parsing, error extraction, stack traces |
+| `test_graph.py` | LangGraph StateGraph, nodes, state transitions |
+| `test_llm_factory.py` | LLM Factory, provider configs, mock model |
+| `test_mcp_client.py` | MCP Client Manager, tool discovery, SSE |
+| `test_hygiene_logic.py` | Jira hygiene validation, scoring, MCP tools |
+| `test_rca_logic.py` | RCA log parsing, error extraction, MCP tools |
 | `test_config_manager.py` | Dynamic configuration, Redis fallback, mock mode |
 | `test_analytics.py` | DORA metrics, KPIs, trend analysis, predictions |
 | `test_webhooks.py` | Webhook subscriptions, HMAC security, delivery |
 | `test_instrumentation.py` | Prometheus metrics, OpenTelemetry tracing |
-| `test_llm_client.py` | LLM factory, Gemini, OpenAI clients |
 
 **What's Tested:**
 - ✅ Pydantic model validation and serialization
+- ✅ LangGraph state transitions and node execution
+- ✅ LLM Factory provider instantiation
+- ✅ MCP tool discovery and invocation
 - ✅ Business logic correctness
 - ✅ Error handling and edge cases
 - ✅ Configuration management
@@ -71,18 +87,19 @@ End-to-end tests verify complete service functionality.
 
 | Test File | Service | Coverage |
 |-----------|---------|----------|
-| `test_release_flow.py` | Orchestrator | Query execution, memory, metrics |
+| `test_release_flow.py` | Orchestrator | LangGraph execution, MCP tools, approvals |
 | `test_slack_flow.py` | Slack Agent | Commands, interactions, modals |
 | `test_reporting_flow.py` | Reporting Agent | Report generation, previews |
 | `test_jira_agent.py` | Jira Agent | Ticket CRUD, hierarchy, sprints |
 | `test_git_ci_agent.py` | Git/CI Agent | GitHub, Jenkins, security |
-| `test_hygiene_agent.py` | Hygiene Agent | Checks, scheduler, notifications |
-| `test_rca_agent.py` | RCA Agent | Analysis, webhooks, Slack alerts |
+| `test_hygiene_agent.py` | Hygiene Agent | Checks, scheduler, MCP tools |
+| `test_rca_agent.py` | RCA Agent | Analysis, webhooks, MCP tools |
 
 **What's Tested:**
 - ✅ All API endpoints
 - ✅ Request/response validation
-- ✅ AgentTaskRequest handling
+- ✅ LangGraph thread management
+- ✅ MCP tool responses
 - ✅ Webhook processing
 - ✅ Mock mode behavior
 
@@ -94,12 +111,12 @@ Integration tests verify inter-service communication.
 
 | Test File | Coverage |
 |-----------|----------|
-| `test_agent_communication.py` | Orchestrator ↔ Agent calls, workflow chains |
+| `test_agent_communication.py` | Orchestrator ↔ Agent MCP calls, workflow chains |
 
 **What's Tested:**
-- ✅ Orchestrator → Agent tool execution
+- ✅ Orchestrator → Agent MCP tool execution
 - ✅ Agent → Agent communication (e.g., Hygiene → Slack)
-- ✅ Complete release readiness workflow
+- ✅ Complete release readiness workflow via LangGraph
 - ✅ Build failure → RCA → notification workflow
 - ✅ Error handling and recovery
 - ✅ Partial workflow failures
@@ -112,26 +129,27 @@ Smoke tests provide quick health verification after deployments.
 
 | Test File | Coverage |
 |-----------|----------|
-| `test_all_services.py` | Health checks for all 10 services |
+| `test_all_services.py` | Health checks for all services + MCP endpoints |
 
 **Services Tested:**
 
-| Service | Port | Health Path |
-|---------|------|-------------|
-| Orchestrator | 8080 | `/health` |
-| Jira Agent | 8081 | `/health` |
-| Git/CI Agent | 8082 | `/health` |
-| Reporting Agent | 8083 | `/health` |
-| Slack Agent | 8084 | `/health` |
-| Hygiene Agent | 8085 | `/health` |
-| RCA Agent | 8006 | `/health` |
-| Analytics Agent | 8086 | `/health` |
-| Webhooks Agent | 8087 | `/health` |
-| Admin Dashboard | 8088 | `/health-check` |
+| Service | Port | Health Path | MCP Path |
+|---------|------|-------------|----------|
+| Orchestrator | 8080 | `/health` | N/A (client) |
+| Jira Agent | 8001 | `/health` | `/sse` |
+| Git/CI Agent | 8002 | `/health` | `/sse` |
+| Reporting Agent | 8003 | `/health` | `/sse` |
+| Slack Agent | 8084 | `/health` | N/A |
+| Hygiene Agent | 8005 | `/health` | `/sse` |
+| RCA Agent | 8006 | `/health` | `/sse` |
+| Analytics Agent | 8086 | `/health` | N/A |
+| Webhooks Agent | 8087 | `/health` | N/A |
+| Admin Dashboard | 8088 | `/health-check` | N/A |
 
 **What's Tested:**
 - ✅ Service availability
 - ✅ Basic functionality
+- ✅ MCP SSE endpoint connectivity
 - ✅ Metrics endpoints
 - ✅ Inter-service connectivity
 - ✅ Database connectivity
@@ -151,6 +169,11 @@ pytest -m unit           # Unit tests only
 pytest -m e2e            # E2E tests only
 pytest -m integration    # Integration tests only
 pytest -m smoke          # Smoke tests only
+
+# Run new v3.0 architecture tests
+pytest tests/unit/test_graph.py          # LangGraph tests
+pytest tests/unit/test_llm_factory.py    # LLM Factory tests
+pytest tests/unit/test_mcp_client.py     # MCP Client tests
 
 # Exclude slow tests
 pytest -m "not slow"
@@ -192,6 +215,9 @@ open htmlcov/index.html
 
 # Coverage with specific directories
 pytest --cov=shared/nexus_lib --cov-report=term-missing
+
+# Coverage for new architecture components
+pytest --cov=services/orchestrator/app/core --cov-report=term-missing
 ```
 
 ### Parallel Execution
@@ -214,8 +240,18 @@ pytest -n 4              # Use 4 workers
 | Component | Target | Current |
 |-----------|--------|---------|
 | `shared/nexus_lib` | 80% | 75%+ |
-| `services/orchestrator` | 70% | 70%+ |
-| `services/agents/*` | 70% | 65%+ |
+| `services/orchestrator/app/core` | 80% | 80%+ |
+| `services/agents/*` | 70% | 70%+ |
+
+### Key Coverage Areas for v3.0
+
+| Component | Test File | Focus Areas |
+|-----------|-----------|-------------|
+| LangGraph Engine | `test_graph.py` | State transitions, node execution, human-in-loop |
+| LLM Factory | `test_llm_factory.py` | Provider configs, model instantiation, mock mode |
+| MCP Client | `test_mcp_client.py` | Tool discovery, SSE connection, tool invocation |
+| RCA Agent | `test_rca_logic.py` | MCP tool schemas, analysis logic |
+| Hygiene Agent | `test_hygiene_logic.py` | MCP tool schemas, hygiene checks |
 
 ### Generating Reports
 
@@ -251,7 +287,7 @@ Brief description of what's being tested.
 """
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 
 class TestFeatureX:
     """Tests for Feature X functionality."""
@@ -276,6 +312,151 @@ class TestFeatureX:
         """Test edge case handling."""
         with pytest.raises(ValueError):
             function_with_validation(invalid_input)
+```
+
+### Testing LangGraph Components
+
+```python
+"""Tests for LangGraph StateGraph."""
+
+import pytest
+from unittest.mock import AsyncMock, patch
+from services.orchestrator.app.core.graph import GraphEngine, AgentState
+
+class TestGraphEngine:
+    """Tests for the LangGraph engine."""
+    
+    @pytest.fixture
+    def mock_llm(self):
+        """Create mock LLM."""
+        llm = AsyncMock()
+        llm.ainvoke = AsyncMock(return_value=MagicMock(
+            content="Test response"
+        ))
+        return llm
+    
+    @pytest.fixture
+    def mock_tools(self):
+        """Create mock MCP tools."""
+        return [
+            MagicMock(name="get_ticket"),
+            MagicMock(name="analyze_failure")
+        ]
+    
+    @pytest.mark.asyncio
+    async def test_graph_initialization(self, mock_llm, mock_tools):
+        """Test graph engine initializes correctly."""
+        with patch('services.orchestrator.app.core.graph.LLMFactory') as mock_factory:
+            mock_factory.return_value.get_llm.return_value = mock_llm
+            
+            engine = GraphEngine(tools=mock_tools)
+            assert engine.graph is not None
+    
+    @pytest.mark.asyncio
+    async def test_planner_node(self, mock_llm):
+        """Test the planner node generates a plan."""
+        state = AgentState(
+            messages=[{"role": "user", "content": "Check release status"}],
+            plan="",
+            current_step=0
+        )
+        
+        result = await planner_node(state, mock_llm)
+        assert "plan" in result
+```
+
+### Testing LLM Factory
+
+```python
+"""Tests for LLM Factory."""
+
+import pytest
+from unittest.mock import patch, MagicMock
+from services.orchestrator.app.core.llm_factory import LLMFactory, LLMProvider
+
+class TestLLMFactory:
+    """Tests for multi-provider LLM Factory."""
+    
+    def test_get_supported_providers(self):
+        """Test listing supported providers."""
+        providers = LLMFactory.get_supported_providers()
+        assert "openai" in providers
+        assert "google" in providers
+        assert "anthropic" in providers
+        assert "ollama" in providers
+    
+    @pytest.mark.asyncio
+    async def test_get_llm_openai(self):
+        """Test OpenAI LLM instantiation."""
+        with patch('services.orchestrator.app.core.llm_factory.ConfigManager') as mock_config:
+            mock_config.return_value.get.side_effect = lambda k, d=None: {
+                "llm_provider": "openai",
+                "llm_model": "gpt-4o",
+                "openai_api_key": "sk-test"
+            }.get(k, d)
+            
+            factory = LLMFactory()
+            llm = await factory.get_llm()
+            
+            assert llm is not None
+    
+    def test_mock_provider(self):
+        """Test mock provider for testing."""
+        factory = LLMFactory()
+        llm = factory._create_mock_llm()
+        
+        response = llm.invoke("Test prompt")
+        assert response is not None
+```
+
+### Testing MCP Clients
+
+```python
+"""Tests for MCP Client Manager."""
+
+import pytest
+from unittest.mock import AsyncMock, patch
+from services.orchestrator.app.core.mcp_client import MCPClientManager
+
+class TestMCPClientManager:
+    """Tests for MCP tool management."""
+    
+    @pytest.fixture
+    def mock_sse_response(self):
+        """Create mock SSE response."""
+        return {
+            "tools": [
+                {"name": "get_ticket", "description": "Get Jira ticket"},
+                {"name": "analyze_failure", "description": "Analyze build failure"}
+            ]
+        }
+    
+    @pytest.mark.asyncio
+    async def test_discover_tools(self, mock_sse_response):
+        """Test tool discovery via MCP."""
+        with patch('httpx.AsyncClient') as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=MagicMock(json=lambda: mock_sse_response)
+            )
+            
+            manager = MCPClientManager()
+            await manager.initialize()
+            tools = manager.get_all_tools()
+            
+            assert len(tools) >= 2
+    
+    @pytest.mark.asyncio
+    async def test_get_langchain_tools(self):
+        """Test conversion to LangChain tools."""
+        manager = MCPClientManager()
+        await manager.initialize()
+        
+        lc_tools = manager.get_langchain_tools()
+        
+        for tool in lc_tools:
+            assert hasattr(tool, 'name')
+            assert hasattr(tool, 'description')
+            assert callable(tool.func) or callable(tool.coroutine)
 ```
 
 ### Naming Conventions
@@ -310,6 +491,11 @@ def test_slow_operation():
 async def test_async_example():
     """Async test example."""
     pass
+
+@pytest.mark.langgraph
+async def test_langgraph_node():
+    """LangGraph-specific test."""
+    pass
 ```
 
 ---
@@ -325,6 +511,9 @@ The following fixtures are available in `tests/conftest.py`:
 | `event_loop` | Session | Async event loop |
 | `mock_vector_memory` | Function | Mock VectorMemory |
 | `mock_http_client` | Function | Mock AsyncHttpClient |
+| `mock_llm_factory` | Function | Mock LLM Factory with mock provider |
+| `mock_mcp_client` | Function | Mock MCP Client Manager |
+| `mock_graph_engine` | Function | Mock LangGraph engine |
 | `sample_jira_ticket` | Function | Sample Jira ticket data |
 | `sample_build_status` | Function | Sample build status data |
 | `sample_security_scan` | Function | Sample security scan data |
@@ -340,13 +529,17 @@ The following fixtures are available in `tests/conftest.py`:
 | `mock_redis` | Function | Mock Redis client |
 | `sample_jenkins_log` | Function | Sample Jenkins failure log |
 | `sample_git_diff` | Function | Sample Git diff |
+| `sample_mcp_tools` | Function | Sample MCP tool definitions |
+| `sample_agent_state` | Function | Sample LangGraph AgentState |
 
 ### Helper Functions
 
 ```python
 from tests.conftest import (
     create_mock_agent_response,
-    create_mock_health_response
+    create_mock_health_response,
+    create_mock_mcp_tool,
+    create_mock_graph_state
 )
 
 # Create standardized agent response
@@ -359,6 +552,19 @@ response = create_mock_agent_response(
 health = create_mock_health_response(
     service_name="jira-agent",
     healthy=True
+)
+
+# Create mock MCP tool
+tool = create_mock_mcp_tool(
+    name="get_ticket",
+    description="Get a Jira ticket",
+    parameters={"ticket_key": "string"}
+)
+
+# Create mock graph state
+state = create_mock_graph_state(
+    messages=[{"role": "user", "content": "Test query"}],
+    plan="1. Get ticket\n2. Analyze status"
 )
 ```
 
@@ -453,6 +659,26 @@ source .env
 pytest
 ```
 
+#### LangGraph Test Issues
+
+```bash
+# Ensure LangGraph is installed
+pip install langgraph langchain-core
+
+# Check for state serialization issues
+# States must be JSON-serializable
+```
+
+#### MCP Client Test Issues
+
+```bash
+# Ensure mcp package is installed
+pip install mcp
+
+# Mock SSE connections properly
+# Use AsyncMock for SSE responses
+```
+
 ### Debugging Tests
 
 ```bash
@@ -503,16 +729,19 @@ pytest -n auto
 | `pytest --cov=shared` | With coverage |
 | `pytest -n auto` | Parallel execution |
 | `pytest --pdb` | Debug on failure |
+| `pytest tests/unit/test_graph.py` | LangGraph tests |
+| `pytest tests/unit/test_llm_factory.py` | LLM Factory tests |
+| `pytest tests/unit/test_mcp_client.py` | MCP Client tests |
 
 ### Test Count Summary
 
 | Category | Files | Estimated Tests |
 |----------|-------|-----------------|
-| Unit | 9 | ~200 |
+| Unit | 10 | ~220 |
 | E2E | 7 | ~100 |
 | Integration | 1 | ~30 |
-| Smoke | 1 | ~40 |
-| **Total** | **18** | **~370** |
+| Smoke | 1 | ~45 |
+| **Total** | **19** | **~395** |
 
 ---
 
@@ -521,4 +750,3 @@ pytest -n auto
 - [CI Workflow Details](./ci-cd/ci-workflow.md)
 - [Contributing Guide](../CONTRIBUTING.md)
 - [Architecture Overview](./architecture.md)
-

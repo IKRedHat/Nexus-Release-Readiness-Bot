@@ -21,6 +21,7 @@ This runbook provides step-by-step instructions for deploying Nexus to various e
 | Tool | Version | Purpose |
 |------|---------|---------|
 | Python | 3.10+ | Runtime |
+| Node.js | 18+ | MCP sidecar servers (GitHub, Slack) |
 | Docker | 20.10+ | Containerization |
 | Docker Compose | 2.0+ | Local orchestration |
 | kubectl | 1.24+ | Kubernetes CLI |
@@ -35,7 +36,19 @@ This runbook provides step-by-step instructions for deploying Nexus to various e
 | Jenkins | API Token | Git/CI Agent |
 | Confluence | API Token | Reporting Agent |
 | Slack | Bot Token + App Token | Slack Agent |
-| LLM Provider | API Key | Orchestrator |
+| LLM Provider | API Key | Orchestrator (choose one) |
+
+### LLM Provider Options
+
+| Provider | API Key Format | Endpoint |
+|----------|---------------|----------|
+| OpenAI | `sk-proj-...` | api.openai.com |
+| Azure OpenAI | Custom | your-resource.openai.azure.com |
+| Google Gemini | `AIzaSy...` | generativelanguage.googleapis.com |
+| Anthropic | `sk-ant-api03-...` | api.anthropic.com |
+| Groq | `gsk_...` | api.groq.com |
+| Ollama | N/A (self-hosted) | localhost:11434 |
+| vLLM | Optional | your-server:8000 |
 
 ---
 
@@ -55,7 +68,7 @@ cd Nexus-Release-Readiness-Bot
 ```
 
 The setup script automatically:
-- Checks all prerequisites (Python, Docker, etc.)
+- Checks all prerequisites (Python, Node.js, Docker, etc.)
 - Creates Python virtual environment
 - Installs all dependencies
 - Configures environment variables
@@ -100,20 +113,32 @@ pip install -r services/agents/jira_hygiene_agent/requirements.txt
 # ... repeat for other agents
 ```
 
-#### 3. Run Services Locally
+#### 3. Install Node.js Dependencies (for MCP sidecars)
+
+```bash
+# Install MCP sidecar dependencies
+cd infrastructure/mcp-servers
+npm install
+```
+
+#### 4. Run Services Locally
 
 ```bash
 # Terminal 1: Orchestrator
 cd services/orchestrator
 uvicorn main:app --reload --port 8080
 
-# Terminal 2: Jira Agent
+# Terminal 2: Jira Agent (MCP)
 cd services/agents/jira_agent
-uvicorn main:app --reload --port 8081
+uvicorn main:app --reload --port 8001
 
-# Terminal 3: Jira Hygiene Agent
+# Terminal 3: Jira Hygiene Agent (MCP)
 cd services/agents/jira_hygiene_agent
 uvicorn main:app --reload --port 8005
+
+# Terminal 4: RCA Agent (MCP)
+cd services/agents/rca_agent
+uvicorn main:app --reload --port 8006
 
 # ... repeat for other agents
 ```
@@ -145,11 +170,58 @@ cp .env.example .env
 vim .env
 ```
 
+**Required Environment Variables:**
+
+```bash
+# System
+NEXUS_ENV=development
+
+# LLM Configuration (choose one provider)
+LLM_PROVIDER=openai              # openai, google, anthropic, ollama, groq, vllm, mock
+LLM_MODEL=gpt-4o                 # Model name
+OPENAI_API_KEY=sk-proj-...       # If using OpenAI
+GEMINI_API_KEY=AIzaSy...         # If using Google
+ANTHROPIC_API_KEY=sk-ant-...     # If using Anthropic
+GROQ_API_KEY=gsk_...             # If using Groq
+OLLAMA_BASE_URL=http://ollama:11434  # If using Ollama
+VLLM_API_BASE=http://vllm:8000/v1    # If using vLLM
+
+# Jira
+JIRA_URL=https://your-org.atlassian.net
+JIRA_USERNAME=user@company.com
+JIRA_API_TOKEN=your-token
+JIRA_PROJECT_KEY=PROJ
+
+# GitHub
+GITHUB_TOKEN=ghp_...
+GITHUB_ORG=your-org
+GITHUB_REPO=your-repo
+
+# Jenkins
+JENKINS_URL=http://jenkins:8080
+JENKINS_USERNAME=admin
+JENKINS_API_TOKEN=your-token
+
+# Slack
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=...
+SLACK_APP_TOKEN=xapp-...
+
+# Redis & PostgreSQL
+REDIS_URL=redis://redis:6379
+POSTGRES_URL=postgresql://nexus:nexus@postgres:5432/nexus
+```
+
 ### 2. Start Services
 
 ```bash
 # Start all services
 docker-compose up -d
+
+# Start with specific profile
+docker-compose --profile full up -d        # All services
+docker-compose --profile minimal up -d     # Core services only
+docker-compose --profile observability up -d  # Include monitoring
 
 # View logs
 docker-compose logs -f
@@ -160,16 +232,18 @@ docker-compose ps
 
 ### 3. Service Endpoints
 
-| Service | URL |
-|---------|-----|
-| Orchestrator | http://localhost:8080 |
-| Jira Agent | http://localhost:8081 |
-| Git/CI Agent | http://localhost:8082 |
-| Reporting Agent | http://localhost:8083 |
-| Slack Agent | http://localhost:8084 |
-| **Jira Hygiene Agent** | **http://localhost:8005** |
-| Grafana | http://localhost:3000 |
-| Prometheus | http://localhost:9090 |
+| Service | URL | Protocol |
+|---------|-----|----------|
+| Orchestrator | http://localhost:8080 | REST |
+| Jira Agent | http://localhost:8001 | MCP/SSE |
+| Git/CI Agent | http://localhost:8002 | MCP/SSE |
+| Reporting Agent | http://localhost:8003 | MCP/SSE |
+| Slack Agent | http://localhost:8084 | REST |
+| **Jira Hygiene Agent** | **http://localhost:8005** | **MCP/SSE** |
+| **RCA Agent** | **http://localhost:8006** | **MCP/SSE** |
+| **Admin Dashboard** | **http://localhost:8088** | **REST** |
+| Grafana | http://localhost:3000 | HTTP |
+| Prometheus | http://localhost:9090 | HTTP |
 
 ### 4. Stop Services
 
@@ -204,20 +278,40 @@ metadata:
 type: Opaque
 stringData:
   NEXUS_JWT_SECRET: "your-jwt-secret-here"
-  LLM_API_KEY: "your-llm-api-key"
+  
+  # LLM Configuration
+  LLM_PROVIDER: "openai"
+  LLM_MODEL: "gpt-4o"
+  OPENAI_API_KEY: "sk-proj-..."
+  # Or for other providers:
+  # GEMINI_API_KEY: "AIzaSy..."
+  # ANTHROPIC_API_KEY: "sk-ant-..."
+  # GROQ_API_KEY: "gsk_..."
+  
+  # Jira
   JIRA_URL: "https://your-company.atlassian.net"
   JIRA_USERNAME: "your-email@company.com"
   JIRA_API_TOKEN: "your-jira-api-token"
+  
+  # GitHub
   GITHUB_TOKEN: "ghp_your-github-token"
+  
+  # Jenkins
   JENKINS_URL: "https://jenkins.company.com"
   JENKINS_USERNAME: "jenkins-user"
   JENKINS_API_TOKEN: "jenkins-api-token"
+  
+  # Confluence
   CONFLUENCE_URL: "https://your-company.atlassian.net/wiki"
   CONFLUENCE_USERNAME: "your-email@company.com"
   CONFLUENCE_API_TOKEN: "your-confluence-token"
+  
+  # Slack
   SLACK_BOT_TOKEN: "xoxb-your-bot-token"
   SLACK_SIGNING_SECRET: "your-signing-secret"
   SLACK_APP_TOKEN: "xapp-your-app-token"
+  
+  # Database
   POSTGRES_PASSWORD: "secure-postgres-password"
   REDIS_PASSWORD: "secure-redis-password"
 EOF
@@ -238,11 +332,13 @@ helm upgrade --install nexus . \
   --namespace nexus \
   --values values.yaml \
   --set global.environment=production \
-  --set global.imageTag=v1.1.0
+  --set global.imageTag=v3.0.0 \
+  --set orchestrator.llm.provider=openai
 
 # Wait for deployment
 kubectl rollout status deployment/nexus-orchestrator
 kubectl rollout status deployment/nexus-jira-hygiene-agent
+kubectl rollout status deployment/nexus-rca-agent
 ```
 
 ### 4. Configure Ingress
@@ -262,6 +358,8 @@ ingress:
           service: orchestrator
         - path: /slack
           service: slack-agent
+        - path: /admin
+          service: admin-dashboard
   tls:
     - secretName: nexus-tls
       hosts:
@@ -287,6 +385,7 @@ kubectl get ingress
 # View logs
 kubectl logs -l app.kubernetes.io/component=orchestrator -f
 kubectl logs -l app.kubernetes.io/component=jira-hygiene-agent -f
+kubectl logs -l app.kubernetes.io/component=rca-agent -f
 ```
 
 ---
@@ -298,15 +397,45 @@ kubectl logs -l app.kubernetes.io/component=jira-hygiene-agent -f
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `NEXUS_ENV` | Environment | development |
-| `LLM_PROVIDER` | LLM backend (google/openai/mock) | mock |
-| `LLM_MODEL` | LLM model name | gemini-2.0-flash |
-| `LLM_API_KEY` | API key for LLM | - |
+| `LLM_PROVIDER` | LLM backend (openai/google/anthropic/ollama/groq/vllm/mock) | mock |
+| `LLM_MODEL` | LLM model name | gpt-4o |
 | `LLM_TEMPERATURE` | Generation temperature | 0.7 |
 | `LLM_MAX_TOKENS` | Max output tokens | 4096 |
+| `LLM_BASE_URL` | Custom API endpoint (self-hosted) | - |
+| `OPENAI_API_KEY` | OpenAI API key | - |
+| `GEMINI_API_KEY` | Google Gemini API key | - |
+| `ANTHROPIC_API_KEY` | Anthropic API key | - |
+| `GROQ_API_KEY` | Groq API key | - |
+| `AZURE_OPENAI_API_KEY` | Azure OpenAI API key | - |
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI endpoint | - |
+| `AZURE_OPENAI_DEPLOYMENT_NAME` | Azure deployment name | - |
+| `OLLAMA_BASE_URL` | Ollama server URL | http://localhost:11434 |
+| `VLLM_API_BASE` | vLLM server URL | - |
 | `MEMORY_BACKEND` | Vector store (chromadb/pgvector/mock) | mock |
-| `MAX_REACT_ITERATIONS` | Max reasoning steps | 10 |
 | `ORCHESTRATOR_URL` | Self URL for agents | http://localhost:8080 |
 | `RECOMMENDATIONS_ENABLED` | Enable AI recommendations | true |
+
+### MCP Agent Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `JIRA_AGENT_MCP_URL` | Jira Agent MCP endpoint | http://jira-agent:8001/sse |
+| `GIT_AGENT_MCP_URL` | Git/CI Agent MCP endpoint | http://git-agent:8002/sse |
+| `REPORTING_AGENT_MCP_URL` | Reporting Agent MCP endpoint | http://reporting-agent:8003/sse |
+| `HYGIENE_AGENT_MCP_URL` | Hygiene Agent MCP endpoint | http://hygiene-agent:8005/sse |
+| `RCA_AGENT_MCP_URL` | RCA Agent MCP endpoint | http://rca-agent:8006/sse |
+| `MCP_AUTO_RECONNECT` | Auto-reconnect on disconnect | true |
+| `MCP_RECONNECT_INTERVAL` | Reconnect interval (seconds) | 5 |
+
+### LangGraph Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LANGGRAPH_CHECKPOINTER` | State persistence (postgres/memory) | postgres |
+| `POSTGRES_URL` | PostgreSQL connection URL | - |
+| `MAX_GRAPH_ITERATIONS` | Max LangGraph iterations | 10 |
+| `HUMAN_APPROVAL_REQUIRED` | Require human approval for actions | false |
+| `HUMAN_APPROVAL_TIMEOUT` | Approval timeout (seconds) | 300 |
 
 ### Multi-Tenancy Configuration
 
@@ -342,6 +471,15 @@ kubectl logs -l app.kubernetes.io/component=jira-hygiene-agent -f
 | `HYGIENE_PROJECTS` | Projects to check (comma-separated) | (all) |
 | `SLACK_AGENT_URL` | Slack Agent URL for DMs | http://slack-agent:8084 |
 
+### RCA Agent Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RCA_AUTO_ANALYZE` | Enable auto-analysis | true |
+| `RCA_MAX_LOG_CHARS` | Max log characters | 100000 |
+| `RCA_MAX_DIFF_CHARS` | Max diff characters | 50000 |
+| `SLACK_RELEASE_CHANNEL` | Slack channel for RCA notifications | #release-notifications |
+
 ### Slack Agent Configuration
 
 | Variable | Description | Default |
@@ -363,14 +501,40 @@ kubectl logs -l app.kubernetes.io/component=jira-hygiene-agent -f
 # Orchestrator
 curl http://localhost:8080/health
 
+# Admin Dashboard
+curl http://localhost:8088/health
+
 # Jira Hygiene Agent
 curl http://localhost:8005/health
+
+# RCA Agent
+curl http://localhost:8006/health
 
 # Expected response:
 # {"status": "healthy", "service": "...", "mock_mode": true}
 ```
 
-### 2. Hygiene Agent Scheduler
+### 2. LLM Connection Test
+
+```bash
+# Test via Admin Dashboard API
+curl -X POST http://localhost:8088/llm/test
+
+# Expected response:
+# {"status": "connected", "provider": "openai", "model": "gpt-4o", "latency_ms": 145}
+```
+
+### 3. MCP Tool Discovery
+
+```bash
+# List all discovered MCP tools
+curl http://localhost:8080/tools
+
+# Expected response:
+# {"tools": ["get_ticket", "search_tickets", "analyze_build_failure", ...]}
+```
+
+### 4. Hygiene Agent Scheduler
 
 ```bash
 # Check scheduler status
@@ -379,7 +543,7 @@ curl http://localhost:8005/status
 # Expected: scheduler.running = true, next_run set
 ```
 
-### 3. Test Hygiene Check
+### 5. Test Hygiene Check
 
 ```bash
 # Manual hygiene check (dry run)
@@ -388,13 +552,22 @@ curl -X POST http://localhost:8005/run-check \
   -d '{"project_key": "PROJ", "notify": false, "dry_run": true}'
 ```
 
-### 4. Slack Integration
+### 6. Test LangGraph Execution
+
+```bash
+# Execute a query via LangGraph
+curl -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is the release status for v2.0?"}'
+```
+
+### 7. Slack Integration
 
 1. Send `/nexus help` in Slack
 2. Verify bot responds with command list
 3. Test `/nexus status v1.0`
 
-### 5. Grafana Dashboards
+### 8. Grafana Dashboards
 
 1. Access Grafana at http://localhost:3000
 2. Import `infrastructure/grafana/dashboard.json`
@@ -403,6 +576,38 @@ curl -X POST http://localhost:8005/run-check \
 ---
 
 ## Troubleshooting
+
+### LLM Provider Issues
+
+```bash
+# Check LLM configuration
+curl http://localhost:8088/llm/config
+
+# Test LLM connection
+curl -X POST http://localhost:8088/llm/test
+
+# Common issues:
+# - Invalid API key: Verify in Admin Dashboard
+# - Rate limit: Switch to different provider
+# - Model not found: Check model name is correct
+```
+
+### MCP Connection Issues
+
+```bash
+# Check MCP server status
+curl http://localhost:8001/health  # Jira Agent
+curl http://localhost:8005/health  # Hygiene Agent
+curl http://localhost:8006/health  # RCA Agent
+
+# Test SSE connection
+curl -N http://localhost:8001/sse
+
+# Common issues:
+# - Connection refused: Agent container not running
+# - SSE timeout: Network issues
+# - Tool not found: Agent not exposing tool
+```
 
 ### Hygiene Agent Not Sending Notifications
 
@@ -417,6 +622,20 @@ kubectl logs -l app.kubernetes.io/component=jira-hygiene-agent
 # - SLACK_AGENT_URL not configured
 # - User email doesn't match Jira email
 # - Slack DM permissions not granted
+```
+
+### LangGraph State Issues
+
+```bash
+# Check PostgreSQL connection
+kubectl logs -l app.kubernetes.io/component=orchestrator | grep postgres
+
+# Verify checkpointer is configured
+# LANGGRAPH_CHECKPOINTER should be set
+
+# Common issues:
+# - State not persisting: Check POSTGRES_URL
+# - Thread not found: Thread ID expired
 ```
 
 ### Scheduler Not Running
@@ -448,7 +667,7 @@ kubectl logs -l app.kubernetes.io/component=slack-agent | grep interactions
 kubectl logs -l app.kubernetes.io/component=jira-agent
 
 # Test Jira connectivity
-curl http://localhost:8081/health
+curl http://localhost:8001/health
 
 # Verify credentials
 # Check Jira API token permissions
@@ -511,6 +730,21 @@ groups:
           severity: warning
         annotations:
           summary: "LLM costs exceeded $10 in the last hour"
+          
+      - alert: MCPServerDisconnected
+        expr: nexus_mcp_server_status == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MCP server disconnected"
+          
+      - alert: LangGraphIterationLimit
+        expr: nexus_langgraph_iteration_count > 8
+        labels:
+          severity: warning
+        annotations:
+          summary: "LangGraph execution approaching iteration limit"
 ```
 
 ---
@@ -518,6 +752,7 @@ groups:
 ## Security Checklist
 
 - [ ] JWT secret is strong (32+ characters)
+- [ ] LLM API keys stored securely (not in code)
 - [ ] All API tokens have minimal required permissions
 - [ ] Secrets are managed via Kubernetes Secrets or external vault
 - [ ] Network policies restrict inter-pod communication
@@ -525,3 +760,4 @@ groups:
 - [ ] Pod security policies are configured
 - [ ] Audit logging is enabled
 - [ ] Regular credential rotation is scheduled
+- [ ] MCP endpoints are not publicly exposed
