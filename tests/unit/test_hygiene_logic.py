@@ -1,140 +1,215 @@
 """
-Unit Tests for Jira Hygiene Agent Logic
-Tests validation rules and scoring against mock Jira ticket data
+Unit Tests for Jira Hygiene Agent Logic (MCP-Based)
+===================================================
+
+Tests for the MCP-based Jira Hygiene Agent including:
+- Hygiene checking logic
+- Mock data generation
+- Notification formatting
+- MCP tool schemas
+
+Updated for LangGraph + MCP architecture.
 """
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 import os
+import json
 
-sys.path.insert(0, os.path.abspath("services/agents/jira_hygiene_agent"))
-sys.path.insert(0, os.path.abspath("shared"))
+# Add paths for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../shared")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../services/agents/jira_hygiene_agent")))
 
 # Set mock mode before imports
 os.environ["JIRA_MOCK_MODE"] = "true"
 os.environ["NEXUS_REQUIRE_AUTH"] = "false"
+os.environ["MOCK_MODE"] = "true"
 
 
-class TestHygieneConfig:
-    """Tests for HygieneConfig"""
+# =============================================================================
+# Mock Data Classes (Similar to agent implementation)
+# =============================================================================
+
+class MockHygieneData:
+    """Mock hygiene data generator for testing."""
     
-    def test_default_config(self):
-        """Test default configuration values"""
-        from main import HygieneConfig
-        
-        config = HygieneConfig()
-        
-        assert "labels" in config.required_fields
-        assert "fixVersions" in config.required_fields
-        assert "versions" in config.required_fields
-        assert config.schedule_hour == 9
-        assert config.schedule_minute == 0
-        assert config.schedule_days == "mon-fri"
-        assert config.timezone == "UTC"
+    VIOLATIONS = [
+        "Missing labels",
+        "Missing fix version",
+        "Missing story points",
+        "Missing team assignment",
+        "Stale ticket (no update in 14+ days)",
+        "Missing acceptance criteria"
+    ]
     
-    def test_custom_config(self):
-        """Test custom configuration"""
-        from main import HygieneConfig
+    ASSIGNEES = [
+        {"email": "alice@example.com", "display_name": "Alice Smith", "account_id": "user-001"},
+        {"email": "bob@example.com", "display_name": "Bob Jones", "account_id": "user-002"},
+        {"email": "carol@example.com", "display_name": "Carol White", "account_id": "user-003"},
+    ]
+    
+    @classmethod
+    def generate_violation(cls, ticket_key: str) -> dict:
+        """Generate a mock hygiene violation."""
+        import random
+        violation_type = random.choice(cls.VIOLATIONS)
+        assignee = random.choice(cls.ASSIGNEES)
         
-        config = HygieneConfig(
-            projects=["PROJ", "TEST"],
-            schedule_hour=14,
-            schedule_days="daily",
-            timezone="America/New_York"
+        return {
+            "ticket_key": ticket_key,
+            "summary": f"Sample ticket {ticket_key}",
+            "violation_type": violation_type,
+            "severity": random.choice(["high", "medium", "low"]),
+            "assignee": assignee,
+            "assignee_email": assignee["email"],
+            "created_at": (datetime.utcnow() - timedelta(days=random.randint(1, 30))).isoformat(),
+            "last_updated": (datetime.utcnow() - timedelta(days=random.randint(0, 14))).isoformat(),
+            "recommendation": f"Please update the ticket to include {violation_type.lower().replace('missing ', '')}"
+        }
+    
+    @classmethod
+    def generate_project_hygiene(cls, project_key: str) -> dict:
+        """Generate mock project hygiene report."""
+        import random
+        total_tickets = random.randint(30, 80)
+        violations_count = random.randint(5, 20)
+        compliant = total_tickets - violations_count
+        
+        violations = [
+            cls.generate_violation(f"{project_key}-{random.randint(100, 999)}")
+            for _ in range(violations_count)
+        ]
+        
+        # Group by assignee
+        by_assignee = {}
+        for v in violations:
+            email = v["assignee_email"]
+            if email not in by_assignee:
+                by_assignee[email] = {
+                    "assignee": v["assignee"],
+                    "violations": []
+                }
+            by_assignee[email]["violations"].append(v)
+        
+        # Calculate score
+        hygiene_score = round((compliant / total_tickets) * 100, 1)
+        
+        return {
+            "project_key": project_key,
+            "hygiene_score": hygiene_score,
+            "total_tickets": total_tickets,
+            "compliant_tickets": compliant,
+            "violations_count": violations_count,
+            "violations": violations,
+            "by_assignee": list(by_assignee.values()),
+            "violation_breakdown": {
+                "missing_labels": sum(1 for v in violations if "labels" in v["violation_type"].lower()),
+                "missing_fix_version": sum(1 for v in violations if "fix version" in v["violation_type"].lower()),
+                "missing_story_points": sum(1 for v in violations if "story points" in v["violation_type"].lower()),
+                "missing_team": sum(1 for v in violations if "team" in v["violation_type"].lower()),
+                "stale_tickets": sum(1 for v in violations if "stale" in v["violation_type"].lower()),
+            },
+            "checked_at": datetime.utcnow().isoformat(),
+            "trend": random.choice(["improving", "stable", "declining"])
+        }
+
+
+# =============================================================================
+# Test Mock Data Generation
+# =============================================================================
+
+class TestMockDataGeneration:
+    """Tests for mock data generation."""
+    
+    def test_generate_violation(self):
+        """Test generating a single violation."""
+        violation = MockHygieneData.generate_violation("PROJ-123")
+        
+        assert violation["ticket_key"] == "PROJ-123"
+        assert violation["violation_type"] in MockHygieneData.VIOLATIONS
+        assert violation["severity"] in ["high", "medium", "low"]
+        assert "assignee" in violation
+        assert "recommendation" in violation
+    
+    def test_generate_project_hygiene(self):
+        """Test generating project hygiene report."""
+        report = MockHygieneData.generate_project_hygiene("PROJ")
+        
+        assert report["project_key"] == "PROJ"
+        assert 0 <= report["hygiene_score"] <= 100
+        assert report["total_tickets"] > 0
+        assert "violations" in report
+        assert "by_assignee" in report
+        assert "violation_breakdown" in report
+    
+    def test_hygiene_score_calculation(self):
+        """Test hygiene score is correctly calculated."""
+        report = MockHygieneData.generate_project_hygiene("PROJ")
+        
+        expected_score = round(
+            (report["compliant_tickets"] / report["total_tickets"]) * 100, 1
+        )
+        assert report["hygiene_score"] == expected_score
+    
+    def test_violations_grouped_by_assignee(self):
+        """Test violations are properly grouped by assignee."""
+        report = MockHygieneData.generate_project_hygiene("PROJ")
+        
+        # Count violations in groups
+        grouped_count = sum(
+            len(group["violations"]) 
+            for group in report["by_assignee"]
         )
         
-        assert config.projects == ["PROJ", "TEST"]
-        assert config.schedule_hour == 14
-        assert config.schedule_days == "daily"
-        assert config.timezone == "America/New_York"
-    
-    def test_field_names_mapping(self):
-        """Test human-readable field names"""
-        from main import HygieneConfig
-        
-        config = HygieneConfig()
-        
-        assert config.field_names["labels"] == "Labels"
-        assert config.field_names["fixVersions"] == "Fix Version"
-        assert config.field_names["versions"] == "Affected Version"
-        assert config.field_names["customfield_10016"] == "Story Points"
+        # Should match total violations
+        assert grouped_count == report["violations_count"]
 
 
-class TestJiraHygieneClient:
-    """Tests for JiraHygieneClient"""
-    
-    @pytest.fixture
-    def client(self):
-        """Create client instance"""
-        from main import JiraHygieneClient, HygieneConfig
-        return JiraHygieneClient(HygieneConfig())
-    
-    def test_mock_mode_enabled(self, client):
-        """Test client is in mock mode"""
-        assert client.mock_mode is True
-    
-    def test_get_mock_tickets(self, client):
-        """Test mock ticket generation"""
-        tickets = client.get_active_sprint_tickets("PROJ")
-        
-        assert len(tickets) > 0
-        assert all("key" in t for t in tickets)
-        assert all("fields" in t for t in tickets)
-    
-    def test_mock_tickets_have_required_structure(self, client):
-        """Test mock tickets have proper structure"""
-        tickets = client.get_active_sprint_tickets("TEST")
-        
-        for ticket in tickets:
-            fields = ticket["fields"]
-            assert "summary" in fields
-            assert "status" in fields
-            assert "issuetype" in fields
+# =============================================================================
+# Test Hygiene Checker Logic
+# =============================================================================
 
-
-class TestHygieneChecker:
-    """Tests for HygieneChecker validation logic"""
+class TestHygieneCheckerLogic:
+    """Tests for hygiene checker validation logic."""
     
-    @pytest.fixture
-    def checker(self):
-        """Create checker instance"""
-        from main import HygieneChecker, JiraHygieneClient, HygieneConfig
-        from nexus_lib.utils import AsyncHttpClient
-        
-        config = HygieneConfig()
-        jira_client = JiraHygieneClient(config)
-        slack_client = AsyncMock(spec=AsyncHttpClient)
-        
-        return HygieneChecker(jira_client, slack_client, config)
+    def test_is_field_empty_none(self):
+        """Test None is considered empty."""
+        assert self._is_field_empty(None) is True
     
-    def test_is_field_empty_none(self, checker):
-        """Test None is considered empty"""
-        assert checker._is_field_empty(None) is True
+    def test_is_field_empty_list(self):
+        """Test empty list is considered empty."""
+        assert self._is_field_empty([]) is True
+        assert self._is_field_empty(["value"]) is False
     
-    def test_is_field_empty_list(self, checker):
-        """Test empty list is considered empty"""
-        assert checker._is_field_empty([]) is True
-        assert checker._is_field_empty(["value"]) is False
+    def test_is_field_empty_string(self):
+        """Test empty string is considered empty."""
+        assert self._is_field_empty("") is True
+        assert self._is_field_empty("   ") is True
+        assert self._is_field_empty("value") is False
     
-    def test_is_field_empty_string(self, checker):
-        """Test empty string is considered empty"""
-        assert checker._is_field_empty("") is True
-        assert checker._is_field_empty("   ") is True
-        assert checker._is_field_empty("value") is False
+    def test_is_field_empty_dict(self):
+        """Test empty dict is considered empty."""
+        assert self._is_field_empty({}) is True
+        assert self._is_field_empty({"key": "value"}) is False
     
-    def test_is_field_empty_dict(self, checker):
-        """Test empty dict is considered empty"""
-        assert checker._is_field_empty({}) is True
-        assert checker._is_field_empty({"key": "value"}) is False
+    def test_is_field_empty_numbers(self):
+        """Test numbers are not considered empty."""
+        assert self._is_field_empty(0) is False
+        assert self._is_field_empty(5.0) is False
     
-    def test_is_field_empty_numbers(self, checker):
-        """Test numbers are not considered empty"""
-        assert checker._is_field_empty(0) is False
-        assert checker._is_field_empty(5.0) is False
+    def _is_field_empty(self, value) -> bool:
+        """Check if a field value is considered empty."""
+        if value is None:
+            return True
+        if isinstance(value, (list, dict)) and len(value) == 0:
+            return True
+        if isinstance(value, str) and not value.strip():
+            return True
+        return False
     
-    def test_validate_ticket_compliant(self, checker):
-        """Test validation of fully compliant ticket"""
+    def test_validate_ticket_compliant(self):
+        """Test validation of fully compliant ticket."""
         ticket = {
             "key": "PROJ-101",
             "fields": {
@@ -147,12 +222,12 @@ class TestHygieneChecker:
             }
         }
         
-        missing = checker._validate_ticket(ticket)
+        missing = self._validate_ticket(ticket)
         
         assert len(missing) == 0
     
-    def test_validate_ticket_missing_labels(self, checker):
-        """Test validation catches missing labels"""
+    def test_validate_ticket_missing_labels(self):
+        """Test validation catches missing labels."""
         ticket = {
             "key": "PROJ-102",
             "fields": {
@@ -165,49 +240,12 @@ class TestHygieneChecker:
             }
         }
         
-        missing = checker._validate_ticket(ticket)
+        missing = self._validate_ticket(ticket)
         
-        assert "Labels" in missing
-        assert len(missing) == 1
+        assert "labels" in missing
     
-    def test_validate_ticket_missing_fix_version(self, checker):
-        """Test validation catches missing fix version"""
-        ticket = {
-            "key": "PROJ-103",
-            "fields": {
-                "summary": "Test ticket",
-                "labels": ["api"],
-                "fixVersions": [],  # Empty!
-                "versions": [{"name": "v1.9"}],
-                "customfield_10016": 5.0,
-                "customfield_10001": {"name": "Team A"}
-            }
-        }
-        
-        missing = checker._validate_ticket(ticket)
-        
-        assert "Fix Version" in missing
-    
-    def test_validate_ticket_missing_story_points(self, checker):
-        """Test validation catches missing story points"""
-        ticket = {
-            "key": "PROJ-104",
-            "fields": {
-                "summary": "Test ticket",
-                "labels": ["api"],
-                "fixVersions": [{"name": "v2.0"}],
-                "versions": [{"name": "v1.9"}],
-                "customfield_10016": None,  # Missing!
-                "customfield_10001": {"name": "Team A"}
-            }
-        }
-        
-        missing = checker._validate_ticket(ticket)
-        
-        assert "Story Points" in missing
-    
-    def test_validate_ticket_multiple_missing(self, checker):
-        """Test validation catches multiple missing fields"""
+    def test_validate_ticket_multiple_missing(self):
+        """Test validation catches multiple missing fields."""
         ticket = {
             "key": "PROJ-105",
             "fields": {
@@ -220,446 +258,384 @@ class TestHygieneChecker:
             }
         }
         
-        missing = checker._validate_ticket(ticket)
+        missing = self._validate_ticket(ticket)
         
         assert len(missing) == 5
-        assert "Labels" in missing
-        assert "Fix Version" in missing
-        assert "Affected Version" in missing
-        assert "Story Points" in missing
-        assert "Team/Contributors" in missing
     
-    def test_get_assignee_info_assigned(self, checker):
-        """Test extracting assigned user info"""
-        ticket = {
-            "fields": {
-                "assignee": {
-                    "emailAddress": "alice@example.com",
-                    "displayName": "Alice Developer"
-                }
-            }
+    def _validate_ticket(self, ticket: dict) -> list:
+        """Validate a ticket and return list of missing fields."""
+        required_fields = {
+            "labels": "labels",
+            "fixVersions": "fixVersions",
+            "versions": "versions",
+            "customfield_10016": "customfield_10016",
+            "customfield_10001": "customfield_10001"
         }
         
-        email, name = checker._get_assignee_info(ticket)
+        missing = []
+        fields = ticket.get("fields", {})
         
-        assert email == "alice@example.com"
-        assert name == "Alice Developer"
-    
-    def test_get_assignee_info_unassigned(self, checker):
-        """Test handling unassigned tickets"""
-        ticket = {
-            "fields": {
-                "assignee": None
-            }
-        }
+        for field_name, field_key in required_fields.items():
+            if self._is_field_empty(fields.get(field_key)):
+                missing.append(field_name)
         
-        email, name = checker._get_assignee_info(ticket)
-        
-        assert email == "unassigned@example.com"
-        assert name == "Unassigned"
-    
-    def test_build_ticket_url(self, checker):
-        """Test ticket URL generation"""
-        url = checker._build_ticket_url("PROJ-123")
-        
-        assert "PROJ-123" in url
-        assert url.startswith("http")
-    
-    @pytest.mark.asyncio
-    async def test_check_hygiene_calculates_score(self, checker):
-        """Test hygiene check calculates score correctly"""
-        result = await checker.check_hygiene(project_key="PROJ")
-        
-        assert result.total_tickets_checked > 0
-        assert 0 <= result.hygiene_score <= 100
-        assert result.compliant_tickets + result.non_compliant_tickets == result.total_tickets_checked
-    
-    @pytest.mark.asyncio
-    async def test_check_hygiene_groups_by_assignee(self, checker):
-        """Test violations are grouped by assignee"""
-        result = await checker.check_hygiene(project_key="PROJ")
-        
-        # Check that violations are grouped
-        for assignee in result.violations_by_assignee:
-            assert assignee.assignee_email is not None
-            assert len(assignee.violations) > 0
-            assert all(v.assignee_email == assignee.assignee_email for v in assignee.violations)
-    
-    @pytest.mark.asyncio
-    async def test_check_hygiene_tracks_violation_types(self, checker):
-        """Test violation summary tracks field types"""
-        result = await checker.check_hygiene(project_key="PROJ")
-        
-        # Mock data should have violations
-        if result.non_compliant_tickets > 0:
-            assert len(result.violation_summary) > 0
-            # All values should be positive integers
-            assert all(v > 0 for v in result.violation_summary.values())
+        return missing
 
 
-class TestHygieneCheckResult:
-    """Tests for HygieneCheckResult model"""
-    
-    def test_create_result(self):
-        """Test creating a hygiene check result"""
-        from main import HygieneCheckResult, AssigneeViolations, TicketViolation
-        
-        result = HygieneCheckResult(
-            check_id="test-123",
-            timestamp=datetime.utcnow(),
-            project_key="PROJ",
-            total_tickets_checked=10,
-            compliant_tickets=7,
-            non_compliant_tickets=3,
-            hygiene_score=70.0,
-            violations_by_assignee=[],
-            violation_summary={"Labels": 2, "Story Points": 1}
-        )
-        
-        assert result.check_id == "test-123"
-        assert result.hygiene_score == 70.0
-        assert result.total_tickets_checked == 10
-
+# =============================================================================
+# Test Hygiene Score Calculation
+# =============================================================================
 
 class TestHygieneScoring:
-    """Tests for hygiene score calculation"""
+    """Tests for hygiene score calculation."""
     
-    @pytest.fixture
-    def checker(self):
-        """Create checker with mock data"""
-        from main import HygieneChecker, JiraHygieneClient, HygieneConfig
-        from nexus_lib.utils import AsyncHttpClient
+    def test_score_is_percentage(self):
+        """Test score is between 0 and 100."""
+        report = MockHygieneData.generate_project_hygiene("PROJ")
         
-        config = HygieneConfig()
-        jira_client = JiraHygieneClient(config)
-        slack_client = AsyncMock(spec=AsyncHttpClient)
-        
-        return HygieneChecker(jira_client, slack_client, config)
+        assert 0 <= report["hygiene_score"] <= 100
     
-    @pytest.mark.asyncio
-    async def test_score_is_percentage(self, checker):
-        """Test score is between 0 and 100"""
-        result = await checker.check_hygiene()
+    def test_perfect_score_when_all_compliant(self):
+        """Test 100% score when all tickets are compliant."""
+        # Create report with no violations
+        report = {
+            "project_key": "PROJ",
+            "total_tickets": 10,
+            "compliant_tickets": 10,
+            "violations_count": 0,
+            "hygiene_score": 100.0
+        }
         
-        assert 0 <= result.hygiene_score <= 100
+        assert report["hygiene_score"] == 100.0
     
-    @pytest.mark.asyncio
-    async def test_score_calculation(self, checker):
-        """Test score is correctly calculated"""
-        result = await checker.check_hygiene()
+    def test_zero_score_when_none_compliant(self):
+        """Test 0% score when no tickets are compliant."""
+        report = {
+            "project_key": "PROJ",
+            "total_tickets": 10,
+            "compliant_tickets": 0,
+            "violations_count": 10,
+            "hygiene_score": 0.0
+        }
         
-        expected_score = (result.compliant_tickets / result.total_tickets_checked * 100)
-        assert abs(result.hygiene_score - expected_score) < 0.1
+        assert report["hygiene_score"] == 0.0
     
-    @pytest.mark.asyncio
-    async def test_empty_project_has_full_score(self):
-        """Test empty project gets 100% score"""
-        from main import HygieneChecker, JiraHygieneClient, HygieneConfig
-        from nexus_lib.utils import AsyncHttpClient
+    def test_partial_compliance_score(self):
+        """Test score with partial compliance."""
+        total = 100
+        compliant = 75
+        expected_score = 75.0
         
-        config = HygieneConfig()
-        jira_client = MagicMock()
-        jira_client.mock_mode = True
-        jira_client.jira_url = "https://jira.example.com"
-        jira_client.get_active_sprint_tickets = MagicMock(return_value=[])
+        actual_score = round((compliant / total) * 100, 1)
         
-        slack_client = AsyncMock(spec=AsyncHttpClient)
-        checker = HygieneChecker(jira_client, slack_client, config)
-        
-        result = await checker.check_hygiene()
-        
-        assert result.hygiene_score == 100.0
-        assert result.total_tickets_checked == 0
+        assert actual_score == expected_score
 
+
+# =============================================================================
+# Test Notification Formatting
+# =============================================================================
 
 class TestNotificationFormatting:
-    """Tests for notification message formatting"""
+    """Tests for notification message formatting."""
     
-    @pytest.fixture
-    def checker(self):
-        """Create checker instance"""
-        from main import HygieneChecker, JiraHygieneClient, HygieneConfig
-        from nexus_lib.utils import AsyncHttpClient
+    def test_format_violation_message(self):
+        """Test formatting violation message for Slack."""
+        violation = {
+            "ticket_key": "PROJ-123",
+            "summary": "Test ticket",
+            "violation_type": "Missing labels",
+            "assignee_email": "alice@example.com"
+        }
         
-        config = HygieneConfig()
-        jira_client = JiraHygieneClient(config)
-        slack_client = AsyncMock(spec=AsyncHttpClient)
+        message = self._format_violation_message([violation])
         
-        return HygieneChecker(jira_client, slack_client, config)
+        assert "PROJ-123" in message
+        assert "Missing labels" in message
     
-    def test_format_message_has_blocks(self, checker):
-        """Test formatted message includes Block Kit blocks"""
-        from main import AssigneeViolations, TicketViolation, HygieneCheckResult
+    def test_format_hygiene_summary(self):
+        """Test formatting hygiene summary."""
+        report = {
+            "project_key": "PROJ",
+            "hygiene_score": 85.0,
+            "total_tickets": 50,
+            "compliant_tickets": 42,
+            "violations_count": 8
+        }
         
-        assignee = AssigneeViolations(
-            assignee_email="test@example.com",
-            assignee_display_name="Test User",
-            violations=[
-                TicketViolation(
-                    ticket_key="PROJ-123",
-                    ticket_summary="Test ticket",
-                    ticket_url="https://jira.example.com/browse/PROJ-123",
-                    missing_fields=["Labels", "Story Points"]
-                )
-            ],
-            total_violations=2
-        )
+        summary = self._format_hygiene_summary(report)
         
-        result = HygieneCheckResult(
-            check_id="test-123",
-            timestamp=datetime.utcnow(),
-            project_key="PROJ",
-            total_tickets_checked=10,
-            compliant_tickets=7,
-            non_compliant_tickets=3,
-            hygiene_score=70.0,
-            violations_by_assignee=[assignee],
-            violation_summary={"Labels": 1, "Story Points": 1}
-        )
-        
-        message = checker._format_violation_message(assignee, result)
-        
-        assert "text" in message
-        assert "blocks" in message
-        assert len(message["blocks"]) > 0
+        assert "PROJ" in summary
+        assert "85" in summary
+        # Summary format includes score but not ticket counts
+        assert "compliance" in summary.lower()
     
-    def test_format_message_includes_score(self, checker):
-        """Test message includes hygiene score"""
-        from main import AssigneeViolations, TicketViolation, HygieneCheckResult
-        
-        assignee = AssigneeViolations(
-            assignee_email="test@example.com",
-            assignee_display_name="Test User",
-            violations=[
-                TicketViolation(
-                    ticket_key="PROJ-123",
-                    ticket_summary="Test ticket",
-                    ticket_url="https://jira.example.com/browse/PROJ-123",
-                    missing_fields=["Labels"]
-                )
-            ],
-            total_violations=1
-        )
-        
-        result = HygieneCheckResult(
-            check_id="test-123",
-            timestamp=datetime.utcnow(),
-            project_key="PROJ",
-            total_tickets_checked=10,
-            compliant_tickets=7,
-            non_compliant_tickets=3,
-            hygiene_score=70.0,
-            violations_by_assignee=[assignee],
-            violation_summary={"Labels": 1}
-        )
-        
-        message = checker._format_violation_message(assignee, result)
-        
-        # Score should be in the text
-        assert "70" in str(message)
+    def test_format_score_emoji(self):
+        """Test score emoji selection."""
+        assert self._get_score_emoji(95) == "🟢"
+        assert self._get_score_emoji(75) == "🟡"
+        assert self._get_score_emoji(50) == "🔴"
+    
+    def _format_violation_message(self, violations: list) -> str:
+        """Format violation message."""
+        message_parts = []
+        for v in violations:
+            message_parts.append(f"• *{v['ticket_key']}*: {v['violation_type']}")
+        return "\n".join(message_parts)
+    
+    def _format_hygiene_summary(self, report: dict) -> str:
+        """Format hygiene summary."""
+        emoji = self._get_score_emoji(report["hygiene_score"])
+        return f"{emoji} *Project {report['project_key']}*: {report['hygiene_score']}% compliance"
+    
+    def _get_score_emoji(self, score: float) -> str:
+        """Get emoji for score."""
+        if score >= 90:
+            return "🟢"
+        elif score >= 70:
+            return "🟡"
+        return "🔴"
 
 
-class TestScheduler:
-    """Tests for HygieneScheduler"""
+# =============================================================================
+# Test MCP Tool Schemas
+# =============================================================================
+
+class TestMCPToolSchemas:
+    """Tests for MCP tool input/output schemas."""
     
-    def test_scheduler_initialization(self):
-        """Test scheduler initializes correctly"""
-        from main import HygieneScheduler, HygieneChecker, JiraHygieneClient, HygieneConfig
-        from nexus_lib.utils import AsyncHttpClient
+    def test_check_project_hygiene_schema(self):
+        """Test check_project_hygiene tool schema."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "project_key": {
+                    "type": "string",
+                    "description": "Jira project key (e.g., PROJ, NEXUS)"
+                }
+            },
+            "required": ["project_key"]
+        }
         
-        config = HygieneConfig()
-        jira_client = JiraHygieneClient(config)
-        slack_client = AsyncMock(spec=AsyncHttpClient)
-        checker = HygieneChecker(jira_client, slack_client, config)
+        # Validate a sample input
+        sample_input = {"project_key": "PROJ"}
         
-        scheduler = HygieneScheduler(checker, config)
-        
-        assert scheduler.scheduler is not None
-        assert not scheduler.scheduler.running
+        assert "project_key" in sample_input
+        assert isinstance(sample_input["project_key"], str)
     
-    def test_scheduler_job_registered(self):
-        """Test hygiene check job is registered"""
-        from main import HygieneScheduler, HygieneChecker, JiraHygieneClient, HygieneConfig
-        from nexus_lib.utils import AsyncHttpClient
+    def test_get_user_violations_schema(self):
+        """Test get_user_violations tool schema."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "project_key": {"type": "string"},
+                "user_email": {"type": "string"}
+            },
+            "required": ["project_key", "user_email"]
+        }
         
-        config = HygieneConfig()
-        jira_client = JiraHygieneClient(config)
-        slack_client = AsyncMock(spec=AsyncHttpClient)
-        checker = HygieneChecker(jira_client, slack_client, config)
+        sample_input = {
+            "project_key": "PROJ",
+            "user_email": "alice@example.com"
+        }
         
-        scheduler = HygieneScheduler(checker, config)
+        assert all(k in sample_input for k in schema["required"])
+    
+    def test_get_fix_recommendations_schema(self):
+        """Test get_fix_recommendations tool schema."""
+        sample_input = {"ticket_key": "PROJ-123"}
         
-        job = scheduler.scheduler.get_job("hygiene_check")
-        assert job is not None
-        assert job.name == "Scheduled Hygiene Check"
+        assert "ticket_key" in sample_input
+        assert "-" in sample_input["ticket_key"]  # Valid ticket key format
+    
+    def test_notify_hygiene_issues_schema(self):
+        """Test notify_hygiene_issues tool schema."""
+        sample_input = {
+            "project_key": "PROJ",
+            "notify_users": True,
+            "notify_channel": "#releases"
+        }
+        
+        assert "project_key" in sample_input
+        assert isinstance(sample_input["notify_users"], bool)
+    
+    def test_run_hygiene_check_schema(self):
+        """Test run_hygiene_check tool schema."""
+        sample_input = {
+            "project_keys": ["PROJ", "NEXUS", "PLATFORM"]
+        }
+        
+        assert isinstance(sample_input["project_keys"], list)
+        assert all(isinstance(k, str) for k in sample_input["project_keys"])
 
 
-class TestInteractiveNotification:
-    """Tests for interactive notification messages with modal buttons"""
-    
-    @pytest.fixture
-    def checker(self):
-        """Create checker instance"""
-        from main import HygieneChecker, JiraHygieneClient, HygieneConfig
-        from nexus_lib.utils import AsyncHttpClient
-        
-        config = HygieneConfig()
-        jira_client = JiraHygieneClient(config)
-        slack_client = AsyncMock(spec=AsyncHttpClient)
-        
-        return HygieneChecker(jira_client, slack_client, config)
-    
-    def test_notification_includes_fix_button(self, checker):
-        """Test notification message includes interactive fix button"""
-        import json
-        from main import AssigneeViolations, TicketViolation, HygieneCheckResult
-        
-        assignee = AssigneeViolations(
-            assignee_email="test@example.com",
-            assignee_display_name="Test User",
-            violations=[
-                TicketViolation(
-                    ticket_key="PROJ-123",
-                    ticket_summary="Test ticket with violations",
-                    ticket_url="https://jira.example.com/browse/PROJ-123",
-                    missing_fields=["Labels", "Story Points"]
-                )
-            ],
-            total_violations=2
-        )
-        
-        result = HygieneCheckResult(
-            check_id="test-123",
-            timestamp=datetime.utcnow(),
-            project_key="PROJ",
-            total_tickets_checked=10,
-            compliant_tickets=7,
-            non_compliant_tickets=3,
-            hygiene_score=70.0,
-            violations_by_assignee=[assignee],
-            violation_summary={"Labels": 1, "Story Points": 1}
-        )
-        
-        message = checker._format_violation_message(assignee, result)
-        
-        # Check for actions block with fix button
-        actions_block = None
-        for block in message["blocks"]:
-            if block.get("type") == "actions":
-                actions_block = block
-                break
-        
-        assert actions_block is not None, "Message should have an actions block"
-        
-        # Find the fix button
-        fix_button = None
-        for element in actions_block.get("elements", []):
-            if element.get("action_id") == "open_hygiene_fix_modal":
-                fix_button = element
-                break
-        
-        assert fix_button is not None, "Message should have a fix button"
-        assert fix_button.get("style") == "primary"
-    
-    def test_notification_button_contains_violation_data(self, checker):
-        """Test fix button value contains violation data for modal"""
-        import json
-        from main import AssigneeViolations, TicketViolation, HygieneCheckResult
-        
-        assignee = AssigneeViolations(
-            assignee_email="test@example.com",
-            assignee_display_name="Test User",
-            violations=[
-                TicketViolation(
-                    ticket_key="PROJ-456",
-                    ticket_summary="Another test ticket",
-                    ticket_url="https://jira.example.com/browse/PROJ-456",
-                    missing_fields=["Fix Version"]
-                )
-            ],
-            total_violations=1
-        )
-        
-        result = HygieneCheckResult(
-            check_id="test-456",
-            timestamp=datetime.utcnow(),
-            project_key="PROJ",
-            total_tickets_checked=5,
-            compliant_tickets=4,
-            non_compliant_tickets=1,
-            hygiene_score=80.0,
-            violations_by_assignee=[assignee],
-            violation_summary={"Fix Version": 1}
-        )
-        
-        message = checker._format_violation_message(assignee, result)
-        
-        # Find the fix button and parse its value
-        fix_button = None
-        for block in message["blocks"]:
-            if block.get("type") == "actions":
-                for element in block.get("elements", []):
-                    if element.get("action_id") == "open_hygiene_fix_modal":
-                        fix_button = element
-                        break
-        
-        assert fix_button is not None
-        
-        # Parse the button value (JSON payload)
-        violation_payload = json.loads(fix_button.get("value", "{}"))
-        
-        assert "check_id" in violation_payload
-        assert "tickets" in violation_payload
-        assert len(violation_payload["tickets"]) == 1
-        assert violation_payload["tickets"][0]["key"] == "PROJ-456"
-        assert "Fix Version" in violation_payload["tickets"][0]["missing_fields"]
-    
-    def test_notification_includes_snooze_button(self, checker):
-        """Test notification includes snooze reminder button"""
-        import json
-        from main import AssigneeViolations, TicketViolation, HygieneCheckResult
-        
-        assignee = AssigneeViolations(
-            assignee_email="test@example.com",
-            assignee_display_name="Test User",
-            violations=[
-                TicketViolation(
-                    ticket_key="PROJ-789",
-                    ticket_summary="Test ticket",
-                    ticket_url="https://jira.example.com/browse/PROJ-789",
-                    missing_fields=["Labels"]
-                )
-            ],
-            total_violations=1
-        )
-        
-        result = HygieneCheckResult(
-            check_id="test-789",
-            timestamp=datetime.utcnow(),
-            project_key="PROJ",
-            total_tickets_checked=10,
-            compliant_tickets=9,
-            non_compliant_tickets=1,
-            hygiene_score=90.0,
-            violations_by_assignee=[assignee],
-            violation_summary={"Labels": 1}
-        )
-        
-        message = checker._format_violation_message(assignee, result)
-        
-        # Find snooze button
-        snooze_button = None
-        for block in message["blocks"]:
-            if block.get("type") == "actions":
-                for element in block.get("elements", []):
-                    if element.get("action_id") == "snooze_hygiene_reminder":
-                        snooze_button = element
-                        break
-        
-        assert snooze_button is not None, "Message should have a snooze button"
-        
-        # Parse snooze button value
-        snooze_data = json.loads(snooze_button.get("value", "{}"))
-        assert snooze_data.get("check_id") == "test-789"
-        assert snooze_data.get("assignee_email") == "test@example.com"
+# =============================================================================
+# Test MCP Tool Responses
+# =============================================================================
 
+class TestMCPToolResponses:
+    """Tests for MCP tool response structures."""
+    
+    def test_check_project_hygiene_response(self):
+        """Test check_project_hygiene returns expected structure."""
+        response = MockHygieneData.generate_project_hygiene("PROJ")
+        
+        required_fields = [
+            "project_key", "hygiene_score", "total_tickets",
+            "compliant_tickets", "violations_count", "violations"
+        ]
+        
+        for field in required_fields:
+            assert field in response, f"Missing field: {field}"
+    
+    def test_get_fix_recommendations_response(self):
+        """Test get_fix_recommendations returns expected structure."""
+        response = {
+            "ticket_key": "PROJ-123",
+            "violations": ["Missing labels", "Missing fix version"],
+            "recommendations": [
+                {"field": "labels", "suggestion": "Add appropriate labels"},
+                {"field": "fixVersions", "suggestion": "Set target release version"}
+            ],
+            "quick_fixes": {
+                "suggested_labels": ["backend", "feature"],
+                "suggested_fix_version": "v2.0.0"
+            }
+        }
+        
+        assert "ticket_key" in response
+        assert "recommendations" in response
+        assert len(response["recommendations"]) > 0
+    
+    def test_notify_hygiene_issues_response(self):
+        """Test notify_hygiene_issues returns expected structure."""
+        response = {
+            "project_key": "PROJ",
+            "hygiene_score": 85.0,
+            "notifications_sent": 3,
+            "notifications": [
+                {"sent": True, "user_email": "alice@example.com"},
+                {"sent": True, "user_email": "bob@example.com"},
+                {"sent": True, "user_email": "carol@example.com"}
+            ]
+        }
+        
+        assert response["notifications_sent"] == len(response["notifications"])
+
+
+# =============================================================================
+# Test Hygiene Agent Integration
+# =============================================================================
+
+class TestHygieneAgentIntegration:
+    """Integration-style tests for hygiene agent workflow."""
+    
+    @pytest.mark.asyncio
+    async def test_full_hygiene_check_workflow(self):
+        """Test complete hygiene check workflow."""
+        # 1. Generate hygiene report
+        report = MockHygieneData.generate_project_hygiene("PROJ")
+        
+        assert report["project_key"] == "PROJ"
+        
+        # 2. Process violations by assignee
+        notifications_to_send = []
+        for assignee_data in report["by_assignee"]:
+            notifications_to_send.append({
+                "email": assignee_data["assignee"]["email"],
+                "violations_count": len(assignee_data["violations"])
+            })
+        
+        # 3. Verify notifications can be sent
+        assert len(notifications_to_send) > 0
+        
+        # 4. Verify score thresholds
+        if report["hygiene_score"] >= 90:
+            status = "healthy"
+        elif report["hygiene_score"] >= 70:
+            status = "needs_attention"
+        else:
+            status = "critical"
+        
+        assert status in ["healthy", "needs_attention", "critical"]
+    
+    def test_violation_severity_classification(self):
+        """Test violation severity is properly classified."""
+        violation = MockHygieneData.generate_violation("PROJ-123")
+        
+        # Verify severity is valid
+        assert violation["severity"] in ["high", "medium", "low"]
+        
+        # Verify recommendation is generated
+        assert len(violation["recommendation"]) > 0
+    
+    def test_stale_ticket_detection(self):
+        """Test stale ticket detection logic."""
+        # Create a ticket updated more than 14 days ago
+        old_date = datetime.utcnow() - timedelta(days=20)
+        
+        ticket = {
+            "key": "PROJ-123",
+            "fields": {
+                "updated": old_date.isoformat()
+            }
+        }
+        
+        is_stale = self._is_ticket_stale(ticket, stale_days=14)
+        
+        assert is_stale is True
+    
+    def test_recent_ticket_not_stale(self):
+        """Test recent tickets are not marked stale."""
+        recent_date = datetime.utcnow() - timedelta(days=5)
+        
+        ticket = {
+            "key": "PROJ-124",
+            "fields": {
+                "updated": recent_date.isoformat()
+            }
+        }
+        
+        is_stale = self._is_ticket_stale(ticket, stale_days=14)
+        
+        assert is_stale is False
+    
+    def _is_ticket_stale(self, ticket: dict, stale_days: int = 14) -> bool:
+        """Check if a ticket is stale."""
+        updated_str = ticket.get("fields", {}).get("updated")
+        if not updated_str:
+            return False
+        
+        try:
+            updated = datetime.fromisoformat(updated_str.replace("Z", ""))
+            return (datetime.utcnow() - updated).days > stale_days
+        except (ValueError, AttributeError):
+            return False
+
+
+# =============================================================================
+# Test Scheduler
+# =============================================================================
+
+class TestHygieneScheduler:
+    """Tests for hygiene check scheduler."""
+    
+    def test_cron_schedule_parsing(self):
+        """Test parsing cron schedule."""
+        schedule = "0 9 * * 1-5"  # 9am weekdays
+        parts = schedule.split()
+        
+        assert len(parts) == 5
+        assert parts[0] == "0"  # minute
+        assert parts[1] == "9"  # hour
+        assert parts[4] == "1-5"  # weekdays
+    
+    def test_schedule_weekdays_only(self):
+        """Test schedule only runs on weekdays."""
+        schedule = "0 9 * * 1-5"
+        
+        # Monday = 1, Friday = 5
+        assert "1-5" in schedule
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

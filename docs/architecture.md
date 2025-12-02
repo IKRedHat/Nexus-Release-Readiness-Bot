@@ -4,7 +4,7 @@ This document describes the architecture of the Nexus Release Automation System,
 
 ## System Overview
 
-Nexus is a multi-agent system that uses a ReAct (Reasoning + Acting) architecture to orchestrate specialized agents for release readiness assessments and proactive quality management.
+Nexus v3.0 is an enterprise AI platform built on **LangGraph** for stateful orchestration and the **Model Context Protocol (MCP)** for standardized tool connectivity. It coordinates specialized agents through an MCP Mesh architecture for intelligent release readiness assessments and proactive quality management.
 
 ```mermaid
 flowchart TB
@@ -120,65 +120,80 @@ sequenceDiagram
 
 ## Core Components
 
-### 1. Central Orchestrator
+### 1. Central Orchestrator (LangGraph + MCP Client)
 
-The brain of the system. Receives requests and coordinates multi-agent workflows using the ReAct engine.
+The brain of the system. Built on **LangGraph StateGraph** for durable, stateful workflows with **MCP Client Manager** for tool aggregation.
 
 **Responsibilities:**
-- Parse and understand user queries
-- Plan multi-step execution workflows
-- Coordinate agent interactions
-- Aggregate results and generate responses
-- Maintain conversation context
+- Parse and understand user queries via LLM Factory
+- Plan multi-step execution workflows (planner_node)
+- Execute tools via MCP protocol (agent_node, tool_node)
+- Support human-in-the-loop approvals (human_review_node)
+- Persist conversation state to PostgreSQL
+- Maintain context through vector memory (RAG)
 
 **Technology:**
-- FastAPI for HTTP API
-- Pydantic for data validation
-- OpenTelemetry for distributed tracing
+- **LangGraph** for stateful orchestration
+- **MCP Client Manager** for tool aggregation
+- **LLM Factory** for multi-provider support
+- **AsyncPostgresSaver** for state persistence
+- **FastAPI** for HTTP API
+- **OpenTelemetry** for distributed tracing
 
-### 2. ReAct Reasoning Engine
+### 2. LangGraph StateGraph Engine
 
-The ReAct (Reasoning + Acting) engine implements an LLM-powered reasoning loop that combines thinking with action.
+The orchestrator uses a LangGraph **StateGraph** with multiple nodes for planning, execution, and human review.
 
 ```mermaid
-flowchart LR
-    Query[User Query] --> Think[Thought]
-    Think --> Act[Action]
-    Act --> Observe[Observation]
-    Observe --> Think
-    Think --> Answer[Final Answer]
+stateDiagram-v2
+    [*] --> planner_node: User Query
+    planner_node --> agent_node: Plan Created
+    agent_node --> tool_node: Tool Call Needed
+    tool_node --> agent_node: Observation
+    agent_node --> human_review_node: Approval Required
+    human_review_node --> agent_node: Approved
+    human_review_node --> [*]: Rejected
+    agent_node --> [*]: Final Answer
 ```
 
-**The ReAct Loop:**
+**Graph Nodes:**
 
-1. **Thought**: The LLM reasons about what information is needed
-2. **Action**: Calls a tool to gather data
-3. **Observation**: Reviews the tool's response
-4. **Repeat**: Continue until sufficient information
-5. **Final Answer**: Synthesize and respond
+| Node | Purpose |
+|------|---------|
+| `planner_node` | LLM creates execution plan from user query |
+| `agent_node` | Decides which MCP tool to call next |
+| `tool_node` | Executes tools via MCP protocol |
+| `human_review_node` | Interrupts for high-risk action approval |
 
-**Example Trace:**
+**State Persistence:**
+
+State is persisted to PostgreSQL via `AsyncPostgresSaver`, enabling:
+- **Conversation continuity**: Resume where you left off
+- **Audit trail**: Complete history of tool executions
+- **Human-in-the-loop**: Pause for approval, resume later
+
+**Example Execution:**
 
 ```
 User: "Is the v2.0 release ready?"
 
-Thought: I need to check the Jira sprint status to understand ticket completion.
-Action: get_sprint_stats
-Action Input: {"project_key": "PROJ"}
+[planner_node]
+Plan: ["Check Jira sprint stats", "Check security scan", "Check build status", "Make decision"]
+
+[agent_node] → [tool_node]
+Tool: get_sprint_stats (via MCP)
 Observation: {"completed_tickets": 42, "total_tickets": 45, "completion_rate": 93.3}
 
-Thought: Good progress on tickets. Now I should check security.
-Action: get_security_scan
-Action Input: {"repo_name": "nexus/backend"}
+[agent_node] → [tool_node]
+Tool: get_security_scan (via MCP)
 Observation: {"risk_score": 25, "critical_vulnerabilities": 0, "high_vulnerabilities": 2}
 
-Thought: No critical vulnerabilities. Let me check the build status.
-Action: get_build_status
-Action Input: {"job_name": "nexus-main"}
+[agent_node] → [tool_node]
+Tool: get_build_status (via MCP)
 Observation: {"status": "SUCCESS", "test_results": {"passed": 245, "failed": 0}}
 
-Thought: I have enough information to make a decision.
-Final Answer: The v2.0 release is READY (GO). 93.3% ticket completion, 
+[agent_node]
+Final Answer: The v2.0 release is READY (GO). 93.3% ticket completion,
               no critical vulnerabilities, and all tests passing.
 ```
 
@@ -801,19 +816,29 @@ Structured JSON logging with correlation IDs:
 
 ## Design Decisions
 
-### Why ReAct over Simple Chains?
+### Why LangGraph over Custom ReAct Loops?
 
-1. **Flexibility**: Can handle unexpected scenarios
-2. **Transparency**: Shows reasoning for decisions
-3. **Self-correction**: Can recover from tool failures
-4. **Extensibility**: Easy to add new tools
+1. **Statefulness**: Built-in state persistence to PostgreSQL
+2. **Interruptibility**: Native support for human-in-the-loop
+3. **Streaming**: Real-time progress updates via SSE
+4. **Checkpointing**: Resume conversations after restarts
+5. **Observability**: Built-in tracing and debugging
 
-### Why Separate Agents?
+### Why MCP over REST APIs?
+
+1. **Standardization**: All agents expose tools via the same protocol
+2. **Discoverability**: Tools self-describe with JSON Schema
+3. **Aggregation**: Single client connects to multiple servers
+4. **Graceful Degradation**: Offline servers don't break the graph
+5. **Ecosystem**: Compatible with growing MCP tool ecosystem
+
+### Why Separate Agents as MCP Servers?
 
 1. **Scalability**: Scale agents independently
-2. **Fault Isolation**: Failures don't cascade
+2. **Fault Isolation**: Failures don't cascade to orchestrator
 3. **Technology Flexibility**: Each agent can use optimal libraries
 4. **Team Ownership**: Clear boundaries for teams
+5. **Reusability**: MCP servers can be used by other MCP clients
 
 ### Why Vector Memory?
 
@@ -830,84 +855,217 @@ Structured JSON logging with correlation IDs:
 
 ---
 
-## LLM Integration Layer
+## LLM Integration Layer (LangGraph + LLM Factory)
 
-Nexus provides a production-ready LLM abstraction layer supporting multiple providers.
+Nexus provides a production-ready, **LLM-agnostic** abstraction layer using **LangGraph** for stateful orchestration and a dynamic **LLM Factory** for provider switching. The architecture supports:
+
+- **Dynamic Provider Switching**: Change LLM providers at runtime via Admin Dashboard
+- **Redis-Backed Configuration**: No restart required for configuration changes
+- **LangChain Integration**: Native LangChain Chat Models for all providers
+- **Tool Binding**: Automatic MCP tool binding for function calling
 
 ### Supported Providers
 
-| Provider | Models | Features |
-|----------|--------|----------|
-| **Google Gemini** | gemini-2.0-flash, gemini-1.5-pro | Streaming, function calling, 1M context |
-| **OpenAI** | gpt-4o, gpt-4-turbo, gpt-3.5-turbo | Streaming, function calling |
-| **Mock** | - | Development/testing without API costs |
+| Provider | Models | Features | Config Source |
+|----------|--------|----------|---------------|
+| **OpenAI** | gpt-4o, gpt-4-turbo, o1-preview | Streaming, function calling | API Key |
+| **Azure OpenAI** | gpt-4o, gpt-4-turbo | Streaming, function calling | Endpoint + Key |
+| **Google Gemini** | gemini-2.0-flash, gemini-1.5-pro | Streaming, function calling, 1M context | API Key |
+| **Anthropic Claude** | claude-sonnet-4, claude-3.5-sonnet | Streaming, function calling | API Key |
+| **Ollama** | llama3.1, mistral, codellama | Local inference, no API costs | Base URL |
+| **Groq** | llama-3.1-70b, mixtral-8x7b | Ultra-fast LPU inference | API Key |
+| **vLLM** | Self-hosted models | OpenAI-compatible, high throughput | Base URL |
+| **Mock** | - | Development/testing without API costs | None |
 
-### LLM Client Architecture
+### LLM Factory Architecture
 
 ```mermaid
 flowchart TB
+    subgraph AdminDashboard["Admin Dashboard"]
+        UI[Model Configuration UI]
+        Save[Save to Redis]
+    end
+    
+    subgraph Redis["Redis Configuration"]
+        Provider[nexus:config:llm_provider]
+        Model[nexus:config:llm_model]
+        APIKey[nexus:config:*_api_key]
+    end
+    
     subgraph Factory["LLM Factory"]
-        Config[LLMConfig]
-        Create[create_llm_client]
+        GetConfig[Fetch Config]
+        Create[Create LangChain Model]
+        Cache[Model Cache]
     end
     
-    subgraph Clients["LLM Clients"]
-        Gemini[GeminiClient]
-        OpenAI[OpenAIClient]
-        Mock[MockClient]
+    subgraph Providers["LangChain Providers"]
+        ChatOpenAI[ChatOpenAI]
+        ChatGoogleGenerativeAI[ChatGoogleGenerativeAI]
+        ChatAnthropic[ChatAnthropic]
+        ChatOllama[ChatOllama]
+        ChatGroq[ChatGroq]
+        MockChat[MockChatModel]
     end
     
-    subgraph Features["Features"]
-        Gen[generate]
-        Chat[chat]
-        Stream[stream]
-        Embed[embed]
+    subgraph LangGraph["LangGraph Orchestrator"]
+        Graph[StateGraph]
+        Nodes[Planner/Agent/Tool Nodes]
+        Persist[PostgresSaver]
     end
     
-    Config --> Create
-    Create --> Gemini
-    Create --> OpenAI
-    Create --> Mock
-    
-    Gemini --> Features
-    OpenAI --> Features
-    Mock --> Features
+    UI --> Save
+    Save --> Redis
+    Redis --> GetConfig
+    GetConfig --> Create
+    Create --> Cache
+    Cache --> Providers
+    Providers --> LangGraph
+    Graph --> Nodes
+    Nodes --> Persist
 ```
 
-### Configuration
+### LangGraph StateGraph Architecture
 
-```python
-from nexus_lib.llm import create_llm_client, LLMConfig
+The orchestrator uses LangGraph's `StateGraph` for stateful, interruptible workflows:
 
-# From environment (recommended)
-client = create_llm_client()  # Uses LLM_PROVIDER, LLM_MODEL, LLM_API_KEY
-
-# Explicit configuration
-config = LLMConfig(
-    provider="google",
-    model="gemini-2.0-flash",
-    api_key="your-api-key",
-    temperature=0.7,
-    max_tokens=4096,
-)
-client = create_llm_client(**config.dict())
+```mermaid
+stateDiagram-v2
+    [*] --> planner_node
+    planner_node --> agent_node: Plan created
+    agent_node --> tool_node: Tool call needed
+    tool_node --> agent_node: Observation received
+    agent_node --> human_node: Approval required
+    human_node --> agent_node: Approved
+    agent_node --> [*]: Final answer
 ```
 
-### Usage Example
+**State Schema:**
 
 ```python
-# Simple generation
-response = await client.generate(
-    prompt="Is the v2.0 release ready?",
-    system_prompt="You are a release automation assistant."
-)
-print(response.content)
-print(f"Tokens: {response.usage.total_tokens}")
-print(f"Cost: ${response.usage.cost_estimate:.4f}")
+class AgentState(TypedDict):
+    messages: Annotated[list, add_messages]  # Chat history
+    plan_id: str                              # Current plan ID
+    human_approval_required: bool             # Interrupt flag
+    current_step: int                         # Execution step
+    tools_called: list[str]                   # Tool audit trail
+```
 
-# Streaming
-async for chunk in client.stream("Summarize the release status"):
-    print(chunk, end="")
+**Graph Nodes:**
+
+| Node | Purpose |
+|------|---------|
+| `planner_node` | Uses LLM to break user query into steps |
+| `agent_node` | Decides which tool to call next |
+| `tool_node` | Executes tools via MCP |
+| `human_node` | Interrupt for high-risk actions |
+
+### Dynamic Configuration via Admin Dashboard
+
+The Admin Dashboard provides a visual interface for LLM configuration:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  🤖 Model Configuration                                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Provider Selection                                       │   │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐        │   │
+│  │  │ OpenAI  │ │ Gemini ✓│ │Anthropic│ │ Ollama  │        │   │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘        │   │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐        │   │
+│  │  │  Groq   │ │  vLLM   │ │Azure OAI│ │  Mock   │        │   │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘        │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Model: [gemini-2.0-flash         ▼]                      │   │
+│  │                                                           │   │
+│  │  API Key: [••••••••••••••••••] 👁                         │   │
+│  │                                                           │   │
+│  │  Temperature: [0.7] ────●──────────────                   │   │
+│  │  Max Tokens:  [4096            ]                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  [Test Connection]                    [Save Configuration]       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### LLM Factory Usage
+
+```python
+from app.core.llm_factory import LLMFactory, get_llm, get_llm_with_tools
+
+# Get the factory singleton
+factory = LLMFactory()
+
+# Get LLM based on current Redis configuration
+llm = await factory.get_llm()
+
+# Use with LangChain
+response = await llm.ainvoke([
+    SystemMessage(content="You are a release automation assistant."),
+    HumanMessage(content="Is the v2.0 release ready?")
+])
+
+# Get LLM with MCP tools bound
+from app.core.mcp_manager import MCPClientManager
+
+mcp = MCPClientManager()
+tools = await mcp.get_all_tools()
+llm_with_tools = await factory.get_llm_with_tools(tools)
+
+# Use in LangGraph
+from langgraph.graph import StateGraph
+
+def agent_node(state: AgentState):
+    llm = await get_llm()
+    response = await llm.ainvoke(state["messages"])
+    return {"messages": [response]}
+```
+
+### Provider-Specific Configuration
+
+Each provider has specific configuration requirements stored in Redis:
+
+| Provider | Redis Keys |
+|----------|------------|
+| OpenAI | `nexus:config:openai_api_key`, `nexus:config:openai_org` |
+| Azure OpenAI | `nexus:config:openai_api_key`, `nexus:config:azure_openai_endpoint`, `nexus:config:azure_openai_deployment` |
+| Gemini | `nexus:config:gemini_api_key` |
+| Anthropic | `nexus:config:anthropic_api_key` |
+| Ollama | `nexus:config:ollama_base_url` |
+| Groq | `nexus:config:groq_api_key` |
+| vLLM | `nexus:config:vllm_base_url` |
+
+### MCP Tool Integration
+
+Tools are exposed via **Model Context Protocol (MCP)** using SSE transport:
+
+```mermaid
+flowchart LR
+    subgraph MCPServers["MCP Servers (SSE)"]
+        JiraMCP[Jira MCP Server]
+        GitHubMCP[GitHub MCP Server]
+        SlackMCP[Slack MCP Server]
+        JenkinsMCP[Jenkins MCP Server]
+    end
+    
+    subgraph MCPClient["MCP Client Manager"]
+        Aggregate[Tool Aggregator]
+        Bind[LangChain Tool Binding]
+    end
+    
+    subgraph LLM["LLM with Tools"]
+        Model[Chat Model]
+        FunctionCall[Function Calling]
+    end
+    
+    MCPServers --> Aggregate
+    Aggregate --> Bind
+    Bind --> Model
+    Model --> FunctionCall
+    FunctionCall --> MCPServers
 ```
 
 ---

@@ -4,17 +4,19 @@
 
 <img src="docs/assets/mockups/nexus-logo.svg" alt="Nexus Logo" width="200" onerror="this.style.display='none'"/>
 
-### **Intelligent Multi-Agent System for Automated Release Readiness Assessments**
+### **Enterprise AI Platform for Automated Release Readiness Assessments**
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue?style=for-the-badge)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.10+-green?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/actions)
-[![LLM](https://img.shields.io/badge/LLM-Gemini%202.0-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-FF6F00?style=for-the-badge&logo=langchain)](https://langchain.com/langgraph)
+[![MCP](https://img.shields.io/badge/MCP-Tool%20Mesh-8B5CF6?style=for-the-badge)](https://modelcontextprotocol.io)
+[![LLM](https://img.shields.io/badge/LLM-Multi--Provider-4285F4?style=for-the-badge&logo=openai)](https://ai.google.dev/)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED?style=for-the-badge&logo=docker)](https://docker.com)
 [![Kubernetes](https://img.shields.io/badge/k8s-helm-326CE5?style=for-the-badge&logo=kubernetes)](https://kubernetes.io)
 
-*Transform your release process with AI-powered automation, real-time insights, and intelligent decision-making.*
+*Transform your release process with AI-powered automation, LangGraph orchestration, and the Model Context Protocol.*
 
 [📚 Documentation](docs/index.md) • [🚀 Quick Start](#-quick-start) • [💬 Slack Commands](#-slack-integration) • [📊 Demo](demo/feature_walkthrough_script.md)
 
@@ -24,9 +26,20 @@
 
 ## 🎯 What is Nexus?
 
-**Nexus** is an enterprise-grade, AI-powered release automation platform that revolutionizes how teams manage software releases. Using a sophisticated **ReAct (Reasoning + Acting)** architecture powered by Google Gemini, Nexus coordinates specialized agents to deliver intelligent **Go/No-Go release decisions** through natural language conversations.
+**Nexus** is an enterprise-grade, AI-powered release automation platform that revolutionizes how teams manage software releases. Built on **LangGraph** for stateful orchestration and the **Model Context Protocol (MCP)** for standardized tool connectivity, Nexus coordinates specialized agents to deliver intelligent **Go/No-Go release decisions** through natural language conversations.
 
 > **"Is v2.0 ready for release?"** — Ask Nexus in plain English, and get a comprehensive analysis of your Jira tickets, CI/CD pipelines, security scans, and code quality metrics in seconds.
+
+### 🌟 What's New in v3.0
+
+| Feature | Description |
+|---------|-------------|
+| **🧠 LangGraph Engine** | Stateful orchestration with PostgreSQL persistence, replacing custom ReAct loops |
+| **🔌 MCP Tool Mesh** | Standardized tool protocol for seamless agent connectivity over SSE |
+| **🏭 LLM Factory** | Multi-provider support: OpenAI, Google Gemini, Ollama, Azure OpenAI |
+| **🎛️ Admin Dashboard** | React UI for managing LLM configuration and MCP server endpoints |
+| **🔍 Enhanced RCA** | AI-powered root cause analysis with auto-triggered Jenkins webhooks |
+| **📊 Jira Hygiene** | Proactive data quality checks with interactive Slack modals |
 
 ### 🌟 Why Choose Nexus?
 
@@ -38,6 +51,8 @@
 | **Jira Hygiene** | Periodic manual audits | Proactive daily checks with auto-fix |
 | **Stakeholder Updates** | Email chains, status meetings | Real-time Slack notifications |
 | **Decision Making** | Gut feeling, incomplete data | Data-driven Go/No-Go with confidence scores |
+| **Tool Integration** | Custom REST APIs, maintenance burden | Standardized MCP protocol |
+| **LLM Lock-in** | Single provider dependency | Multi-provider LLM Factory |
 
 ---
 
@@ -47,20 +62,41 @@
 <tr>
 <td width="50%">
 
-### 🧠 **AI-Powered Intelligence**
-- **ReAct Engine**: Transparent reasoning with thought → action → observation loops
-- **Google Gemini 2.0**: State-of-the-art LLM with streaming and function calling
-- **Smart Recommendations**: Pattern-based suggestions from historical data
-- **Root Cause Analysis**: Automatic build failure diagnosis with fix suggestions
+### 🧠 **LangGraph Orchestration**
+- **StateGraph**: Durable workflows with plan → act → review nodes
+- **PostgreSQL Persistence**: Resume conversations across restarts
+- **Human-in-the-Loop**: Approval workflows for sensitive actions
+- **Streaming**: Real-time progress updates via SSE
+
+</td>
+<td width="50%">
+
+### 🔌 **MCP Tool Mesh**
+- **Standardized Protocol**: All agents expose tools via MCP
+- **SSE Transport**: Efficient streaming over HTTP
+- **Tool Aggregation**: Single interface to all connected servers
+- **Graceful Degradation**: Offline servers don't break the graph
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🏭 **LLM Factory**
+- **OpenAI**: GPT-4o, GPT-4-turbo
+- **Google Gemini**: 2.0 Flash, 1.5 Pro
+- **Ollama**: Local models (Llama 3, Mistral)
+- **Azure OpenAI**: Enterprise deployments
+- **Runtime Switching**: Change providers via Admin UI
 
 </td>
 <td width="50%">
 
 ### 🎛️ **Admin Dashboard**
-- **Web-based UI**: Modern React dashboard for system management
-- **Dynamic Configuration**: Change settings without service restarts
-- **Live Mode Switching**: Toggle Mock/Production instantly
-- **Release Management**: Track versions, dates, and metrics from external sources
+- **React + FastAPI**: Modern single-page application
+- **Redis Configuration**: Dynamic settings without restarts
+- **MCP Server Management**: Add/remove tool servers
+- **Live Mode Toggle**: Instant Mock/Production switching
 
 </td>
 </tr>
@@ -68,7 +104,7 @@
 <td width="50%">
 
 ### 📊 **Advanced Analytics**
-- **DORA Metrics**: Deployment frequency, lead time, MTTR, change failure rate
+- **DORA Metrics**: Deployment frequency, lead time, MTTR
 - **Predictive Analytics**: ML-powered release date predictions
 - **Anomaly Detection**: Automatic identification of unusual patterns
 - **Team Performance**: Velocity and quality comparisons
@@ -80,28 +116,7 @@
 - **Natural Language**: Ask questions in plain English
 - **App Home Dashboard**: Rich widgets with quick actions
 - **Interactive Modals**: Fix Jira tickets directly from Slack
-- **Proactive Notifications**: RCA results, hygiene alerts, release updates
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 🔗 **Multi-Tool Integration**
-- **Jira**: Tickets, epics, sprints, story points
-- **GitHub**: PRs, commits, code reviews
-- **Jenkins**: Builds, artifacts, console logs
-- **Confluence**: Auto-publish release reports
-- **Smartsheet**: Import release schedules
-
-</td>
-<td width="50%">
-
-### 🏢 **Enterprise Ready**
-- **Multi-Tenant**: Organization isolation with plan tiers
-- **JWT Authentication**: Secure inter-service communication
-- **Full Observability**: Prometheus, Grafana, OpenTelemetry
-- **Kubernetes Native**: Production-ready Helm charts
+- **Proactive Notifications**: RCA results, hygiene alerts
 
 </td>
 </tr>
@@ -111,42 +126,48 @@
 
 ## 🏗️ Architecture Overview
 
-Nexus uses a **Hub-and-Spoke** architecture where the Central Orchestrator coordinates specialized agents:
+Nexus v3.0 uses a **LangGraph + MCP Mesh** architecture where the Central Orchestrator coordinates specialized agents via the Model Context Protocol:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                           USER INTERFACES                                        │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
 │  │  Slack App      │  │  Admin Dashboard│  │  REST API                       │  │
-│  │  - Commands     │  │  - Config UI    │  │  - /query                       │  │
-│  │  - App Home     │  │  - Health       │  │  - /reports                     │  │
-│  │  - Modals       │  │  - Releases     │  │  - /agents/*                    │  │
+│  │  - Commands     │  │  - LLM Config   │  │  - /query                       │  │
+│  │  - App Home     │  │  - MCP Servers  │  │  - /execute                     │  │
+│  │  - Modals       │  │  - Health       │  │  - /approve                     │  │
 │  └────────┬────────┘  └────────┬────────┘  └────────────────┬────────────────┘  │
 └───────────┼─────────────────────┼───────────────────────────┼───────────────────┘
             │                     │                           │
             └─────────────────────┼───────────────────────────┘
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        CENTRAL ORCHESTRATOR                                      │
+│                     CENTRAL ORCHESTRATOR (LangGraph)                            │
 │  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │                        ReAct Engine (Gemini 2.0)                          │  │
-│  │  ┌─────────┐    ┌─────────┐    ┌─────────────┐    ┌─────────────────┐    │  │
-│  │  │ Thought │ -> │  Action │ -> │ Observation │ -> │  Final Answer   │    │  │
-│  │  └─────────┘    └─────────┘    └─────────────┘    └─────────────────┘    │  │
+│  │                         StateGraph Engine                                  │  │
+│  │  ┌─────────┐    ┌─────────┐    ┌───────────────┐    ┌─────────────────┐   │  │
+│  │  │  Plan   │ -> │   Act   │ -> │ Human Review  │ -> │    Respond      │   │  │
+│  │  │  Node   │    │  Node   │    │    Node       │    │    Node         │   │  │
+│  │  └─────────┘    └─────────┘    └───────────────┘    └─────────────────┘   │  │
 │  └───────────────────────────────────────────────────────────────────────────┘  │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐   │
-│  │Vector Memory│  │AI Recommender│  │ Multi-Tenancy │  │ Tool Registry    │   │
-│  └─────────────┘  └──────────────┘  └───────────────┘  └──────────────────┘   │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐  ┌──────────────────┐  │
+│  │ LLM Factory │  │ MCP Client   │  │ PostgreSQL     │  │ Vector Memory    │  │
+│  │ (Multi-LLM) │  │   Manager    │  │ Checkpoints    │  │ (RAG)            │  │
+│  └─────────────┘  └──────────────┘  └────────────────┘  └──────────────────┘  │
 └─────────────────────────────────────┬───────────────────────────────────────────┘
+                                      │
+                         MCP Protocol (SSE)
                                       │
         ┌─────────────┬───────────────┼───────────────┬─────────────┐
         ▼             ▼               ▼               ▼             ▼
 ┌─────────────┐ ┌───────────┐ ┌─────────────┐ ┌───────────┐ ┌─────────────┐
-│ Jira Agent  │ │ Git/CI    │ │ Reporting   │ │ Hygiene   │ │ RCA Agent   │
-│             │ │ Agent     │ │ Agent       │ │ Agent     │ │             │
-│ - Tickets   │ │ - PRs     │ │ - HTML      │ │ - Checks  │ │ - Log Parse │
-│ - Sprints   │ │ - Builds  │ │ - Confluence│ │ - Scoring │ │ - Git Diff  │
-│ - Hierarchy │ │ - Commits │ │ - Preview   │ │ - DM      │ │ - LLM Fix   │
+│ Jira MCP    │ │ Git/CI    │ │ Reporting   │ │ Hygiene   │ │ RCA MCP     │
+│ Server      │ │ MCP Server│ │ MCP Server  │ │ MCP Server│ │ Server      │
+│             │ │           │ │             │ │           │ │             │
+│ @tool:      │ │ @tool:    │ │ @tool:      │ │ @tool:    │ │ @tool:      │
+│ get_issue   │ │ get_pr    │ │ generate    │ │ check_    │ │ analyze_    │
+│ search      │ │ trigger   │ │ publish     │ │ hygiene   │ │ build       │
+│ update      │ │ get_build │ │ analyze     │ │           │ │             │
 └──────┬──────┘ └─────┬─────┘ └──────┬──────┘ └─────┬─────┘ └──────┬──────┘
        │              │              │              │              │
        ▼              ▼              ▼              ▼              ▼
@@ -155,15 +176,26 @@ Nexus uses a **Hub-and-Spoke** architecture where the Central Orchestrator coord
 │    Cloud    │ │  Jenkins  │ │             │ │           │ │             │
 └─────────────┘ └───────────┘ └─────────────┘ └───────────┘ └─────────────┘
 
-                        SUPPORTING SERVICES
+                        INFRASTRUCTURE LAYER
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐    │
-│  │  Analytics  │  │  Webhooks   │  │   Redis     │  │    PostgreSQL       │    │
-│  │  - DORA     │  │  - Events   │  │  - Config   │  │    - Data Store     │    │
-│  │  - Predict  │  │  - Delivery │  │  - Cache    │  │    - Tenant Data    │    │
+│  │   Redis     │  │ PostgreSQL  │  │ Prometheus  │  │    Grafana          │    │
+│  │  - Config   │  │  - State    │  │  - Metrics  │  │  - Dashboards       │    │
+│  │  - Cache    │  │  - Vectors  │  │             │  │                     │    │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Architecture Highlights
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Orchestrator** | LangGraph StateGraph | Stateful workflow orchestration |
+| **Tool Protocol** | MCP over SSE | Standardized agent connectivity |
+| **LLM Layer** | LLM Factory Pattern | Multi-provider model support |
+| **State Store** | PostgreSQL + pgvector | Checkpoints + RAG embeddings |
+| **Config Store** | Redis | Dynamic configuration |
+| **Observability** | OpenTelemetry + Prometheus | Metrics and tracing |
 
 ---
 
@@ -176,6 +208,7 @@ Nexus uses a **Hub-and-Spoke** architecture where the Central Orchestrator coord
 | Python | 3.10+ | Runtime |
 | Docker | 20.10+ | Containerization |
 | Docker Compose | 2.0+ | Local orchestration |
+| Node.js | 18+ | MCP sidecar servers (optional) |
 | Git | 2.0+ | Source control |
 
 ### Option 1: One-Click Setup (Recommended)
@@ -192,26 +225,34 @@ cd Nexus-Release-Readiness-Bot
 The setup script automatically:
 - ✅ Validates all prerequisites
 - ✅ Creates Python virtual environment
-- ✅ Installs dependencies
+- ✅ Installs dependencies (including LangGraph, MCP SDK)
 - ✅ Configures environment variables
-- ✅ Builds and starts Docker services
+- ✅ Starts Redis and PostgreSQL
+- ✅ Builds and starts all MCP servers
 - ✅ Runs health verification
 
 **Setup Options:**
 ```bash
-./scripts/setup.sh --help        # Show all options
-./scripts/setup.sh --dev         # Include dev tools (pytest, black, mypy)
-./scripts/setup.sh --skip-docker # Python setup only
-./scripts/setup.sh --clean       # Fresh install
+./scripts/setup.sh --help           # Show all options
+./scripts/setup.sh --dev            # Include dev tools
+./scripts/setup.sh --with-ollama    # Include local Ollama LLM
+./scripts/setup.sh --with-observability  # Include Prometheus/Grafana
+./scripts/setup.sh --clean          # Fresh install
 ```
 
 ### Option 2: Docker Compose
 
 ```bash
-# Clone and start
+# Clone and start core services
 git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
 cd Nexus-Release-Readiness-Bot
 docker-compose up -d
+
+# Start with observability stack
+docker-compose --profile observability up -d
+
+# Start with local LLM (Ollama)
+docker-compose --profile local-llm up -d
 
 # Verify
 docker-compose ps
@@ -228,10 +269,16 @@ source venv/bin/activate
 # Install shared library
 pip install -e shared/
 
+# Install LangGraph and MCP dependencies
+pip install langgraph langchain-core mcp sse-starlette
+
 # Install service dependencies
 pip install -r services/orchestrator/requirements.txt
 
-# Start a service
+# Start Redis and PostgreSQL
+docker-compose up -d redis postgres
+
+# Start the orchestrator
 cd services/orchestrator
 uvicorn main:app --reload --port 8080
 ```
@@ -244,11 +291,13 @@ Once running, access these services:
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Orchestrator API** | http://localhost:8080/docs | Central brain, query endpoint |
-| **Admin Dashboard** | http://localhost:8088 | Web UI for configuration |
-| **Jira Hygiene Agent** | http://localhost:8005/docs | Proactive quality checks |
-| **RCA Agent** | http://localhost:8006/docs | Build failure analysis |
-| **Analytics Service** | http://localhost:8086/docs | DORA metrics & predictions |
+| **Orchestrator API** | http://localhost:8080/docs | LangGraph brain, /execute endpoint |
+| **Admin Dashboard** | http://localhost:3001 | LLM & MCP configuration UI |
+| **Jira MCP Server** | http://localhost:8081/mcp/tools | Jira tool definitions |
+| **Git/CI MCP Server** | http://localhost:8082/mcp/tools | GitHub + Jenkins tools |
+| **Reporting MCP Server** | http://localhost:8083/mcp/tools | Confluence publishing |
+| **Hygiene MCP Server** | http://localhost:8005/mcp/tools | Data quality checks |
+| **RCA MCP Server** | http://localhost:8006/mcp/tools | Build failure analysis |
 | **Grafana** | http://localhost:3000 | Dashboards (admin/nexus_admin) |
 | **Prometheus** | http://localhost:9090 | Metrics |
 | **Jaeger** | http://localhost:16686 | Distributed tracing |
@@ -256,9 +305,161 @@ Once running, access these services:
 ### Try Your First Query
 
 ```bash
+# Simple query
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
   -d '{"query": "Is the v2.0 release ready?"}'
+
+# With thread persistence (for follow-up questions)
+curl -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What are the open blockers?", "thread_id": "my-session-123"}'
+
+# Check thread state
+curl http://localhost:8080/thread/my-session-123
+```
+
+### List Available MCP Tools
+
+```bash
+# Get all connected tools
+curl http://localhost:8080/mcp/tools
+```
+
+---
+
+## 🔌 MCP Server Architecture
+
+Nexus agents expose their capabilities via the Model Context Protocol:
+
+### Custom Python MCP Servers
+
+| Server | Port | Tools |
+|--------|------|-------|
+| **jira_agent** | 8081 | `get_jira_issue`, `search_jira_issues`, `update_jira_issue_status`, `add_jira_comment`, `get_jira_sprint_stats` |
+| **git_ci_agent** | 8082 | `get_repo_health`, `get_pr_status`, `list_open_prs`, `trigger_jenkins_build`, `get_jenkins_build_status`, `get_security_scan_results` |
+| **reporting_agent** | 8083 | `generate_release_report_html`, `publish_confluence_report`, `analyze_release_readiness` |
+| **jira_hygiene_agent** | 8005 | `check_project_hygiene` |
+| **rca_agent** | 8006 | `analyze_build_failure` |
+
+### Tool Definition Example
+
+Each MCP server exposes tools with JSON Schema definitions:
+
+```json
+{
+  "name": "get_jira_issue",
+  "description": "Fetch a single Jira issue by its key.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "key": {"type": "string", "description": "The Jira ticket key (e.g., PROJ-123)."}
+    },
+    "required": ["key"]
+  },
+  "output_schema": {...}
+}
+```
+
+---
+
+## 🧠 LangGraph Workflow
+
+The orchestrator uses a LangGraph StateGraph with the following nodes:
+
+```
+         ┌─────────────────┐
+         │     START       │
+         └────────┬────────┘
+                  │
+                  ▼
+         ┌─────────────────┐
+         │      PLAN       │ ← LLM creates execution plan
+         └────────┬────────┘
+                  │
+         ┌────────┴────────┐
+         │                 │
+    (has tools)      (no tools)
+         │                 │
+         ▼                 │
+┌─────────────────┐        │
+│      ACTION     │ ← Execute MCP tools
+└────────┬────────┘        │
+         │                 │
+    ┌────┴────┐            │
+    │         │            │
+(more)    (done)           │
+    │         │            │
+    ▼         ▼            │
+   LOOP   ┌─────────┐      │
+          │ REVIEW  │ ← Human approval (if sensitive)
+          └────┬────┘      │
+               │           │
+         ┌─────┴─────┐     │
+         │           │     │
+     (approved)  (rejected)│
+         │           │     │
+         ▼           ▼     │
+         │     ┌─────────┐ │
+         │     │  ERROR  │ │
+         │     └─────────┘ │
+         │                 │
+         └────────┬────────┘
+                  │
+                  ▼
+         ┌─────────────────┐
+         │     RESPOND     │ ← Generate final answer
+         └────────┬────────┘
+                  │
+                  ▼
+         ┌─────────────────┐
+         │       END       │
+         └─────────────────┘
+```
+
+### State Persistence
+
+LangGraph state is persisted to PostgreSQL, enabling:
+- **Resume conversations**: Pick up where you left off
+- **Audit trail**: Complete history of tool executions
+- **Human-in-the-loop**: Pause for approval, resume later
+
+---
+
+## 🏭 LLM Factory Configuration
+
+Configure your preferred LLM provider via the Admin Dashboard or environment variables:
+
+### Supported Providers
+
+| Provider | Models | Environment Variables |
+|----------|--------|----------------------|
+| **OpenAI** | gpt-4o, gpt-4-turbo, gpt-3.5-turbo | `LLM_PROVIDER=openai`, `OPENAI_API_KEY` |
+| **Google Gemini** | gemini-2.0-flash, gemini-1.5-pro | `LLM_PROVIDER=google`, `GOOGLE_API_KEY` |
+| **Ollama** | llama3, mistral, codellama | `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL` |
+| **Azure OpenAI** | Any Azure deployment | `LLM_PROVIDER=azure`, `AZURE_OPENAI_*` |
+| **Mock** | (Development) | `LLM_PROVIDER=mock` |
+
+### Runtime Configuration
+
+Change providers without restart via Admin Dashboard or API:
+
+```bash
+# Set LLM provider via Admin API
+curl -X POST http://localhost:3001/api/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "nexus:config:llm_provider",
+    "value": "openai"
+  }'
+
+# Set API key
+curl -X POST http://localhost:3001/api/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "nexus:config:openai_api_key",
+    "value": "sk-..."
+  }'
 ```
 
 ---
@@ -277,15 +478,6 @@ curl -X POST http://localhost:8080/query \
 | `/nexus hygiene <project>` | Run hygiene check | `/nexus hygiene PROJ` |
 | `/nexus help` | Show all commands | `/nexus help` |
 
-### Slack App Home
-
-The App Home provides a rich dashboard with:
-- 📊 Release readiness overview
-- 🎯 Quick action buttons
-- 📋 Recent activities
-- ⚠️ Active blockers
-- 📈 Hygiene score widget
-
 ### Interactive Notifications
 
 Nexus sends proactive notifications:
@@ -299,72 +491,32 @@ Nexus sends proactive notifications:
 
 The Admin Dashboard provides a web-based interface for managing Nexus:
 
-![Admin Dashboard](docs/assets/mockups/admin-dashboard.svg)
-
 ### Features
 
 | Tab | Functionality |
 |-----|---------------|
-| **Dashboard** | System overview, agent health, quick actions |
-| **Releases** | Track versions, target dates, import from Smartsheet/CSV |
+| **Dashboard** | System overview, MCP server health, quick actions |
+| **LLM Config** | Select provider, set API keys, test connectivity |
+| **MCP Servers** | View connected servers, available tools, health status |
+| **Releases** | Track versions, target dates, import from external sources |
 | **Observability** | Metrics, charts, LLM usage, integrated Grafana |
-| **Health Monitor** | Real-time agent status with auto-refresh |
-| **Configuration** | Manage credentials, URLs, API keys securely |
 
 ### Mode Switching
 
-Instantly toggle between **Mock Mode** (development) and **Live Mode** (production):
+Toggle between **Mock Mode** (development) and **Live Mode** (production):
 
 ```bash
 # Via API
-curl -X POST http://localhost:8088/mode \
+curl -X POST http://localhost:3001/api/mode \
   -H "Content-Type: application/json" \
   -d '{"mode": "live"}'
 ```
 
 ---
 
-## 📊 Analytics & Metrics
-
-### DORA Metrics
-
-Nexus tracks key DevOps Research and Assessment metrics:
-
-| Metric | Description |
-|--------|-------------|
-| **Deployment Frequency** | How often you deploy to production |
-| **Lead Time for Changes** | Time from commit to production |
-| **Mean Time to Recovery** | Time to restore service after incident |
-| **Change Failure Rate** | Percentage of deployments causing failures |
-
-### Prometheus Metrics
-
-```prometheus
-# LLM Usage
-nexus_llm_tokens_total{model_name, type}
-nexus_llm_cost_dollars_total{model_name}
-
-# Agent Performance
-nexus_tool_usage_total{tool_name, status}
-http_request_duration_seconds{agent_type}
-
-# Business Metrics
-nexus_project_hygiene_score{project_key}
-nexus_release_decisions_total{decision}
-nexus_rca_requests_total{status}
-```
-
-### Grafana Dashboard
-
-Import `infrastructure/grafana/dashboard.json` for comprehensive observability:
-
-![Grafana Dashboard](docs/assets/mockups/grafana-dashboard.svg)
-
----
-
 ## 🧪 Testing
 
-Nexus has a comprehensive test suite with **~370 tests** across 4 categories:
+Nexus has a comprehensive test suite:
 
 | Category | Count | Purpose |
 |----------|-------|---------|
@@ -382,17 +534,13 @@ pytest
 # By category
 pytest -m unit
 pytest -m e2e
-pytest -m integration
-pytest -m smoke
+
+# LangGraph engine tests
+pytest tests/unit/test_graph.py -v
 
 # With coverage
 pytest --cov=shared --cov=services --cov-report=html
-
-# Parallel execution
-pytest -n auto
 ```
-
-📖 See [Testing Documentation](docs/testing.md) for complete details.
 
 ---
 
@@ -401,47 +549,49 @@ pytest -n auto
 ```
 Nexus-Release-Readiness-Bot/
 ├── services/                        # Microservices
-│   ├── orchestrator/                # Central brain (ReAct engine)
+│   ├── orchestrator/                # LangGraph engine + MCP client
+│   │   ├── app/
+│   │   │   ├── core/
+│   │   │   │   ├── graph.py         # LangGraph StateGraph
+│   │   │   │   ├── llm_factory.py   # Multi-provider LLM
+│   │   │   │   ├── mcp_client.py    # MCP client manager
+│   │   │   │   └── memory.py        # Vector + conversation memory
+│   │   │   └── models/
+│   │   └── main.py
 │   ├── agents/
-│   │   ├── jira_agent/              # Jira integration
-│   │   ├── git_ci_agent/            # GitHub + Jenkins
-│   │   ├── reporting_agent/         # Report generation
+│   │   ├── jira_agent/              # MCP server for Jira
+│   │   ├── git_ci_agent/            # MCP server for GitHub/Jenkins
+│   │   ├── reporting_agent/         # MCP server for Confluence
 │   │   ├── slack_agent/             # Slack interface
-│   │   ├── jira_hygiene_agent/      # Proactive quality checks
-│   │   └── rca_agent/               # Root cause analysis
-│   ├── analytics/                   # Advanced analytics
-│   ├── webhooks/                    # Event delivery
-│   └── admin_dashboard/             # Admin UI (React + FastAPI)
+│   │   ├── jira_hygiene_agent/      # MCP server for data quality
+│   │   └── rca_agent/               # MCP server for RCA
+│   ├── admin_dashboard/             # React + FastAPI admin UI
+│   └── analytics/                   # Advanced analytics
 │
 ├── shared/nexus_lib/                # Shared library
 │   ├── schemas/                     # Pydantic models
-│   ├── llm/                         # LLM clients
-│   ├── multitenancy/                # Tenant isolation
-│   ├── recommendations/             # AI suggestions
-│   ├── config.py                    # Dynamic configuration
-│   ├── middleware.py                # Auth, metrics, tenant
+│   ├── llm/                         # LLM client base classes
+│   ├── mcp.py                       # MCP server utilities
+│   ├── config.py                    # ConfigManager (Redis + Env)
+│   ├── middleware.py                # Auth, metrics
 │   └── instrumentation.py           # OTEL, Prometheus
 │
 ├── infrastructure/
 │   ├── docker/                      # Dockerfiles
+│   │   ├── init-db.sql              # PostgreSQL schema
+│   │   └── prometheus.yml
 │   ├── k8s/nexus-stack/             # Helm chart
-│   ├── grafana/                     # Dashboards
-│   └── terraform/                   # Cloud infra
+│   └── grafana/                     # Dashboards
 │
-├── scripts/                         # Automation
-│   ├── setup.sh                     # One-click setup
-│   ├── dev.sh                       # Development helper
-│   ├── verify.sh                    # Health checks
-│   └── uninstall.sh                 # Clean removal
+├── tests/
+│   ├── unit/
+│   │   ├── test_graph.py            # LangGraph tests
+│   │   ├── test_rca_logic.py
+│   │   └── test_hygiene_logic.py
+│   ├── e2e/
+│   └── integration/
 │
-├── tests/                           # Test suite
-│   ├── unit/                        # Unit tests
-│   ├── e2e/                         # End-to-end tests
-│   ├── integration/                 # Integration tests
-│   └── smoke/                       # Smoke tests
-│
-├── docs/                            # Documentation
-└── demo/                            # Demo scripts
+└── docs/                            # Documentation
 ```
 
 ---
@@ -452,83 +602,37 @@ Nexus-Release-Readiness-Bot/
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NEXUS_ENV` | Environment (development/production) | development |
-| `LLM_PROVIDER` | LLM provider (google/openai/mock) | mock |
-| `LLM_MODEL` | Model name | gemini-2.0-flash |
-| `LLM_API_KEY` | API key for LLM | - |
-| `MEMORY_BACKEND` | Vector store (chromadb/pgvector/mock) | mock |
-| `MULTI_TENANT_ENABLED` | Enable multi-tenancy | false |
-| `JIRA_MOCK_MODE` | Use mock Jira data | true |
-| `GITHUB_MOCK_MODE` | Use mock GitHub data | true |
-| `REDIS_URL` | Redis connection URL | redis://localhost:6379 |
-
-### Dynamic Configuration
-
-Use the Admin Dashboard or API to change configuration without restarts:
-
-```bash
-# Get current mode
-curl http://localhost:8088/mode
-
-# Update configuration
-curl -X POST http://localhost:8088/config \
-  -H "Content-Type: application/json" \
-  -d '{"key": "nexus:config:jira_url", "value": "https://your-org.atlassian.net"}'
-```
-
----
-
-## 🚢 Deployment
-
-### Kubernetes (Production)
-
-```bash
-cd infrastructure/k8s/nexus-stack
-helm dependency update
-
-helm upgrade --install nexus . \
-  --namespace nexus \
-  --create-namespace \
-  --values production-values.yaml
-```
-
-### Docker Compose (Development)
-
-```bash
-docker-compose up -d
-docker-compose logs -f
-```
-
-📖 See [Deployment Runbook](docs/runbooks/deployment.md) for complete production setup.
+| `NEXUS_ENV` | Environment | development |
+| `LLM_PROVIDER` | LLM provider | mock |
+| `LLM_MODEL` | Model name | gpt-4 |
+| `OPENAI_API_KEY` | OpenAI API key | - |
+| `GOOGLE_API_KEY` | Google API key | - |
+| `OLLAMA_BASE_URL` | Ollama server URL | http://localhost:11434 |
+| `REDIS_URL` | Redis connection | redis://localhost:6379 |
+| `DATABASE_URL` | PostgreSQL connection | postgresql://... |
+| `MCP_JIRA_URL` | Jira MCP server | http://jira-agent:8081/mcp |
+| `MEMORY_BACKEND` | Vector store | postgres |
 
 ---
 
 ## 🆕 Version History
 
+### v3.0.0 - LangGraph + MCP Architecture (Current)
+- 🧠 **LangGraph Engine** - Stateful orchestration replacing ReAct
+- 🔌 **MCP Tool Mesh** - All agents as MCP servers
+- 🏭 **LLM Factory** - Multi-provider support
+- 📊 **PostgreSQL Persistence** - Durable state + pgvector
+
 ### v2.4.0 - Release Management
-- 📅 **Release Management** - Track versions and target dates from Smartsheet/CSV/webhooks
-- 🎛️ **Enhanced Admin Dashboard** - New Releases page with metrics
-- 📊 **Updated Mockups** - All dashboards now show 5 navigation items
+- 📅 Release tracking from Smartsheet/CSV
 
-### v2.3.0 - Admin Dashboard & Dynamic Configuration
-- 🎛️ **Admin Dashboard** - Web UI for system management
-- 🔄 **Dynamic Configuration** - Redis-backed settings without restarts
-- ⚡ **Live Mode Switching** - Toggle Mock/Live instantly
+### v2.3.0 - Admin Dashboard
+- 🎛️ Web UI for configuration
+- 🔄 Dynamic Redis-backed settings
 
-### v2.2.0 - Smart Root Cause Analysis
-- 🔍 **RCA Agent** - AI-powered build failure analysis
-- 🔔 **Auto-Trigger** - Jenkins webhook triggers RCA
-- 💬 **Slack Notifications** - RCA results with fix suggestions
-
-### v2.1.0 - Analytics & Webhooks
-- 📊 **Advanced Analytics** - DORA metrics, predictions, anomalies
-- 🔔 **Webhook Integrations** - Real-time event delivery
-
-### v2.0.0 - Core Platform
-- 🤖 **Google Gemini Integration** - Production LLM
-- 💡 **AI Recommendations Engine** - Pattern-based suggestions
-- 🏠 **Slack App Home** - Rich dashboard
-- 🏢 **Multi-Tenant Support** - Enterprise isolation
+### v2.2.0 - Smart RCA
+- 🔍 AI-powered build failure analysis
+- 🔔 Auto-triggered Jenkins webhooks
 
 📖 See [CHANGELOG.md](CHANGELOG.md) for complete history.
 
@@ -537,145 +641,43 @@ docker-compose logs -f
 ## 🗺️ Roadmap
 
 ### Completed ✅
-- [x] Core ReAct Engine with Gemini 2.0
-- [x] Jira, GitHub, Jenkins, Confluence integrations
-- [x] Slack Block Kit with App Home
-- [x] Jira Hygiene Agent with interactive fixes
-- [x] Smart Root Cause Analysis (RCA)
-- [x] Advanced Analytics Dashboard
-- [x] Webhook Integrations
-- [x] Admin Dashboard with Dynamic Configuration
-- [x] Release Management from External Sources
-- [x] Multi-Tenant Support
-- [x] Kubernetes Helm Charts
+- [x] LangGraph StateGraph engine
+- [x] MCP server architecture for all agents
+- [x] Multi-provider LLM Factory
+- [x] PostgreSQL state persistence
+- [x] Human-in-the-loop approval workflows
+- [x] Smart Root Cause Analysis
+- [x] Jira Hygiene with interactive fixes
+- [x] Admin Dashboard with React UI
 
 ### In Progress 🚧
+- [ ] MCP server discovery (dynamic registration)
 - [ ] Anthropic Claude integration
-- [ ] Custom LLM fine-tuning for release domain
-- [ ] Enhanced security scanning integration
+- [ ] LangGraph Supervisor for multi-agent coordination
 
 ### Planned 📋
-- [ ] Mobile app companion
-- [ ] GitLab integration
-- [ ] Azure DevOps integration
-- [ ] Automated rollback suggestions
-- [ ] Cost optimization recommendations
+- [ ] LangGraph Studio integration
+- [ ] GitLab MCP server
+- [ ] Azure DevOps MCP server
+- [ ] Custom LLM fine-tuning
+- [ ] Mobile companion app
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Every contribution matters, whether it's code, documentation, bug reports, or ideas.
+We welcome contributions! See [Contributing Guide](CONTRIBUTING.md).
 
-### Quick Start
-
-1. **Read** our [Contributing Guide](CONTRIBUTING.md)
-2. **Find** an issue labeled [`good first issue`](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-3. **Fork** the repository
-4. **Create** a feature branch: `git checkout -b feature/amazing`
-5. **Commit** with conventional commits: `git commit -m 'feat: add amazing feature'`
-6. **Push** and open a Pull Request
-
-### Community
-
-- 📜 [Code of Conduct](CODE_OF_CONDUCT.md)
-- 🔒 [Security Policy](SECURITY.md)
-- 👥 [Contributors](CONTRIBUTORS.md)
-
-### Issue Templates
-
-- 🐛 [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md)
-- 💡 [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)
-- 📝 [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md)
-
----
-
-## 🔄 CI/CD
-
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| **CI** | Push, PR | Lint, test, security scan, Docker build |
-| **Release** | Tags (v*) | Build images, create GitHub release |
-| **Dependabot** | Weekly | Automated dependency updates |
-| **Stale** | Daily | Clean up inactive issues/PRs |
-
-📖 See [CI/CD Documentation](docs/ci-cd/index.md) for details.
-
----
-
-## 📚 Documentation
-
-| Document | Description |
-|----------|-------------|
-| [User Guide](docs/user_guide.md) | End-user documentation |
-| [Architecture](docs/architecture.md) | System design and components |
-| [API Reference](docs/api-specs/overview.md) | REST API documentation |
-| [Admin Dashboard](docs/admin-dashboard.md) | Dashboard features and API |
-| [Admin Tutorial](docs/admin-dashboard-tutorial.md) | Step-by-step dashboard guide |
-| [Testing Guide](docs/testing.md) | Test strategy and execution |
-| [Deployment](docs/runbooks/deployment.md) | Production deployment guide |
-| [RCA Documentation](docs/rca.md) | Root Cause Analysis feature |
-| [Analytics](docs/analytics.md) | Analytics dashboard features |
-| [Webhooks](docs/webhooks.md) | Webhook integrations |
-
----
-
-## ❓ FAQ
-
-<details>
-<summary><strong>What LLM providers are supported?</strong></summary>
-
-Nexus supports:
-- **Google Gemini** (recommended): gemini-2.0-flash, gemini-1.5-pro
-- **OpenAI**: gpt-4o, gpt-4-turbo
-- **Mock**: For development without API costs
-
-</details>
-
-<details>
-<summary><strong>Can I use Nexus without Slack?</strong></summary>
-
-Yes! While Slack provides the best user experience, you can use Nexus via:
-- REST API (`POST /query`)
-- Admin Dashboard
-- Direct agent API calls
-
-</details>
-
-<details>
-<summary><strong>How do I switch from mock to production mode?</strong></summary>
-
-1. **Via Admin Dashboard**: Navigate to Dashboard → Click "Switch to Live Mode"
-2. **Via API**: `POST http://localhost:8088/mode` with `{"mode": "live"}`
-3. **Via Environment**: Set `LLM_PROVIDER=google`, `JIRA_MOCK_MODE=false`, etc.
-
-</details>
-
-<details>
-<summary><strong>What's the cost of running Nexus with Gemini?</strong></summary>
-
-Costs depend on usage. Typical costs:
-- **Gemini 2.0 Flash**: ~$0.001 per query
-- **Gemini 1.5 Pro**: ~$0.01 per complex query
-- Track costs via Grafana dashboard or `nexus_llm_cost_dollars_total` metric
-
-</details>
-
-<details>
-<summary><strong>Can I deploy Nexus on-premise?</strong></summary>
-
-Yes! Nexus is fully self-hosted. Use:
-- Docker Compose for small deployments
-- Kubernetes Helm charts for enterprise scale
-- Air-gapped deployment with mock LLM or self-hosted models
-
-</details>
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing`
+3. Commit with conventional commits: `git commit -m 'feat: add amazing feature'`
+4. Push and open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE).
 
 ---
 
@@ -683,11 +685,9 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ### Built with ❤️ by the Nexus Team
 
-**[⭐ Star us on GitHub](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot)** — it helps!
+**Powered by LangGraph 🧠 + MCP 🔌**
 
-[Documentation](docs/index.md) • [Report Bug](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues/new?template=bug_report.md) • [Request Feature](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues/new?template=feature_request.md)
-
----
+[⭐ Star us on GitHub](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot) — it helps!
 
 *Making release management intelligent, one decision at a time.*
 

@@ -1,845 +1,666 @@
 """
-Nexus Jira Agent
-Handles all Jira-related operations including ticket fetching, updates, and hierarchy traversal
+Nexus Jira Agent - MCP Server Implementation
+=============================================
 
-Now with dynamic configuration via ConfigManager - supports live mode switching from Admin Dashboard.
+Jira integration agent exposed via Model Context Protocol (MCP) over SSE.
+Provides tools for ticket management, sprint stats, and JQL search.
+
+Architecture: MCP Server with SSE Transport
+Port: 8081
 """
+
+import asyncio
+import logging
 import os
 import sys
-import logging
-from typing import Optional, List, Dict, Any
-from datetime import datetime
-from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+import json
+import random
 
-from fastapi import FastAPI, HTTPException, Query, Depends
-from fastapi.responses import JSONResponse
-from prometheus_client import Counter
+from mcp.server import Server
+from mcp.server.sse import SseServerTransport
+from mcp.types import Tool, TextContent, ImageContent, EmbeddedResource
+from starlette.applications import Starlette
+from starlette.routing import Route
+from starlette.responses import JSONResponse
+from starlette.requests import Request
+from pydantic import BaseModel, Field
+import uvicorn
+import httpx
 
-# Add shared lib to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../shared")))
+# Add shared lib path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..', 'shared'))
 
-from nexus_lib.schemas.agent_contract import (
-    AgentTaskRequest,
-    AgentTaskResponse,
-    JiraTicket,
-    JiraUser,
-    JiraComment,
-    JiraSearchResult,
-    JiraSprintStats,
-    JiraIssueType,
-    TaskStatus,
-    AgentType,
-)
-from nexus_lib.middleware import MetricsMiddleware, AuthMiddleware
-from nexus_lib.instrumentation import (
-    setup_tracing,
-    track_tool_usage,
-    create_metrics_endpoint,
-    JIRA_TICKETS_PROCESSED,
-)
-from nexus_lib.utils import generate_task_id, utc_now
-from nexus_lib.config import ConfigManager, ConfigKeys, is_mock_mode
+try:
+    from nexus_lib.config import ConfigManager, ConfigKeys
+    from nexus_lib.schemas.agent_contract import (
+        JiraTicket, JiraSprintStats, JiraSearchResult, JiraUser,
+        JiraIssueType, AgentTaskRequest, AgentTaskResponse, TaskStatus, AgentType
+    )
+except ImportError:
+    ConfigManager = None
+    # Define minimal fallback models
+    class JiraTicket(BaseModel):
+        key: str
+        summary: str
+        status: str
+        issue_type: str = "Task"
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("nexus.jira-agent")
 
+# =============================================================================
+# Configuration
+# =============================================================================
 
-# ============================================================================
-# JIRA CLIENT WRAPPER
-# ============================================================================
+JIRA_URL = os.getenv("JIRA_URL", "https://your-org.atlassian.net")
+JIRA_USERNAME = os.getenv("JIRA_USERNAME", "")
+JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN", "")
+JIRA_MOCK_MODE = os.getenv("JIRA_MOCK_MODE", "true").lower() == "true"
+PORT = int(os.getenv("JIRA_AGENT_PORT", "8081"))
 
-class JiraClient:
-    """
-    Wrapper for Jira API interactions using atlassian-python-api
-    Supports both real API calls and mock mode for development
+# =============================================================================
+# Mock Data Generator
+# =============================================================================
+
+class MockJiraData:
+    """Generates realistic mock Jira data for development."""
     
-    Now uses ConfigManager for dynamic configuration:
-    - Mode can be switched live via Admin Dashboard
-    - Credentials are fetched from Redis/env/defaults
-    """
+    STATUSES = ["To Do", "In Progress", "In Review", "Done", "Blocked"]
+    ISSUE_TYPES = ["Epic", "Story", "Task", "Bug", "Sub-task"]
+    PRIORITIES = ["Critical", "High", "Medium", "Low"]
+    LABELS = ["backend", "frontend", "api", "security", "performance", "tech-debt"]
+    TEAMS = ["Platform", "Mobile", "Infrastructure", "Data", "DevOps"]
     
-    def __init__(self):
-        self._jira = None
-        self._last_mode = None
-        self._initialized = False
-        logger.info("Jira client created - will initialize on first use")
-    
-    async def _ensure_initialized(self):
-        """
-        Lazy initialization - checks config on each operation.
-        This allows live mode switching without restart.
-        """
-        current_mock_mode = await is_mock_mode()
+    @classmethod
+    def generate_ticket(cls, key: str, **overrides) -> Dict[str, Any]:
+        """Generate a mock Jira ticket."""
+        project_key = key.split("-")[0] if "-" in key else "PROJ"
+        issue_number = key.split("-")[1] if "-" in key else str(random.randint(100, 999))
         
-        # Reinitialize if mode changed or not initialized
-        if self._last_mode != current_mock_mode or not self._initialized:
-            self._last_mode = current_mock_mode
-            self._initialized = True
-            
-            if current_mock_mode:
-                logger.info("Jira client operating in MOCK mode")
-                self._jira = None
-            else:
-                await self._init_live_client()
-    
-    async def _init_live_client(self):
-        """Initialize the live Jira client with credentials from ConfigManager."""
-        try:
-            from atlassian import Jira
-            
-            jira_url = await ConfigManager.get(ConfigKeys.JIRA_URL)
-            jira_username = await ConfigManager.get(ConfigKeys.JIRA_USERNAME)
-            jira_token = await ConfigManager.get(ConfigKeys.JIRA_API_TOKEN)
-            
-            if not all([jira_url, jira_username, jira_token]):
-                logger.warning("Jira credentials incomplete, falling back to mock mode")
-                self._last_mode = True
-                self._jira = None
-                return
-            
-            self._jira = Jira(
-                url=jira_url,
-                username=jira_username,
-                password=jira_token,
-                cloud=True  # Assume cloud by default
-            )
-            logger.info(f"Jira client initialized in LIVE mode - {jira_url}")
-            
-        except ImportError:
-            logger.warning("atlassian-python-api not installed, using mock mode")
-            self._last_mode = True
-            self._jira = None
-        except Exception as e:
-            logger.error(f"Failed to initialize Jira client: {e}")
-            self._last_mode = True
-            self._jira = None
-    
-    @property
-    def mock_mode(self) -> bool:
-        """Check if currently in mock mode."""
-        return self._last_mode if self._last_mode is not None else True
-    
-    def _parse_user(self, user_data: Optional[Dict]) -> Optional[JiraUser]:
-        """Parse Jira user data into JiraUser model"""
-        if not user_data:
-            return None
-        return JiraUser(
-            account_id=user_data.get("accountId", "unknown"),
-            display_name=user_data.get("displayName", "Unknown User"),
-            email=user_data.get("emailAddress"),
-            avatar_url=user_data.get("avatarUrls", {}).get("48x48"),
-            active=user_data.get("active", True)
-        )
-    
-    def _parse_issue(self, issue: Dict, include_subtasks: bool = False) -> JiraTicket:
-        """Parse Jira issue data into JiraTicket model"""
-        fields = issue.get("fields", {})
-        
-        # Parse basic fields
-        ticket = JiraTicket(
-            key=issue["key"],
-            id=issue.get("id"),
-            summary=fields.get("summary", "No summary"),
-            description=fields.get("description"),
-            issue_type=self._map_issue_type(fields.get("issuetype", {}).get("name")),
-            status=fields.get("status", {}).get("name", "Unknown"),
-            resolution=fields.get("resolution", {}).get("name") if fields.get("resolution") else None,
-            priority=fields.get("priority", {}).get("name", "Medium"),
-            project_key=fields.get("project", {}).get("key"),
-            parent_key=fields.get("parent", {}).get("key"),
-            epic_key=fields.get("customfield_10014") or fields.get("epic", {}).get("key") if fields.get("epic") else None,
-            assignee=self._parse_user(fields.get("assignee")),
-            reporter=self._parse_user(fields.get("reporter")),
-            story_points=fields.get("customfield_10016"),
-            sprint_name=self._extract_sprint_name(fields),
-            labels=fields.get("labels", []),
-            components=[c.get("name") for c in fields.get("components", [])],
-            fix_versions=[v.get("name") for v in fields.get("fixVersions", [])],
-            created_at=self._parse_datetime(fields.get("created")),
-            updated_at=self._parse_datetime(fields.get("updated")),
-            resolved_at=self._parse_datetime(fields.get("resolutiondate")),
-            due_date=self._parse_datetime(fields.get("duedate")),
-        )
-        
-        # Parse subtasks if requested
-        if include_subtasks and fields.get("subtasks"):
-            ticket.subtasks = [
-                JiraTicket(
-                    key=st["key"],
-                    summary=st["fields"]["summary"],
-                    status=st["fields"]["status"]["name"],
-                    issue_type=JiraIssueType.SUBTASK
-                )
-                for st in fields["subtasks"]
-            ]
-        
+        ticket = {
+            "key": key,
+            "id": str(random.randint(10000, 99999)),
+            "summary": f"[{project_key}] Sample issue #{issue_number}",
+            "description": f"Description for issue {key}. This is a mock ticket for development.",
+            "issue_type": random.choice(cls.ISSUE_TYPES),
+            "status": random.choice(cls.STATUSES),
+            "priority": random.choice(cls.PRIORITIES),
+            "project_key": project_key,
+            "labels": random.sample(cls.LABELS, k=random.randint(0, 3)),
+            "story_points": random.choice([1, 2, 3, 5, 8, 13, None]),
+            "fix_versions": [f"v{random.randint(1, 3)}.{random.randint(0, 9)}.0"],
+            "assignee": {
+                "account_id": f"user-{random.randint(1000, 9999)}",
+                "display_name": random.choice(["Alice Smith", "Bob Jones", "Carol White", "David Brown"]),
+                "email": f"dev{random.randint(1, 10)}@example.com",
+                "active": True
+            },
+            "reporter": {
+                "account_id": f"user-{random.randint(1000, 9999)}",
+                "display_name": "John Doe",
+                "email": "john.doe@example.com",
+                "active": True
+            },
+            "created_at": (datetime.utcnow() - timedelta(days=random.randint(1, 30))).isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+            "components": random.sample(cls.TEAMS, k=random.randint(0, 2)),
+            "custom_fields": {
+                "team": random.choice(cls.TEAMS)
+            }
+        }
+        ticket.update(overrides)
         return ticket
     
-    def _map_issue_type(self, type_name: str) -> JiraIssueType:
-        """Map Jira issue type name to enum"""
-        type_mapping = {
-            "Epic": JiraIssueType.EPIC,
-            "Story": JiraIssueType.STORY,
-            "Task": JiraIssueType.TASK,
-            "Sub-task": JiraIssueType.SUBTASK,
-            "Bug": JiraIssueType.BUG,
-            "Spike": JiraIssueType.SPIKE,
+    @classmethod
+    def generate_sprint_stats(cls, project_key: str, sprint_id: Optional[int] = None) -> Dict[str, Any]:
+        """Generate mock sprint statistics."""
+        total = random.randint(20, 50)
+        completed = random.randint(int(total * 0.6), total)
+        in_progress = random.randint(0, total - completed)
+        blocked = total - completed - in_progress
+        
+        total_points = random.uniform(30, 80)
+        completed_points = total_points * (completed / total) * random.uniform(0.9, 1.1)
+        
+        return {
+            "sprint_id": sprint_id or random.randint(100, 999),
+            "sprint_name": f"Sprint {random.randint(1, 52)} - {project_key}",
+            "total_issues": total,
+            "completed_issues": completed,
+            "in_progress_issues": in_progress,
+            "blocked_issues": blocked,
+            "total_story_points": round(total_points, 1),
+            "completed_story_points": round(completed_points, 1),
+            "completion_percentage": round((completed / total) * 100, 1),
+            "blockers": [f"{project_key}-{random.randint(100, 999)}" for _ in range(blocked)]
         }
-        return type_mapping.get(type_name, JiraIssueType.TASK)
     
-    def _extract_sprint_name(self, fields: Dict) -> Optional[str]:
-        """Extract sprint name from Jira fields"""
-        sprints = fields.get("customfield_10020", [])
-        if sprints and len(sprints) > 0:
-            sprint = sprints[-1]
-            if isinstance(sprint, str):
-                if "name=" in sprint:
-                    start = sprint.find("name=") + 5
-                    end = sprint.find(",", start)
-                    return sprint[start:end] if end > start else sprint[start:]
-            elif isinstance(sprint, dict):
-                return sprint.get("name")
-        return None
+    @classmethod
+    def generate_hierarchy(cls, epic_key: str) -> Dict[str, Any]:
+        """Generate mock epic hierarchy."""
+        project_key = epic_key.split("-")[0]
+        num_stories = random.randint(3, 8)
+        
+        stories = []
+        for i in range(num_stories):
+            story_key = f"{project_key}-{random.randint(100, 999)}"
+            num_subtasks = random.randint(0, 4)
+            subtasks = [
+                cls.generate_ticket(f"{project_key}-{random.randint(100, 999)}", 
+                                   issue_type="Sub-task", parent_key=story_key)
+                for _ in range(num_subtasks)
+            ]
+            story = cls.generate_ticket(story_key, issue_type="Story", epic_key=epic_key)
+            story["subtasks"] = subtasks
+            stories.append(story)
+        
+        epic = cls.generate_ticket(epic_key, issue_type="Epic")
+        epic["children"] = stories
+        
+        return epic
+
+# =============================================================================
+# Jira API Client
+# =============================================================================
+
+class JiraClient:
+    """Jira REST API client with mock fallback."""
     
-    def _parse_datetime(self, dt_str: Optional[str]) -> Optional[datetime]:
-        """Parse Jira datetime string"""
-        if not dt_str:
+    def __init__(self, base_url: str, username: str, api_token: str, mock_mode: bool = False):
+        self.base_url = base_url.rstrip("/")
+        self.username = username
+        self.api_token = api_token
+        self.mock_mode = mock_mode
+        self._client: Optional[httpx.AsyncClient] = None
+    
+    async def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            auth = (self.username, self.api_token) if self.username and self.api_token else None
+            self._client = httpx.AsyncClient(
+                base_url=f"{self.base_url}/rest/api/3",
+                auth=auth,
+                timeout=30.0,
+                headers={"Accept": "application/json", "Content-Type": "application/json"}
+            )
+        return self._client
+    
+    async def close(self):
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+    
+    async def get_issue(self, key: str) -> Dict[str, Any]:
+        """Fetch a single Jira issue."""
+        if self.mock_mode:
+            return MockJiraData.generate_ticket(key)
+        
+        client = await self._get_client()
+        response = await client.get(f"/issue/{key}")
+        response.raise_for_status()
+        return self._parse_issue(response.json())
+    
+    async def search_issues(self, jql: str, max_results: int = 50) -> Dict[str, Any]:
+        """Search issues using JQL."""
+        if self.mock_mode:
+            # Parse project key from JQL if present
+            project_key = "PROJ"
+            if "project" in jql.lower():
+                parts = jql.split("=")
+                if len(parts) > 1:
+                    project_key = parts[1].strip().strip('"').strip("'").split()[0]
+            
+            issues = [MockJiraData.generate_ticket(f"{project_key}-{i}") for i in range(random.randint(5, max_results))]
+            return {
+                "total": len(issues),
+                "start_at": 0,
+                "max_results": max_results,
+                "issues": issues
+            }
+        
+        client = await self._get_client()
+        response = await client.post("/search", json={
+            "jql": jql,
+            "maxResults": max_results,
+            "fields": ["*all"]
+        })
+        response.raise_for_status()
+        data = response.json()
+        return {
+            "total": data.get("total", 0),
+            "start_at": data.get("startAt", 0),
+            "max_results": data.get("maxResults", max_results),
+            "issues": [self._parse_issue(issue) for issue in data.get("issues", [])]
+        }
+    
+    async def get_sprint_stats(self, project_key: str, sprint_id: Optional[int] = None) -> Dict[str, Any]:
+        """Get sprint statistics for a project."""
+        if self.mock_mode:
+            return MockJiraData.generate_sprint_stats(project_key, sprint_id)
+        
+        # Real implementation would query Jira Agile API
+        jql = f'project = "{project_key}" AND sprint in openSprints()'
+        result = await self.search_issues(jql, max_results=200)
+        
+        issues = result.get("issues", [])
+        completed = sum(1 for i in issues if i.get("status", "").lower() in ["done", "closed"])
+        in_progress = sum(1 for i in issues if i.get("status", "").lower() in ["in progress", "in review"])
+        blocked = sum(1 for i in issues if i.get("status", "").lower() == "blocked")
+        
+        total_points = sum(i.get("story_points") or 0 for i in issues)
+        completed_points = sum(i.get("story_points") or 0 for i in issues if i.get("status", "").lower() in ["done", "closed"])
+        
+        return {
+            "sprint_id": sprint_id or 0,
+            "sprint_name": f"Current Sprint - {project_key}",
+            "total_issues": len(issues),
+            "completed_issues": completed,
+            "in_progress_issues": in_progress,
+            "blocked_issues": blocked,
+            "total_story_points": total_points,
+            "completed_story_points": completed_points,
+            "completion_percentage": round((completed / len(issues) * 100) if issues else 0, 1),
+            "blockers": [i["key"] for i in issues if i.get("status", "").lower() == "blocked"]
+        }
+    
+    async def get_hierarchy(self, epic_key: str) -> Dict[str, Any]:
+        """Get epic with all children."""
+        if self.mock_mode:
+            return MockJiraData.generate_hierarchy(epic_key)
+        
+        # Fetch epic
+        epic = await self.get_issue(epic_key)
+        
+        # Search for stories in epic
+        jql = f'"Epic Link" = {epic_key}'
+        result = await self.search_issues(jql, max_results=100)
+        
+        stories = []
+        for story in result.get("issues", []):
+            # Get subtasks for each story
+            subtask_jql = f'parent = {story["key"]}'
+            subtask_result = await self.search_issues(subtask_jql, max_results=50)
+            story["subtasks"] = subtask_result.get("issues", [])
+            stories.append(story)
+        
+        epic["children"] = stories
+        return epic
+    
+    async def update_issue(self, key: str, fields: Dict[str, Any], comment: Optional[str] = None) -> Dict[str, Any]:
+        """Update a Jira issue."""
+        if self.mock_mode:
+            ticket = MockJiraData.generate_ticket(key)
+            ticket.update(fields)
+            return {"success": True, "key": key, "updated": ticket}
+        
+        client = await self._get_client()
+        
+        # Update fields
+        if fields:
+            response = await client.put(f"/issue/{key}", json={"fields": fields})
+            response.raise_for_status()
+        
+        # Add comment
+        if comment:
+            await client.post(f"/issue/{key}/comment", json={
+                "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [{"type": "paragraph", "content": [{"type": "text", "text": comment}]}]
+                }
+            })
+        
+        return {"success": True, "key": key}
+    
+    async def transition_issue(self, key: str, transition_name: str) -> Dict[str, Any]:
+        """Transition a Jira issue to a new status."""
+        if self.mock_mode:
+            return {"success": True, "key": key, "transition": transition_name}
+        
+        client = await self._get_client()
+        
+        # Get available transitions
+        response = await client.get(f"/issue/{key}/transitions")
+        response.raise_for_status()
+        transitions = response.json().get("transitions", [])
+        
+        # Find matching transition
+        transition_id = None
+        for t in transitions:
+            if t["name"].lower() == transition_name.lower():
+                transition_id = t["id"]
+                break
+        
+        if not transition_id:
+            return {"success": False, "error": f"Transition '{transition_name}' not found"}
+        
+        # Perform transition
+        response = await client.post(f"/issue/{key}/transitions", json={"transition": {"id": transition_id}})
+        response.raise_for_status()
+        
+        return {"success": True, "key": key, "transition": transition_name}
+    
+    def _parse_issue(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Parse Jira API response into our schema."""
+        fields = data.get("fields", {})
+        return {
+            "key": data.get("key"),
+            "id": data.get("id"),
+            "summary": fields.get("summary", ""),
+            "description": self._parse_adf(fields.get("description")),
+            "issue_type": fields.get("issuetype", {}).get("name", "Task"),
+            "status": fields.get("status", {}).get("name", "To Do"),
+            "priority": fields.get("priority", {}).get("name", "Medium"),
+            "project_key": fields.get("project", {}).get("key"),
+            "assignee": self._parse_user(fields.get("assignee")),
+            "reporter": self._parse_user(fields.get("reporter")),
+            "labels": fields.get("labels", []),
+            "story_points": fields.get("customfield_10016"),  # Story points field
+            "fix_versions": [v.get("name") for v in fields.get("fixVersions", [])],
+            "components": [c.get("name") for c in fields.get("components", [])],
+            "created_at": fields.get("created"),
+            "updated_at": fields.get("updated"),
+            "epic_key": fields.get("parent", {}).get("key") if fields.get("parent") else None
+        }
+    
+    def _parse_user(self, user_data: Optional[Dict]) -> Optional[Dict[str, Any]]:
+        """Parse Jira user object."""
+        if not user_data:
             return None
-        try:
-            return datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-        except (ValueError, AttributeError):
-            return None
+        return {
+            "account_id": user_data.get("accountId", ""),
+            "display_name": user_data.get("displayName", ""),
+            "email": user_data.get("emailAddress", ""),
+            "active": user_data.get("active", True)
+        }
     
-    async def get_issue(self, key: str, expand: str = "changelog") -> JiraTicket:
-        """Fetch a single Jira issue"""
-        await self._ensure_initialized()
+    def _parse_adf(self, adf: Optional[Dict]) -> str:
+        """Parse Atlassian Document Format to plain text."""
+        if not adf:
+            return ""
+        if isinstance(adf, str):
+            return adf
         
-        if self.mock_mode:
-            return self._mock_issue(key)
-        
-        issue = self._jira.issue(key, expand=expand)
-        return self._parse_issue(issue, include_subtasks=True)
-    
-    async def get_issue_hierarchy(self, key: str, max_depth: int = 3) -> JiraTicket:
-        """Recursively fetch issue hierarchy (Epic -> Stories -> Subtasks)"""
-        await self._ensure_initialized()
-        
-        if self.mock_mode:
-            return self._mock_hierarchy(key)
-        
-        root = await self.get_issue(key)
-        await self._fetch_children(root, depth=0, max_depth=max_depth)
-        return root
-    
-    async def _fetch_children(self, ticket: JiraTicket, depth: int, max_depth: int):
-        """Recursively fetch child issues"""
-        if depth >= max_depth:
-            return
-        
-        if ticket.issue_type == JiraIssueType.EPIC:
-            jql = f'"Epic Link" = {ticket.key}'
-            results = await self.search_issues(jql)
-            ticket.subtasks = results.issues
+        # Simple ADF text extraction
+        def extract_text(node: Dict) -> str:
+            if not isinstance(node, dict):
+                return str(node) if node else ""
             
-            for child in ticket.subtasks:
-                await self._fetch_children(child, depth + 1, max_depth)
-    
-    async def search_issues(
-        self,
-        jql: str,
-        start_at: int = 0,
-        max_results: int = 50,
-        fields: str = "*all"
-    ) -> JiraSearchResult:
-        """Search issues using JQL"""
-        await self._ensure_initialized()
+            text = node.get("text", "")
+            content = node.get("content", [])
+            for child in content:
+                text += extract_text(child)
+            return text
         
-        if self.mock_mode:
-            return self._mock_search(jql, max_results)
-        
-        result = self._jira.jql(jql, start=start_at, limit=max_results, fields=fields)
-        
-        return JiraSearchResult(
-            total=result.get("total", 0),
-            start_at=result.get("startAt", 0),
-            max_results=result.get("maxResults", max_results),
-            issues=[self._parse_issue(issue) for issue in result.get("issues", [])]
-        )
-    
-    async def update_issue_status(self, key: str, status: str, comment: Optional[str] = None) -> bool:
-        """Update issue status using transition"""
-        await self._ensure_initialized()
-        
-        if self.mock_mode:
-            logger.info(f"[MOCK] Updated {key} to status: {status}")
-            return True
-        
-        try:
-            transitions = self._jira.get_issue_transitions(key)
-            
-            target_transition = None
-            for t in transitions.get("transitions", []):
-                if t["to"]["name"].lower() == status.lower():
-                    target_transition = t["id"]
-                    break
-            
-            if not target_transition:
-                logger.warning(f"No transition found for status: {status}")
-                return False
-            
-            self._jira.set_issue_status(key, target_transition)
-            
-            if comment:
-                self._jira.issue_add_comment(key, comment)
-            
-            return True
-        except Exception as e:
-            logger.error(f"Failed to update issue status: {e}")
-            return False
-    
-    async def update_issue_fields(self, key: str, fields: Dict[str, Any]) -> Dict[str, Any]:
-        """Update multiple fields on a Jira issue"""
-        await self._ensure_initialized()
-        
-        if self.mock_mode:
-            logger.info(f"[MOCK] Updated {key} with fields: {list(fields.keys())}")
-            return {
-                "success": True,
-                "ticket_key": key,
-                "fields_updated": list(fields.keys()),
-                "mock": True
-            }
-        
-        try:
-            update_payload = {"fields": {}}
-            for field_name, value in fields.items():
-                update_payload["fields"][field_name] = value
-            
-            self._jira.update_issue_field(key, update_payload["fields"])
-            
-            logger.info(f"Updated {key} fields: {list(fields.keys())}")
-            
-            return {
-                "success": True,
-                "ticket_key": key,
-                "fields_updated": list(fields.keys())
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to update issue fields on {key}: {e}")
-            return {
-                "success": False,
-                "ticket_key": key,
-                "error": str(e)
-            }
-    
-    async def add_comment(self, key: str, comment: str) -> bool:
-        """Add comment to an issue"""
-        await self._ensure_initialized()
-        
-        if self.mock_mode:
-            logger.info(f"[MOCK] Added comment to {key}: {comment[:50]}...")
-            return True
-        
-        try:
-            self._jira.issue_add_comment(key, comment)
-            return True
-        except Exception as e:
-            logger.error(f"Failed to add comment: {e}")
-            return False
-    
-    async def get_sprint_stats(self, project_key: str, sprint_name: Optional[str] = None) -> JiraSprintStats:
-        """Get sprint statistics for a project"""
-        await self._ensure_initialized()
-        
-        if self.mock_mode:
-            return self._mock_sprint_stats(project_key, sprint_name)
-        
-        jql = f'project = {project_key}'
-        if sprint_name:
-            jql += f' AND sprint = "{sprint_name}"'
-        else:
-            jql += ' AND sprint in openSprints()'
-        
-        result = await self.search_issues(jql, max_results=500)
-        
-        total = len(result.issues)
-        completed = sum(1 for i in result.issues if i.status.lower() == "done")
-        in_progress = sum(1 for i in result.issues if i.status.lower() == "in progress")
-        blocked = sum(1 for i in result.issues if "block" in i.status.lower())
-        
-        total_points = sum(i.story_points or 0 for i in result.issues)
-        completed_points = sum(i.story_points or 0 for i in result.issues if i.status.lower() == "done")
-        
-        blockers = [i.key for i in result.issues if "block" in i.status.lower()]
-        
-        return JiraSprintStats(
-            sprint_id=0,
-            sprint_name=sprint_name or "Current Sprint",
-            total_issues=total,
-            completed_issues=completed,
-            in_progress_issues=in_progress,
-            blocked_issues=blocked,
-            total_story_points=total_points,
-            completed_story_points=completed_points,
-            completion_percentage=(completed / total * 100) if total > 0 else 0,
-            blockers=blockers
-        )
-    
-    # ============================================================================
-    # MOCK DATA GENERATORS
-    # ============================================================================
-    
-    def _mock_issue(self, key: str) -> JiraTicket:
-        """Generate mock issue data"""
-        project = key.split("-")[0] if "-" in key else "PROJ"
-        return JiraTicket(
-            key=key,
-            id=f"10{key.split('-')[1] if '-' in key else '001'}",
-            summary=f"[Demo] Implementation task for {key}",
-            description="This is a mock Jira ticket for demonstration purposes.",
-            issue_type=JiraIssueType.STORY,
-            status="In Progress",
-            priority="Medium",
-            project_key=project,
-            assignee=JiraUser(
-                account_id="user-123",
-                display_name="Demo User",
-                email="demo@example.com"
-            ),
-            reporter=JiraUser(
-                account_id="user-456",
-                display_name="Project Manager",
-                email="pm@example.com"
-            ),
-            story_points=5.0,
-            sprint_name="Sprint 42",
-            labels=["backend", "api"],
-            components=["core"],
-            fix_versions=["v2.0.0"],
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
-            subtasks=[
-                JiraTicket(
-                    key=f"{key}-1",
-                    summary="Subtask: Write unit tests",
-                    status="Done",
-                    issue_type=JiraIssueType.SUBTASK
-                ),
-                JiraTicket(
-                    key=f"{key}-2",
-                    summary="Subtask: Code review",
-                    status="In Progress",
-                    issue_type=JiraIssueType.SUBTASK
-                )
-            ]
-        )
-    
-    def _mock_hierarchy(self, key: str) -> JiraTicket:
-        """Generate mock epic hierarchy"""
-        project = key.split("-")[0] if "-" in key else "PROJ"
-        return JiraTicket(
-            key=key,
-            summary=f"[Epic] Release v2.0 - {key}",
-            issue_type=JiraIssueType.EPIC,
-            status="In Progress",
-            priority="High",
-            project_key=project,
-            story_points=21.0,
-            subtasks=[
-                JiraTicket(
-                    key=f"{project}-101",
-                    summary="Story: User authentication flow",
-                    status="Done",
-                    issue_type=JiraIssueType.STORY,
-                    story_points=8.0,
-                    subtasks=[
-                        JiraTicket(key=f"{project}-101-1", summary="Implement OAuth", status="Done", issue_type=JiraIssueType.SUBTASK),
-                        JiraTicket(key=f"{project}-101-2", summary="Add tests", status="Done", issue_type=JiraIssueType.SUBTASK),
-                    ]
-                ),
-                JiraTicket(
-                    key=f"{project}-102",
-                    summary="Story: API rate limiting",
-                    status="In Progress",
-                    issue_type=JiraIssueType.STORY,
-                    story_points=5.0
-                ),
-                JiraTicket(
-                    key=f"{project}-103",
-                    summary="Story: Dashboard improvements",
-                    status="To Do",
-                    issue_type=JiraIssueType.STORY,
-                    story_points=8.0
-                ),
-            ]
-        )
-    
-    def _mock_search(self, jql: str, max_results: int) -> JiraSearchResult:
-        """Generate mock search results"""
-        return JiraSearchResult(
-            total=3,
-            start_at=0,
-            max_results=max_results,
-            issues=[
-                self._mock_issue("PROJ-101"),
-                self._mock_issue("PROJ-102"),
-                self._mock_issue("PROJ-103"),
-            ]
-        )
-    
-    def _mock_sprint_stats(self, project_key: str, sprint_name: Optional[str]) -> JiraSprintStats:
-        """Generate mock sprint stats"""
-        return JiraSprintStats(
-            sprint_id=42,
-            sprint_name=sprint_name or "Sprint 42",
-            total_issues=15,
-            completed_issues=10,
-            in_progress_issues=4,
-            blocked_issues=1,
-            total_story_points=42.0,
-            completed_story_points=28.0,
-            completion_percentage=66.7,
-            blockers=[f"{project_key}-105"]
-        )
+        return extract_text(adf)
 
+# =============================================================================
+# MCP Server Setup
+# =============================================================================
 
-# ============================================================================
-# FASTAPI APPLICATION
-# ============================================================================
-
-jira_client: Optional[JiraClient] = None
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan handler"""
-    global jira_client
-    
-    # Startup
-    setup_tracing("jira-agent", service_version="2.3.0")
-    jira_client = JiraClient()
-    
-    # Log current mode
-    current_mode = await is_mock_mode()
-    logger.info(f"Jira Agent started - Mode: {'MOCK' if current_mode else 'LIVE'}")
-    
-    yield
-    
-    # Shutdown
-    logger.info("Jira Agent shutting down")
-
-
-app = FastAPI(
-    title="Nexus Jira Agent",
-    description="Agent for Jira ticket operations with dynamic configuration support",
-    version="2.3.0",
-    lifespan=lifespan
+# Initialize Jira client
+jira_client = JiraClient(
+    base_url=JIRA_URL,
+    username=JIRA_USERNAME,
+    api_token=JIRA_API_TOKEN,
+    mock_mode=JIRA_MOCK_MODE
 )
 
-# Add middleware
-app.add_middleware(MetricsMiddleware, agent_type="jira")
-app.add_middleware(
-    AuthMiddleware,
-    secret_key=os.environ.get("NEXUS_JWT_SECRET"),
-    require_auth=os.environ.get("NEXUS_REQUIRE_AUTH", "false").lower() == "true"
-)
+# Create MCP server
+mcp_server = Server("nexus-jira-agent")
 
-# Add metrics endpoint
-create_metrics_endpoint(app)
+# =============================================================================
+# MCP Tool Definitions
+# =============================================================================
 
-
-# ============================================================================
-# API ENDPOINTS
-# ============================================================================
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint with dynamic mode detection"""
-    current_mode = await is_mock_mode()
-    return {
-        "status": "healthy",
-        "service": "jira-agent",
-        "version": "2.3.0",
-        "mock_mode": current_mode,
-        "dynamic_config": True
-    }
-
-
-@app.get("/issue/{ticket_key}", response_model=AgentTaskResponse)
-@track_tool_usage("get_issue", agent_type="jira")
-async def get_issue(ticket_key: str):
-    """Fetch a single Jira issue by key"""
-    task_id = generate_task_id("jira")
-    
-    try:
-        ticket = await jira_client.get_issue(ticket_key)
-        JIRA_TICKETS_PROCESSED.labels(action="get", project_key=ticket.project_key or "unknown").inc()
-        
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.SUCCESS,
-            data=ticket.model_dump(mode="json"),
-            agent_type=AgentType.JIRA
-        )
-    except Exception as e:
-        logger.error(f"Failed to fetch issue {ticket_key}: {e}")
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            error_message=str(e),
-            agent_type=AgentType.JIRA
-        )
-
-
-@app.get("/hierarchy/{ticket_key}", response_model=AgentTaskResponse)
-@track_tool_usage("get_ticket_hierarchy", agent_type="jira")
-async def get_ticket_hierarchy(
-    ticket_key: str,
-    max_depth: int = Query(3, ge=1, le=5, description="Maximum depth to traverse")
-):
-    """Fetch complete ticket hierarchy (Epic -> Stories -> Subtasks)"""
-    task_id = generate_task_id("jira")
-    
-    try:
-        hierarchy = await jira_client.get_issue_hierarchy(ticket_key, max_depth=max_depth)
-        
-        def count_tickets(ticket: JiraTicket) -> int:
-            return 1 + sum(count_tickets(st) for st in ticket.subtasks)
-        
-        total_count = count_tickets(hierarchy)
-        
-        JIRA_TICKETS_PROCESSED.labels(action="hierarchy", project_key=hierarchy.project_key or "unknown").inc(total_count)
-        
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.SUCCESS,
-            data={
-                "hierarchy": hierarchy.model_dump(mode="json"),
-                "total_tickets": total_count
-            },
-            agent_type=AgentType.JIRA
-        )
-    except Exception as e:
-        logger.error(f"Failed to fetch hierarchy for {ticket_key}: {e}")
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            error_message=str(e),
-            agent_type=AgentType.JIRA
-        )
-
-
-@app.get("/search", response_model=AgentTaskResponse)
-@track_tool_usage("search_issues", agent_type="jira")
-async def search_issues(
-    jql: str = Query(..., description="JQL query string"),
-    start_at: int = Query(0, ge=0),
-    max_results: int = Query(50, ge=1, le=100)
-):
-    """Search Jira issues using JQL"""
-    task_id = generate_task_id("jira")
-    
-    try:
-        results = await jira_client.search_issues(jql, start_at, max_results)
-        
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.SUCCESS,
-            data=results.model_dump(mode="json"),
-            agent_type=AgentType.JIRA
-        )
-    except Exception as e:
-        logger.error(f"Failed to search issues: {e}")
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            error_message=str(e),
-            agent_type=AgentType.JIRA
-        )
-
-
-@app.post("/update", response_model=AgentTaskResponse)
-@track_tool_usage("update_ticket_status", agent_type="jira")
-async def update_ticket(
-    key: str = Query(..., description="Ticket key"),
-    status: Optional[str] = Query(None, description="New status"),
-    comment: Optional[str] = Query(None, description="Comment to add")
-):
-    """Update a Jira ticket's status and/or add a comment"""
-    task_id = generate_task_id("jira")
-    
-    try:
-        success = True
-        
-        if status:
-            success = await jira_client.update_issue_status(key, status, comment)
-        elif comment:
-            success = await jira_client.add_comment(key, comment)
-        else:
-            return AgentTaskResponse(
-                task_id=task_id,
-                status=TaskStatus.FAILED,
-                error_message="Either status or comment must be provided",
-                agent_type=AgentType.JIRA
-            )
-        
-        if success:
-            JIRA_TICKETS_PROCESSED.labels(action="update", project_key=key.split("-")[0]).inc()
-            return AgentTaskResponse(
-                task_id=task_id,
-                status=TaskStatus.SUCCESS,
-                data={"message": f"Updated {key}", "status": status, "comment_added": bool(comment)},
-                agent_type=AgentType.JIRA
-            )
-        else:
-            return AgentTaskResponse(
-                task_id=task_id,
-                status=TaskStatus.FAILED,
-                error_message=f"Failed to update {key}",
-                agent_type=AgentType.JIRA
-            )
-    except Exception as e:
-        logger.error(f"Failed to update ticket {key}: {e}")
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            error_message=str(e),
-            agent_type=AgentType.JIRA
-        )
-
-
-from pydantic import BaseModel as PydanticBaseModel
-
-
-class TicketFieldUpdateRequest(PydanticBaseModel):
-    """Request body for updating ticket fields"""
-    ticket_key: str
-    fields: Dict[str, Any]
-    updated_by: Optional[str] = None
-
-
-@app.post("/update-ticket", response_model=AgentTaskResponse)
-@track_tool_usage("update_ticket_fields", agent_type="jira")
-async def update_ticket_fields(request: TicketFieldUpdateRequest):
-    """Update multiple fields on a Jira ticket"""
-    task_id = generate_task_id("jira")
-    
-    try:
-        result = await jira_client.update_issue_fields(
-            key=request.ticket_key,
-            fields=request.fields
-        )
-        
-        if result.get("success"):
-            JIRA_TICKETS_PROCESSED.labels(
-                action="update_fields",
-                project_key=request.ticket_key.split("-")[0]
-            ).inc()
-            
-            return AgentTaskResponse(
-                task_id=task_id,
-                status=TaskStatus.SUCCESS,
-                data={
-                    "message": f"Updated {request.ticket_key}",
-                    "fields_updated": result.get("fields_updated", []),
-                    "updated_by": request.updated_by
+@mcp_server.list_tools()
+async def list_tools() -> List[Tool]:
+    """List all available Jira tools."""
+    return [
+        Tool(
+            name="get_jira_issue",
+            description="Fetch a single Jira ticket by its key (e.g., PROJ-123). Returns all ticket details including status, assignee, description, and metadata.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "Jira issue key (e.g., PROJ-123, NEXUS-456)"
+                    }
                 },
-                agent_type=AgentType.JIRA
-            )
-        else:
-            return AgentTaskResponse(
-                task_id=task_id,
-                status=TaskStatus.FAILED,
-                error_message=result.get("error", f"Failed to update {request.ticket_key}"),
-                agent_type=AgentType.JIRA
-            )
-            
-    except Exception as e:
-        logger.error(f"Failed to update ticket fields {request.ticket_key}: {e}")
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            error_message=str(e),
-            agent_type=AgentType.JIRA
+                "required": ["key"]
+            }
+        ),
+        Tool(
+            name="search_jira_issues",
+            description="Search Jira issues using JQL (Jira Query Language). Examples: 'project = PROJ AND status = \"In Progress\"', 'assignee = currentUser() AND sprint in openSprints()'",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "jql": {
+                        "type": "string",
+                        "description": "JQL query string"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return (default: 50)",
+                        "default": 50
+                    }
+                },
+                "required": ["jql"]
+            }
+        ),
+        Tool(
+            name="get_sprint_stats",
+            description="Get sprint statistics for a Jira project including completion rates, story points, and blockers.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_key": {
+                        "type": "string",
+                        "description": "Jira project key (e.g., PROJ, NEXUS)"
+                    },
+                    "sprint_id": {
+                        "type": "integer",
+                        "description": "Optional specific sprint ID. If not provided, returns current sprint stats."
+                    }
+                },
+                "required": ["project_key"]
+            }
+        ),
+        Tool(
+            name="get_epic_hierarchy",
+            description="Get a complete hierarchy of an epic including all stories and subtasks.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "epic_key": {
+                        "type": "string",
+                        "description": "Jira epic key (e.g., PROJ-100)"
+                    }
+                },
+                "required": ["epic_key"]
+            }
+        ),
+        Tool(
+            name="update_jira_issue",
+            description="Update fields on a Jira issue. Can update labels, fix versions, story points, and add comments.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "Jira issue key"
+                    },
+                    "fields": {
+                        "type": "object",
+                        "description": "Fields to update (e.g., {\"labels\": [\"urgent\"], \"fixVersions\": [\"v2.0\"]})"
+                    },
+                    "comment": {
+                        "type": "string",
+                        "description": "Optional comment to add to the issue"
+                    }
+                },
+                "required": ["key"]
+            }
+        ),
+        Tool(
+            name="transition_jira_issue",
+            description="Move a Jira issue to a new status (e.g., 'In Progress', 'Done', 'In Review').",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "Jira issue key"
+                    },
+                    "transition": {
+                        "type": "string",
+                        "description": "Target status name (e.g., 'In Progress', 'Done')"
+                    }
+                },
+                "required": ["key", "transition"]
+            }
         )
+    ]
 
-
-@app.get("/sprint-stats/{project_key}", response_model=AgentTaskResponse)
-@track_tool_usage("get_sprint_stats", agent_type="jira")
-async def get_sprint_stats(
-    project_key: str,
-    sprint_name: Optional[str] = Query(None, description="Sprint name (optional)")
-):
-    """Get sprint statistics for release readiness assessment"""
-    task_id = generate_task_id("jira")
+@mcp_server.call_tool()
+async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
+    """Execute a Jira tool."""
+    logger.info(f"Tool call: {name} with args: {arguments}")
     
     try:
-        stats = await jira_client.get_sprint_stats(project_key, sprint_name)
+        if name == "get_jira_issue":
+            result = await jira_client.get_issue(arguments["key"])
         
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.SUCCESS,
-            data=stats.model_dump(mode="json"),
-            agent_type=AgentType.JIRA
-        )
-    except Exception as e:
-        logger.error(f"Failed to get sprint stats: {e}")
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            error_message=str(e),
-            agent_type=AgentType.JIRA
-        )
-
-
-@app.post("/execute", response_model=AgentTaskResponse)
-async def execute_task(request: AgentTaskRequest):
-    """Generic task execution endpoint for orchestrator integration"""
-    action = request.action
-    payload = request.payload
+        elif name == "search_jira_issues":
+            result = await jira_client.search_issues(
+                jql=arguments["jql"],
+                max_results=arguments.get("max_results", 50)
+            )
+        
+        elif name == "get_sprint_stats":
+            result = await jira_client.get_sprint_stats(
+                project_key=arguments["project_key"],
+                sprint_id=arguments.get("sprint_id")
+            )
+        
+        elif name == "get_epic_hierarchy":
+            result = await jira_client.get_hierarchy(arguments["epic_key"])
+        
+        elif name == "update_jira_issue":
+            result = await jira_client.update_issue(
+                key=arguments["key"],
+                fields=arguments.get("fields", {}),
+                comment=arguments.get("comment")
+            )
+        
+        elif name == "transition_jira_issue":
+            result = await jira_client.transition_issue(
+                key=arguments["key"],
+                transition_name=arguments["transition"]
+            )
+        
+        else:
+            result = {"error": f"Unknown tool: {name}"}
+        
+        return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
     
-    if action == "get_issue":
-        return await get_issue(payload.get("key"))
-    elif action == "get_hierarchy":
-        return await get_ticket_hierarchy(payload.get("key"), payload.get("max_depth", 3))
-    elif action == "search":
-        return await search_issues(
-            jql=payload.get("jql"),
-            start_at=payload.get("start_at", 0),
-            max_results=payload.get("max_results", 50)
-        )
-    elif action == "update":
-        return await update_ticket(
-            key=payload.get("key"),
-            status=payload.get("status"),
-            comment=payload.get("comment")
-        )
-    elif action == "sprint_stats":
-        return await get_sprint_stats(
-            project_key=payload.get("project_key"),
-            sprint_name=payload.get("sprint_name")
-        )
-    elif action == "update_fields":
-        update_request = TicketFieldUpdateRequest(
-            ticket_key=payload.get("ticket_key"),
-            fields=payload.get("fields", {}),
-            updated_by=payload.get("updated_by")
-        )
-        return await update_ticket_fields(update_request)
-    else:
-        return AgentTaskResponse(
-            task_id=request.task_id,
-            status=TaskStatus.FAILED,
-            error_message=f"Unknown action: {action}",
-            agent_type=AgentType.JIRA
+    except Exception as e:
+        logger.error(f"Tool error: {e}")
+        return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
+
+# =============================================================================
+# Starlette App with SSE Transport
+# =============================================================================
+
+async def health_check(request: Request) -> JSONResponse:
+    """Health check endpoint."""
+    return JSONResponse({
+        "status": "healthy",
+        "service": "nexus-jira-agent",
+        "version": "2.0.0",
+        "transport": "mcp-sse",
+        "mock_mode": JIRA_MOCK_MODE,
+        "timestamp": datetime.utcnow().isoformat()
+    })
+
+async def sse_endpoint(request: Request):
+    """SSE endpoint for MCP communication."""
+    transport = SseServerTransport("/messages")
+    async with transport.connect_sse(request.scope, request.receive, request._send) as streams:
+        await mcp_server.run(
+            streams[0],
+            streams[1],
+            mcp_server.create_initialization_options()
         )
 
+async def legacy_execute(request: Request) -> JSONResponse:
+    """Legacy REST endpoint for backward compatibility with orchestrator."""
+    try:
+        body = await request.json()
+        action = body.get("action", "")
+        payload = body.get("payload", {})
+        
+        # Map legacy actions to MCP tools
+        action_map = {
+            "get_issue": ("get_jira_issue", {"key": payload.get("key")}),
+            "search": ("search_jira_issues", {"jql": payload.get("jql"), "max_results": payload.get("max_results", 50)}),
+            "get_sprint_stats": ("get_sprint_stats", {"project_key": payload.get("project_key"), "sprint_id": payload.get("sprint_id")}),
+            "get_hierarchy": ("get_epic_hierarchy", {"epic_key": payload.get("epic_key")}),
+            "update": ("update_jira_issue", {"key": payload.get("key"), "fields": payload.get("fields", {}), "comment": payload.get("comment")}),
+            "transition": ("transition_jira_issue", {"key": payload.get("key"), "transition": payload.get("transition")})
+        }
+        
+        if action not in action_map:
+            return JSONResponse({"error": f"Unknown action: {action}"}, status_code=400)
+        
+        tool_name, tool_args = action_map[action]
+        result = await call_tool(tool_name, tool_args)
+        
+        return JSONResponse({
+            "status": "success",
+            "data": json.loads(result[0].text) if result else {},
+            "agent_type": "jira"
+        })
+    
+    except Exception as e:
+        logger.error(f"Execute error: {e}")
+        return JSONResponse({
+            "status": "failed",
+            "error_message": str(e),
+            "agent_type": "jira"
+        }, status_code=500)
+
+# Create Starlette app
+app = Starlette(
+    debug=os.getenv("NEXUS_ENV", "development") == "development",
+    routes=[
+        Route("/health", health_check, methods=["GET"]),
+        Route("/sse", sse_endpoint, methods=["GET"]),
+        Route("/execute", legacy_execute, methods=["POST"]),
+        Route("/", health_check, methods=["GET"]),
+    ],
+    on_shutdown=[jira_client.close]
+)
+
+# =============================================================================
+# Main Entry Point
+# =============================================================================
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8081)
+    logger.info(f"🚀 Starting Nexus Jira Agent (MCP over SSE) on port {PORT}")
+    logger.info(f"📡 Mock mode: {JIRA_MOCK_MODE}")
+    logger.info(f"🔗 Jira URL: {JIRA_URL}")
+    
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=PORT,
+        log_level="info"
+    )

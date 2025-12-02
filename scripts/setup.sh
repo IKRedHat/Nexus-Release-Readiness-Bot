@@ -41,6 +41,7 @@ LOG_FILE="$PROJECT_ROOT/setup.log"
 MIN_PYTHON_VERSION="3.10"
 MIN_DOCKER_VERSION="20.10"
 MIN_DOCKER_COMPOSE_VERSION="2.0"
+MIN_NODE_VERSION="18.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -74,7 +75,8 @@ print_banner() {
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
     
-    Release Automation System - v2.3
+    Release Automation System - v3.0
+    LangGraph + MCP Architecture
     One-Click Setup Script
     
 EOF
@@ -277,6 +279,28 @@ check_prerequisites() {
         log WARNING "Git not found"
     fi
     
+    # Check Node.js (for MCP sidecar servers)
+    log SUBSTEP "Checking Node.js (for MCP servers)..."
+    if check_command node; then
+        local node_version=$(node --version | grep -oE '[0-9]+\.[0-9]+' | head -1)
+        if version_gte "$node_version" "$MIN_NODE_VERSION"; then
+            log SUCCESS "Node.js $node_version found (required: $MIN_NODE_VERSION+)"
+        else
+            log WARNING "Node.js $node_version is old (recommended: $MIN_NODE_VERSION+)"
+        fi
+    else
+        log INFO "Node.js not found (optional - needed for standard MCP servers like GitHub/Slack)"
+        suggest_install_node "$os"
+    fi
+    
+    # Check npm (for MCP server dependencies)
+    log SUBSTEP "Checking npm..."
+    if check_command npm; then
+        log SUCCESS "npm found"
+    else
+        log INFO "npm not found (installed with Node.js)"
+    fi
+    
     # Optional: Check kubectl and Helm for Kubernetes deployment
     log SUBSTEP "Checking Kubernetes tools (optional)..."
     if check_command kubectl; then
@@ -346,6 +370,24 @@ suggest_start_docker() {
             ;;
         linux)
             echo -e "   ${CYAN}sudo systemctl start docker${NC}"
+            ;;
+    esac
+    echo ""
+}
+
+suggest_install_node() {
+    local os=$1
+    echo ""
+    echo -e "   ${YELLOW}To install Node.js (optional - for MCP sidecar servers):${NC}"
+    case $os in
+        macos)
+            echo -e "   ${CYAN}brew install node@20${NC}"
+            echo -e "   Or use nvm: ${CYAN}nvm install 20${NC}"
+            ;;
+        linux)
+            echo -e "   ${CYAN}curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -${NC}"
+            echo -e "   ${CYAN}sudo apt-get install -y nodejs${NC}"
+            echo -e "   Or use nvm: ${CYAN}nvm install 20${NC}"
             ;;
     esac
     echo ""
@@ -833,6 +875,7 @@ show_help() {
     echo "  • Python 3.10+"
     echo "  • Docker 20.10+ (optional with --skip-docker)"
     echo "  • Docker Compose 2.0+ (optional with --skip-docker)"
+    echo "  • Node.js 18+ (optional - for standard MCP servers)"
     echo ""
 }
 

@@ -12,10 +12,12 @@ import {
   Cloud,
   MessageSquare,
   FileText,
-  Cpu
+  Cpu,
+  Sparkles
 } from 'lucide-react'
 import axios from 'axios'
 import ConfigForm from '../components/ConfigForm'
+import LLMConfigForm from '../components/LLMConfigForm'
 
 const API_BASE = '/api'
 
@@ -44,6 +46,7 @@ interface ConfigValue {
 }
 
 const categoryIcons: Record<string, any> = {
+  'model-config': Sparkles,
   jira: Database,
   github: Github,
   jenkins: Cpu,
@@ -61,7 +64,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
-  const [activeCategory, setActiveCategory] = useState<string>('jira')
+  const [activeCategory, setActiveCategory] = useState<string>('model-config')
 
   useEffect(() => {
     fetchData()
@@ -117,7 +120,8 @@ export default function SettingsPage() {
     return item?.is_sensitive || false
   }
 
-  const categories = Object.keys(templates)
+  // Add Model Configuration as the first tab
+  const categories = ['model-config', ...Object.keys(templates)]
 
   if (loading) {
     return (
@@ -145,6 +149,7 @@ export default function SettingsPage() {
       <div className="flex flex-wrap gap-2 border-b border-cyber-border pb-4">
         {categories.map((category) => {
           const Icon = categoryIcons[category] || Settings
+          const displayName = category === 'model-config' ? 'Model Configuration' : category
           return (
             <button
               key={category}
@@ -158,14 +163,16 @@ export default function SettingsPage() {
               `}
             >
               <Icon className="w-4 h-4" />
-              <span className="capitalize">{category}</span>
+              <span className="capitalize">{displayName}</span>
             </button>
           )
         })}
       </div>
 
       {/* Active Category Form */}
-      {templates[activeCategory] && (
+      {activeCategory === 'model-config' ? (
+        <LLMConfigForm />
+      ) : templates[activeCategory] && (
         <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-white">{templates[activeCategory].name}</h2>

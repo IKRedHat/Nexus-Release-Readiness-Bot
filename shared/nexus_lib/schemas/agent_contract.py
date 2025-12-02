@@ -485,6 +485,28 @@ class ReleaseReport(BaseModel):
 # AGENT COMMUNICATION PROTOCOL
 # ============================================================================
 
+class LangGraphCheckpoint(BaseModel):
+    """LangGraph state checkpoint for persistence and resumption."""
+    checkpoint_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    thread_id: str = Field(..., description="LangGraph thread ID")
+    checkpoint_ns: str = Field(default="", description="Checkpoint namespace")
+    channel_values: Dict[str, Any] = Field(default_factory=dict, description="Channel state values")
+    channel_versions: Dict[str, int] = Field(default_factory=dict, description="Channel versions")
+    pending_sends: List[Dict[str, Any]] = Field(default_factory=list, description="Pending messages")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class GraphExecutionState(str, Enum):
+    """LangGraph execution states."""
+    IDLE = "idle"
+    PLANNING = "planning"
+    EXECUTING = "executing"
+    WAITING_HUMAN = "waiting_human"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    INTERRUPTED = "interrupted"
+
+
 class AgentTaskRequest(BaseModel):
     """Request sent to an agent to execute a task"""
     task_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique trace ID")
@@ -503,6 +525,13 @@ class AgentTaskRequest(BaseModel):
     timeout_seconds: int = Field(60, description="Execution timeout")
     retry_count: int = Field(0, description="Number of retries attempted")
     max_retries: int = Field(3, description="Maximum retries allowed")
+    
+    # LangGraph state support
+    thread_id: Optional[str] = Field(None, description="LangGraph thread ID for state persistence")
+    checkpoint: Optional[LangGraphCheckpoint] = Field(None, description="LangGraph checkpoint for resumption")
+    graph_state: Optional[GraphExecutionState] = Field(None, description="Current graph execution state")
+    interrupt_before: Optional[List[str]] = Field(None, description="Node names to interrupt before")
+    interrupt_after: Optional[List[str]] = Field(None, description="Node names to interrupt after")
     
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)

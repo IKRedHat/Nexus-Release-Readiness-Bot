@@ -1,1072 +1,762 @@
 """
-Nexus Jira Hygiene Agent
-Quality Gatekeeper for Jira Data - Validates ticket completeness and notifies assignees
+Nexus Jira Hygiene Agent - MCP Server Implementation
+=====================================================
 
-This agent runs scheduled hygiene checks on Jira tickets to ensure data quality
-by validating required fields and calculating compliance scores.
+Proactive Jira data quality agent exposed via MCP over SSE.
+Monitors ticket hygiene, sends notifications, and provides fix recommendations.
 
-Now with dynamic configuration via ConfigManager - supports live mode switching from Admin Dashboard.
+Architecture: MCP Server with SSE Transport
+Port: 8085
 """
+
+import asyncio
+import logging
 import os
 import sys
-import logging
-from typing import Optional, List, Dict, Any, Set
-from datetime import datetime
-from contextlib import asynccontextmanager
-from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+import json
+import random
 
-import pytz
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from pydantic import BaseModel, Field
+from mcp.server import Server
+from mcp.server.sse import SseServerTransport
+from mcp.types import Tool, TextContent
+from starlette.applications import Starlette
+from starlette.routing import Route
+from starlette.responses import JSONResponse
+from starlette.requests import Request
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from prometheus_client import Gauge, Counter
+import uvicorn
+import httpx
 
-# Add shared lib to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../shared")))
+# Add shared lib path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..', 'shared'))
 
-from nexus_lib.schemas.agent_contract import (
-    AgentTaskRequest,
-    AgentTaskResponse,
-    TaskStatus,
-    AgentType,
-)
-from nexus_lib.middleware import MetricsMiddleware, AuthMiddleware
-from nexus_lib.instrumentation import (
-    setup_tracing,
-    track_tool_usage,
-    create_metrics_endpoint,
-)
-from nexus_lib.utils import AsyncHttpClient, generate_task_id
-from nexus_lib.config import ConfigManager, ConfigKeys, is_mock_mode
+try:
+    from nexus_lib.config import ConfigManager, ConfigKeys
+except ImportError:
+    ConfigManager = None
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("nexus.jira-hygiene-agent")
 
+# =============================================================================
+# Configuration
+# =============================================================================
 
-# ============================================================================
-# PROMETHEUS METRICS
-# ============================================================================
+JIRA_URL = os.getenv("JIRA_URL", "https://your-org.atlassian.net")
+JIRA_USERNAME = os.getenv("JIRA_USERNAME", "")
+JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN", "")
+JIRA_MOCK_MODE = os.getenv("JIRA_MOCK_MODE", "true").lower() == "true"
+SLACK_AGENT_URL = os.getenv("SLACK_AGENT_URL", "http://slack-agent:8084")
+HYGIENE_CHECK_SCHEDULE = os.getenv("HYGIENE_CHECK_SCHEDULE", "0 9 * * 1-5")  # 9am weekdays
+PORT = int(os.getenv("JIRA_HYGIENE_AGENT_PORT", "8085"))
 
-HYGIENE_SCORE = Gauge(
-    'nexus_project_hygiene_score',
-    'Percentage of fully compliant Jira tickets',
-    ['project_key']
-)
+# Hygiene validation rules
+REQUIRED_FIELDS = {
+    "labels": "labels",
+    "fix_version": "fixVersions",
+    "story_points": "customfield_10016",
+    "team": "customfield_10001",
+}
 
-HYGIENE_CHECKS_TOTAL = Counter(
-    'nexus_hygiene_checks_total',
-    'Total number of hygiene checks performed',
-    ['project_key', 'trigger_type']
-)
+# =============================================================================
+# Mock Data Generator
+# =============================================================================
 
-VIOLATIONS_TOTAL = Counter(
-    'nexus_hygiene_violations_total',
-    'Total number of hygiene violations found',
-    ['project_key', 'violation_type']
-)
-
-TICKETS_CHECKED = Gauge(
-    'nexus_hygiene_tickets_checked',
-    'Number of tickets checked in last hygiene run',
-    ['project_key']
-)
-
-COMPLIANT_TICKETS = Gauge(
-    'nexus_hygiene_compliant_tickets',
-    'Number of compliant tickets in last hygiene run',
-    ['project_key']
-)
-
-
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
-
-class HygieneConfig(BaseModel):
-    """Configuration for hygiene checks"""
-    # Required fields to validate
-    required_fields: List[str] = Field(
-        default=[
-            "labels",
-            "fixVersions",
-            "versions",  # Affected Version
-            "customfield_10016",  # Story Points (common field ID)
-            "customfield_10001",  # Team/Contributors (common field ID)
-        ]
-    )
+class MockHygieneData:
+    """Generates realistic mock hygiene data."""
     
-    # Human-readable field names for reporting
-    field_names: Dict[str, str] = Field(
-        default={
-            "labels": "Labels",
-            "fixVersions": "Fix Version",
-            "versions": "Affected Version",
-            "customfield_10016": "Story Points",
-            "customfield_10001": "Team/Contributors",
+    VIOLATIONS = [
+        "Missing labels",
+        "Missing fix version",
+        "Missing story points",
+        "Missing team assignment",
+        "Stale ticket (no update in 14+ days)",
+        "Missing acceptance criteria"
+    ]
+    
+    ASSIGNEES = [
+        {"email": "alice@example.com", "display_name": "Alice Smith", "account_id": "user-001"},
+        {"email": "bob@example.com", "display_name": "Bob Jones", "account_id": "user-002"},
+        {"email": "carol@example.com", "display_name": "Carol White", "account_id": "user-003"},
+        {"email": "david@example.com", "display_name": "David Brown", "account_id": "user-004"},
+    ]
+    
+    @classmethod
+    def generate_violation(cls, ticket_key: str) -> Dict[str, Any]:
+        """Generate a mock hygiene violation."""
+        violation_type = random.choice(cls.VIOLATIONS)
+        assignee = random.choice(cls.ASSIGNEES)
+        
+        return {
+            "ticket_key": ticket_key,
+            "summary": f"Sample ticket {ticket_key}",
+            "violation_type": violation_type,
+            "severity": random.choice(["high", "medium", "low"]),
+            "assignee": assignee,
+            "assignee_email": assignee["email"],
+            "created_at": (datetime.utcnow() - timedelta(days=random.randint(1, 30))).isoformat(),
+            "last_updated": (datetime.utcnow() - timedelta(days=random.randint(0, 14))).isoformat(),
+            "recommendation": f"Please update the ticket to include {violation_type.lower().replace('missing ', '')}"
         }
-    )
     
-    # Issue types to check
-    issue_types: List[str] = Field(
-        default=["Story", "Task", "Bug", "Epic"]
-    )
-    
-    # Statuses to exclude (completed work)
-    excluded_statuses: List[str] = Field(
-        default=["Done", "Closed", "Cancelled", "Resolved"]
-    )
-    
-    # Projects to check (empty = all)
-    projects: List[str] = Field(default=[])
-    
-    # Timezone for scheduling
-    timezone: str = Field(default="UTC")
-    
-    # Schedule (cron format - weekdays at 9 AM)
-    schedule_hour: int = Field(default=9)
-    schedule_minute: int = Field(default=0)
-    schedule_days: str = Field(default="mon-fri")
-
-
-# ============================================================================
-# DATA MODELS
-# ============================================================================
-
-class TicketViolation(BaseModel):
-    """A single ticket's hygiene violations"""
-    ticket_key: str
-    ticket_summary: str
-    ticket_url: str
-    missing_fields: List[str]
-    assignee_email: Optional[str] = None
-    assignee_display_name: Optional[str] = None
-
-
-class AssigneeViolations(BaseModel):
-    """Violations grouped by assignee"""
-    assignee_email: str
-    assignee_display_name: str
-    violations: List[TicketViolation]
-    total_violations: int
-
-
-class HygieneCheckResult(BaseModel):
-    """Result of a hygiene check run"""
-    check_id: str
-    timestamp: datetime
-    project_key: str
-    total_tickets_checked: int
-    compliant_tickets: int
-    non_compliant_tickets: int
-    hygiene_score: float
-    violations_by_assignee: List[AssigneeViolations]
-    violation_summary: Dict[str, int]  # field_name -> count
-
-
-class HygieneCheckRequest(BaseModel):
-    """Request to run a hygiene check"""
-    project_key: Optional[str] = Field(None, description="Specific project to check (optional)")
-    notify: bool = Field(True, description="Send notifications to assignees")
-    dry_run: bool = Field(False, description="Check without sending notifications")
-
-
-# ============================================================================
-# JIRA CLIENT
-# ============================================================================
-
-class JiraHygieneClient:
-    """
-    Jira client for hygiene checks
-    
-    Now uses ConfigManager for dynamic configuration.
-    """
-    
-    def __init__(self, config: HygieneConfig):
-        self.config = config
-        self._jira = None
-        self._jira_url = None
-        self._last_mode = None
-        self._initialized = False
-        logger.info("Jira Hygiene client created - will initialize on first use")
-    
-    async def _ensure_initialized(self):
-        """Lazy initialization - checks config on each operation."""
-        current_mock_mode = await is_mock_mode()
+    @classmethod
+    def generate_project_hygiene(cls, project_key: str) -> Dict[str, Any]:
+        """Generate mock project hygiene report."""
+        total_tickets = random.randint(30, 80)
+        violations_count = random.randint(5, 20)
+        compliant = total_tickets - violations_count
         
-        if self._last_mode != current_mock_mode or not self._initialized:
-            self._last_mode = current_mock_mode
-            self._initialized = True
-            
-            if current_mock_mode:
-                logger.info("Jira Hygiene client operating in MOCK mode")
-                self._jira = None
-            else:
-                await self._init_live_client()
-    
-    async def _init_live_client(self):
-        """Initialize the live Jira client with credentials from ConfigManager."""
-        try:
-            from atlassian import Jira
-            
-            self._jira_url = await ConfigManager.get(ConfigKeys.JIRA_URL)
-            jira_username = await ConfigManager.get(ConfigKeys.JIRA_USERNAME)
-            jira_token = await ConfigManager.get(ConfigKeys.JIRA_API_TOKEN)
-            
-            if all([self._jira_url, jira_username, jira_token]):
-                self._jira = Jira(
-                    url=self._jira_url,
-                    username=jira_username,
-                    password=jira_token,
-                    cloud=True
-                )
-                logger.info(f"Jira Hygiene client initialized in LIVE mode - {self._jira_url}")
-            else:
-                logger.warning("Jira credentials incomplete, using mock mode")
-                self._last_mode = True
-                self._jira = None
-        except ImportError:
-            logger.warning("atlassian-python-api not installed, using mock mode")
-            self._last_mode = True
-            self._jira = None
-        except Exception as e:
-            logger.error(f"Failed to initialize Jira client: {e}")
-            self._last_mode = True
-            self._jira = None
-    
-    @property
-    def mock_mode(self) -> bool:
-        return self._last_mode if self._last_mode is not None else True
-    
-    @property
-    def jira(self):
-        return self._jira
-    
-    @property
-    def jira_url(self):
-        return self._jira_url or "https://jira.example.com"
-    
-    async def get_active_sprint_tickets(self, project_key: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Fetch tickets from active sprints/releases"""
-        await self._ensure_initialized()
-        if self.mock_mode:
-            return self._get_mock_tickets(project_key)
-        
-        try:
-            # Build JQL for active tickets
-            jql_parts = []
-            
-            # Filter by project if specified
-            if project_key:
-                jql_parts.append(f"project = {project_key}")
-            elif self.config.projects:
-                projects_str = ", ".join(self.config.projects)
-                jql_parts.append(f"project IN ({projects_str})")
-            
-            # Filter by issue type
-            types_str = ", ".join([f'"{t}"' for t in self.config.issue_types])
-            jql_parts.append(f"issuetype IN ({types_str})")
-            
-            # Exclude completed statuses
-            statuses_str = ", ".join([f'"{s}"' for s in self.config.excluded_statuses])
-            jql_parts.append(f"status NOT IN ({statuses_str})")
-            
-            # Active sprint or fix version
-            jql_parts.append("(sprint in openSprints() OR fixVersion in unreleasedVersions())")
-            
-            jql = " AND ".join(jql_parts)
-            
-            # Fetch tickets
-            issues = []
-            start_at = 0
-            max_results = 100
-            
-            while True:
-                result = self.jira.jql(
-                    jql,
-                    start=start_at,
-                    limit=max_results,
-                    fields="*all"
-                )
-                
-                issues.extend(result.get("issues", []))
-                
-                if len(result.get("issues", [])) < max_results:
-                    break
-                start_at += max_results
-            
-            return issues
-            
-        except Exception as e:
-            logger.error(f"Failed to fetch tickets: {e}")
-            raise
-    
-    def _get_mock_tickets(self, project_key: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Generate mock tickets for testing"""
-        project = project_key or "PROJ"
-        
-        return [
-            # Compliant ticket
-            {
-                "key": f"{project}-101",
-                "fields": {
-                    "summary": "Implement user authentication",
-                    "issuetype": {"name": "Story"},
-                    "status": {"name": "In Progress"},
-                    "labels": ["backend", "security"],
-                    "fixVersions": [{"name": "v2.0.0"}],
-                    "versions": [{"name": "v1.9.0"}],
-                    "customfield_10016": 8.0,
-                    "customfield_10001": {"name": "Platform Team"},
-                    "assignee": {
-                        "emailAddress": "alice@example.com",
-                        "displayName": "Alice Developer"
-                    }
-                }
-            },
-            # Missing labels
-            {
-                "key": f"{project}-102",
-                "fields": {
-                    "summary": "Fix login timeout issue",
-                    "issuetype": {"name": "Bug"},
-                    "status": {"name": "In Progress"},
-                    "labels": [],  # Missing!
-                    "fixVersions": [{"name": "v2.0.0"}],
-                    "versions": [{"name": "v1.9.5"}],
-                    "customfield_10016": 3.0,
-                    "customfield_10001": {"name": "Platform Team"},
-                    "assignee": {
-                        "emailAddress": "bob@example.com",
-                        "displayName": "Bob Engineer"
-                    }
-                }
-            },
-            # Missing story points and fix version
-            {
-                "key": f"{project}-103",
-                "fields": {
-                    "summary": "Add API rate limiting",
-                    "issuetype": {"name": "Task"},
-                    "status": {"name": "To Do"},
-                    "labels": ["api"],
-                    "fixVersions": [],  # Missing!
-                    "versions": [],  # Missing!
-                    "customfield_10016": None,  # Missing!
-                    "customfield_10001": {"name": "API Team"},
-                    "assignee": {
-                        "emailAddress": "charlie@example.com",
-                        "displayName": "Charlie Backend"
-                    }
-                }
-            },
-            # Missing team/contributors
-            {
-                "key": f"{project}-104",
-                "fields": {
-                    "summary": "Update documentation",
-                    "issuetype": {"name": "Task"},
-                    "status": {"name": "In Progress"},
-                    "labels": ["docs"],
-                    "fixVersions": [{"name": "v2.0.0"}],
-                    "versions": [{"name": "v1.9.0"}],
-                    "customfield_10016": 2.0,
-                    "customfield_10001": None,  # Missing!
-                    "assignee": {
-                        "emailAddress": "alice@example.com",
-                        "displayName": "Alice Developer"
-                    }
-                }
-            },
-            # Unassigned ticket with multiple violations
-            {
-                "key": f"{project}-105",
-                "fields": {
-                    "summary": "Legacy code cleanup",
-                    "issuetype": {"name": "Task"},
-                    "status": {"name": "To Do"},
-                    "labels": [],  # Missing!
-                    "fixVersions": [],  # Missing!
-                    "versions": [],  # Missing!
-                    "customfield_10016": None,  # Missing!
-                    "customfield_10001": None,  # Missing!
-                    "assignee": None  # Unassigned!
-                }
-            },
-            # Compliant ticket 2
-            {
-                "key": f"{project}-106",
-                "fields": {
-                    "summary": "Performance optimization",
-                    "issuetype": {"name": "Story"},
-                    "status": {"name": "In Review"},
-                    "labels": ["performance", "backend"],
-                    "fixVersions": [{"name": "v2.0.0"}],
-                    "versions": [{"name": "v1.9.0"}],
-                    "customfield_10016": 5.0,
-                    "customfield_10001": {"name": "Platform Team"},
-                    "assignee": {
-                        "emailAddress": "bob@example.com",
-                        "displayName": "Bob Engineer"
-                    }
-                }
-            },
+        violations = [
+            cls.generate_violation(f"{project_key}-{random.randint(100, 999)}")
+            for _ in range(violations_count)
         ]
+        
+        # Group by assignee
+        by_assignee = {}
+        for v in violations:
+            email = v["assignee_email"]
+            if email not in by_assignee:
+                by_assignee[email] = {
+                    "assignee": v["assignee"],
+                    "violations": []
+                }
+            by_assignee[email]["violations"].append(v)
+        
+        # Calculate score
+        hygiene_score = round((compliant / total_tickets) * 100, 1)
+        
+        return {
+            "project_key": project_key,
+            "hygiene_score": hygiene_score,
+            "total_tickets": total_tickets,
+            "compliant_tickets": compliant,
+            "violations_count": violations_count,
+            "violations": violations,
+            "by_assignee": list(by_assignee.values()),
+            "violation_breakdown": {
+                "missing_labels": sum(1 for v in violations if "labels" in v["violation_type"].lower()),
+                "missing_fix_version": sum(1 for v in violations if "fix version" in v["violation_type"].lower()),
+                "missing_story_points": sum(1 for v in violations if "story points" in v["violation_type"].lower()),
+                "missing_team": sum(1 for v in violations if "team" in v["violation_type"].lower()),
+                "stale_tickets": sum(1 for v in violations if "stale" in v["violation_type"].lower()),
+            },
+            "checked_at": datetime.utcnow().isoformat(),
+            "trend": random.choice(["improving", "stable", "declining"])
+        }
 
-
-# ============================================================================
-# HYGIENE CHECKER
-# ============================================================================
+# =============================================================================
+# Hygiene Checker
+# =============================================================================
 
 class HygieneChecker:
-    """
-    Core hygiene checking logic
-    """
+    """Validates Jira ticket hygiene."""
     
-    def __init__(self, jira_client: JiraHygieneClient, slack_client: AsyncHttpClient, config: HygieneConfig):
-        self.jira_client = jira_client
-        self.slack_client = slack_client
-        self.config = config
+    def __init__(self, jira_url: str, username: str, api_token: str, mock_mode: bool = False):
+        self.jira_url = jira_url.rstrip("/")
+        self.username = username
+        self.api_token = api_token
+        self.mock_mode = mock_mode
+        self._client: Optional[httpx.AsyncClient] = None
     
-    def _is_field_empty(self, value: Any) -> bool:
-        """Check if a field value is considered empty"""
-        if value is None:
-            return True
-        if isinstance(value, list) and len(value) == 0:
-            return True
-        if isinstance(value, str) and value.strip() == "":
-            return True
-        if isinstance(value, dict) and not value:
-            return True
-        return False
-    
-    def _validate_ticket(self, ticket: Dict[str, Any]) -> List[str]:
-        """Validate a ticket and return list of missing field names"""
-        missing_fields = []
-        fields = ticket.get("fields", {})
-        
-        for field_id in self.config.required_fields:
-            value = fields.get(field_id)
-            
-            if self._is_field_empty(value):
-                # Get human-readable name
-                field_name = self.config.field_names.get(field_id, field_id)
-                missing_fields.append(field_name)
-        
-        return missing_fields
-    
-    def _get_assignee_info(self, ticket: Dict[str, Any]) -> tuple:
-        """Extract assignee info from ticket"""
-        fields = ticket.get("fields", {})
-        assignee = fields.get("assignee")
-        
-        if assignee:
-            return (
-                assignee.get("emailAddress", "unknown@example.com"),
-                assignee.get("displayName", "Unknown User")
+    async def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            auth = (self.username, self.api_token) if self.username and self.api_token else None
+            self._client = httpx.AsyncClient(
+                base_url=f"{self.jira_url}/rest/api/3",
+                auth=auth,
+                timeout=30.0,
+                headers={"Accept": "application/json", "Content-Type": "application/json"}
             )
-        return ("unassigned@example.com", "Unassigned")
+        return self._client
     
-    def _build_ticket_url(self, ticket_key: str) -> str:
-        """Build Jira ticket URL"""
-        base_url = self.jira_client.jira_url.rstrip("/")
-        return f"{base_url}/browse/{ticket_key}"
+    async def close(self):
+        if self._client:
+            await self._client.aclose()
+            self._client = None
     
-    @track_tool_usage("check_hygiene", agent_type="jira_hygiene")
-    async def check_hygiene(
-        self,
-        project_key: Optional[str] = None,
-        trigger_type: str = "manual"
-    ) -> HygieneCheckResult:
-        """
-        Run hygiene check on active tickets
+    async def check_project_hygiene(self, project_key: str) -> Dict[str, Any]:
+        """Check hygiene for all active tickets in a project."""
+        if self.mock_mode:
+            return MockHygieneData.generate_project_hygiene(project_key)
         
-        Args:
-            project_key: Specific project to check (optional)
-            trigger_type: "scheduled" or "manual"
+        client = await self._get_client()
         
-        Returns:
-            HygieneCheckResult with violations and score
-        """
-        check_id = generate_task_id("hygiene")
+        # Fetch active tickets
+        jql = f'project = "{project_key}" AND status NOT IN (Done, Closed, Resolved) ORDER BY updated DESC'
+        response = await client.post("/search", json={
+            "jql": jql,
+            "maxResults": 200,
+            "fields": ["summary", "assignee", "labels", "fixVersions", "customfield_10016", "customfield_10001", "updated"]
+        })
+        response.raise_for_status()
+        data = response.json()
         
-        # Fetch tickets
-        tickets = self.jira_client.get_active_sprint_tickets(project_key)
-        project = project_key or "ALL"
+        issues = data.get("issues", [])
+        violations = []
         
-        logger.info(f"Checking hygiene for {len(tickets)} tickets in {project}")
-        
-        # Track metrics
-        HYGIENE_CHECKS_TOTAL.labels(project_key=project, trigger_type=trigger_type).inc()
-        
-        # Analyze tickets
-        violations_by_assignee: Dict[str, List[TicketViolation]] = defaultdict(list)
-        violation_summary: Dict[str, int] = defaultdict(int)
-        compliant_count = 0
-        
-        for ticket in tickets:
-            ticket_key = ticket.get("key", "UNKNOWN")
-            fields = ticket.get("fields", {})
+        for issue in issues:
+            fields = issue.get("fields", {})
+            issue_violations = []
             
-            # Validate ticket
-            missing_fields = self._validate_ticket(ticket)
+            # Check required fields
+            if not fields.get("labels"):
+                issue_violations.append("Missing labels")
             
-            if not missing_fields:
-                compliant_count += 1
-                continue
+            if not fields.get("fixVersions"):
+                issue_violations.append("Missing fix version")
             
-            # Get assignee
-            email, display_name = self._get_assignee_info(ticket)
+            if fields.get("customfield_10016") is None:
+                issue_violations.append("Missing story points")
             
-            # Create violation record
-            violation = TicketViolation(
-                ticket_key=ticket_key,
-                ticket_summary=fields.get("summary", "No summary"),
-                ticket_url=self._build_ticket_url(ticket_key),
-                missing_fields=missing_fields,
-                assignee_email=email,
-                assignee_display_name=display_name
-            )
+            if not fields.get("customfield_10001"):
+                issue_violations.append("Missing team assignment")
             
-            violations_by_assignee[email].append(violation)
+            # Check for staleness
+            updated = fields.get("updated")
+            if updated:
+                updated_dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+                if (datetime.now(updated_dt.tzinfo) - updated_dt).days > 14:
+                    issue_violations.append("Stale ticket (no update in 14+ days)")
             
-            # Update violation counts
-            for field in missing_fields:
-                violation_summary[field] += 1
-                VIOLATIONS_TOTAL.labels(project_key=project, violation_type=field).inc()
+            if issue_violations:
+                assignee = fields.get("assignee") or {}
+                for violation_type in issue_violations:
+                    violations.append({
+                        "ticket_key": issue["key"],
+                        "summary": fields.get("summary", ""),
+                        "violation_type": violation_type,
+                        "severity": "high" if "stale" in violation_type.lower() or "labels" in violation_type.lower() else "medium",
+                        "assignee": {
+                            "account_id": assignee.get("accountId", ""),
+                            "display_name": assignee.get("displayName", "Unassigned"),
+                            "email": assignee.get("emailAddress", "")
+                        },
+                        "assignee_email": assignee.get("emailAddress", ""),
+                        "last_updated": fields.get("updated")
+                    })
         
-        # Calculate hygiene score
-        total_tickets = len(tickets)
-        hygiene_score = (compliant_count / total_tickets * 100) if total_tickets > 0 else 100.0
+        # Group by assignee
+        by_assignee = {}
+        for v in violations:
+            email = v["assignee_email"]
+            if email not in by_assignee:
+                by_assignee[email] = {
+                    "assignee": v["assignee"],
+                    "violations": []
+                }
+            by_assignee[email]["violations"].append(v)
         
-        # Update Prometheus metrics
-        HYGIENE_SCORE.labels(project_key=project).set(hygiene_score)
-        TICKETS_CHECKED.labels(project_key=project).set(total_tickets)
-        COMPLIANT_TICKETS.labels(project_key=project).set(compliant_count)
+        compliant = len(issues) - len(set(v["ticket_key"] for v in violations))
+        hygiene_score = round((compliant / len(issues)) * 100, 1) if issues else 100
         
-        # Build assignee violation list
-        assignee_violations = []
-        for email, violations in violations_by_assignee.items():
-            if violations:
-                assignee_violations.append(AssigneeViolations(
-                    assignee_email=email,
-                    assignee_display_name=violations[0].assignee_display_name or "Unknown",
-                    violations=violations,
-                    total_violations=sum(len(v.missing_fields) for v in violations)
-                ))
-        
-        # Sort by violation count (descending)
-        assignee_violations.sort(key=lambda x: x.total_violations, reverse=True)
-        
-        result = HygieneCheckResult(
-            check_id=check_id,
-            timestamp=datetime.utcnow(),
-            project_key=project,
-            total_tickets_checked=total_tickets,
-            compliant_tickets=compliant_count,
-            non_compliant_tickets=total_tickets - compliant_count,
-            hygiene_score=hygiene_score,
-            violations_by_assignee=assignee_violations,
-            violation_summary=dict(violation_summary)
-        )
-        
-        logger.info(
-            f"Hygiene check complete: {compliant_count}/{total_tickets} compliant "
-            f"({hygiene_score:.1f}% score)"
-        )
-        
-        return result
+        return {
+            "project_key": project_key,
+            "hygiene_score": hygiene_score,
+            "total_tickets": len(issues),
+            "compliant_tickets": compliant,
+            "violations_count": len(violations),
+            "violations": violations,
+            "by_assignee": list(by_assignee.values()),
+            "checked_at": datetime.utcnow().isoformat()
+        }
     
-    async def send_notifications(self, result: HygieneCheckResult) -> int:
-        """
-        Send DM notifications to assignees via Slack Agent
+    async def get_user_violations(self, project_key: str, user_email: str) -> Dict[str, Any]:
+        """Get violations for a specific user."""
+        hygiene = await self.check_project_hygiene(project_key)
         
-        Returns number of notifications sent
-        """
-        notifications_sent = 0
-        slack_agent_url = await ConfigManager.get(ConfigKeys.SLACK_AGENT_URL) or "http://slack-agent:8084"
+        user_violations = [
+            v for v in hygiene["violations"]
+            if v["assignee_email"] == user_email
+        ]
         
-        for assignee in result.violations_by_assignee:
-            # Skip unassigned
-            if assignee.assignee_email == "unassigned@example.com":
-                logger.warning(f"Skipping notification for unassigned tickets")
-                continue
-            
-            # Format the message
-            message = self._format_violation_message(assignee, result)
-            
-            try:
-                # Send to Slack Agent's DM endpoint
-                response = await self.slack_client.post(
-                    f"{slack_agent_url}/send-dm",
-                    json_body={
-                        "email": assignee.assignee_email,
-                        "message": message["text"],
-                        "blocks": message.get("blocks")
+        return {
+            "user_email": user_email,
+            "project_key": project_key,
+            "violations": user_violations,
+            "violations_count": len(user_violations),
+            "checked_at": datetime.utcnow().isoformat()
+        }
+    
+    async def get_fix_recommendations(self, ticket_key: str) -> Dict[str, Any]:
+        """Get fix recommendations for a ticket."""
+        if self.mock_mode:
+            violation = MockHygieneData.generate_violation(ticket_key)
+            return {
+                "ticket_key": ticket_key,
+                "violations": [violation["violation_type"]],
+                "recommendations": [
+                    {"field": "labels", "suggestion": "Add appropriate labels (e.g., backend, frontend, api)"},
+                    {"field": "fixVersions", "suggestion": "Set the target release version"},
+                    {"field": "story_points", "suggestion": "Estimate story points using Fibonacci scale"},
+                ],
+                "quick_fixes": {
+                    "suggested_labels": ["backend", "feature"],
+                    "suggested_fix_version": "v2.0.0",
+                    "suggested_story_points": 5
+                }
+            }
+        
+        # In real mode, fetch ticket and analyze
+        client = await self._get_client()
+        response = await client.get(f"/issue/{ticket_key}")
+        response.raise_for_status()
+        issue = response.json()
+        
+        fields = issue.get("fields", {})
+        recommendations = []
+        
+        if not fields.get("labels"):
+            recommendations.append({
+                "field": "labels",
+                "suggestion": "Add labels for categorization (e.g., backend, frontend, api, security)"
+            })
+        
+        if not fields.get("fixVersions"):
+            recommendations.append({
+                "field": "fixVersions",
+                "suggestion": "Set the target release version for this ticket"
+            })
+        
+        if fields.get("customfield_10016") is None:
+            recommendations.append({
+                "field": "story_points",
+                "suggestion": "Estimate story points (1, 2, 3, 5, 8, 13, 21)"
+            })
+        
+        return {
+            "ticket_key": ticket_key,
+            "summary": fields.get("summary", ""),
+            "recommendations": recommendations,
+            "current_values": {
+                "labels": fields.get("labels", []),
+                "fix_versions": [v.get("name") for v in fields.get("fixVersions", [])],
+                "story_points": fields.get("customfield_10016")
+            }
+        }
+
+# =============================================================================
+# Notification Service
+# =============================================================================
+
+class NotificationService:
+    """Sends hygiene notifications via Slack agent."""
+    
+    def __init__(self, slack_agent_url: str):
+        self.slack_agent_url = slack_agent_url.rstrip("/")
+    
+    async def notify_user(self, user_email: str, violations: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Send hygiene notification to a user via Slack DM."""
+        if not violations:
+            return {"sent": False, "reason": "No violations to notify"}
+        
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # Format message
+                tickets = list(set(v["ticket_key"] for v in violations))
+                message = f"🔔 *Jira Hygiene Alert*\n\nYou have {len(violations)} hygiene issue(s) in {len(tickets)} ticket(s):\n\n"
+                
+                for ticket_key in tickets[:5]:  # Limit to 5 tickets
+                    ticket_violations = [v for v in violations if v["ticket_key"] == ticket_key]
+                    message += f"• *{ticket_key}*: {', '.join(v['violation_type'] for v in ticket_violations)}\n"
+                
+                if len(tickets) > 5:
+                    message += f"\n...and {len(tickets) - 5} more tickets."
+                
+                message += "\n\nPlease update your tickets to maintain project hygiene! 🧹"
+                
+                response = await client.post(
+                    f"{self.slack_agent_url}/execute",
+                    json={
+                        "action": "send_dm",
+                        "payload": {
+                            "email": user_email,
+                            "message": message,
+                            "blocks": [
+                                {
+                                    "type": "section",
+                                    "text": {"type": "mrkdwn", "text": message}
+                                },
+                                {
+                                    "type": "actions",
+                                    "elements": [
+                                        {
+                                            "type": "button",
+                                            "text": {"type": "plain_text", "text": "Fix Tickets Now"},
+                                            "action_id": "hygiene_fix_modal",
+                                            "style": "primary"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
                     }
                 )
                 
-                if response.get("status") == "success":
-                    notifications_sent += 1
-                    logger.info(f"Sent hygiene notification to {assignee.assignee_email}")
+                if response.status_code == 200:
+                    return {"sent": True, "user_email": user_email, "violations_count": len(violations)}
                 else:
-                    logger.warning(f"Failed to notify {assignee.assignee_email}: {response}")
-                    
-            except Exception as e:
-                logger.error(f"Error sending notification to {assignee.assignee_email}: {e}")
+                    return {"sent": False, "error": f"Slack agent returned {response.status_code}"}
         
-        return notifications_sent
-    
-    def _format_violation_message(
-        self,
-        assignee: AssigneeViolations,
-        result: HygieneCheckResult
-    ) -> Dict[str, Any]:
-        """Format violation notification message with interactive buttons"""
-        # Build ticket list
-        ticket_lines = []
-        for v in assignee.violations[:10]:  # Limit to 10 tickets per message
-            missing = ", ".join(v.missing_fields)
-            ticket_lines.append(f"• <{v.ticket_url}|{v.ticket_key}>: Missing {missing}")
-        
-        if len(assignee.violations) > 10:
-            ticket_lines.append(f"_...and {len(assignee.violations) - 10} more tickets_")
-        
-        tickets_text = "\n".join(ticket_lines)
-        
-        # Prepare violation data for modal (limited to first 5 tickets for usability)
-        violation_payload = {
-            "check_id": result.check_id,
-            "assignee_email": assignee.assignee_email,
-            "tickets": [
-                {
-                    "key": v.ticket_key,
-                    "summary": v.ticket_summary[:50],  # Truncate for payload size
-                    "missing_fields": v.missing_fields
-                }
-                for v in assignee.violations[:5]
-            ]
-        }
-        
-        # Serialize for button value (must be < 2000 chars)
-        import json
-        violation_value = json.dumps(violation_payload)
-        
-        # Build Block Kit message with interactive elements
-        blocks = [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "📋 Jira Ticket Hygiene Report",
-                    "emoji": True
-                }
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Hi {assignee.assignee_display_name}! 👋\n\n"
-                           f"Our automated hygiene check found *{len(assignee.violations)} tickets* "
-                           f"assigned to you that are missing required fields.\n\n"
-                           f"*Project Hygiene Score:* {result.hygiene_score:.1f}%"
-                }
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Tickets needing attention:*\n{tickets_text}"
-                }
-            },
-            {"type": "divider"},
-            {
-                "type": "actions",
-                "block_id": "hygiene_actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "🔧 Fix Tickets Now",
-                            "emoji": True
-                        },
-                        "style": "primary",
-                        "action_id": "open_hygiene_fix_modal",
-                        "value": violation_value
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "📊 View Full Report",
-                            "emoji": True
-                        },
-                        "action_id": "view_hygiene_report",
-                        "url": f"https://nexus.example.com/hygiene/{result.check_id}"
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "⏰ Remind Me Later",
-                            "emoji": True
-                        },
-                        "action_id": "snooze_hygiene_reminder",
-                        "value": json.dumps({
-                            "check_id": result.check_id,
-                            "assignee_email": assignee.assignee_email
-                        })
-                    }
-                ]
-            },
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"🤖 Sent by Nexus Jira Hygiene Agent | "
-                               f"Check ID: {result.check_id[:8]}"
-                    }
-                ]
-            }
-        ]
-        
-        text = (
-            f"Jira Hygiene Report: {len(assignee.violations)} tickets need attention. "
-            f"Project score: {result.hygiene_score:.1f}%"
-        )
-        
-        return {"text": text, "blocks": blocks}
-
-
-# ============================================================================
-# SCHEDULER
-# ============================================================================
-
-class HygieneScheduler:
-    """APScheduler wrapper for scheduled hygiene checks"""
-    
-    def __init__(self, checker: HygieneChecker, config: HygieneConfig):
-        self.checker = checker
-        self.config = config
-        self.scheduler = AsyncIOScheduler(timezone=pytz.timezone(config.timezone))
-        self._setup_jobs()
-    
-    def _setup_jobs(self):
-        """Configure scheduled jobs"""
-        # Parse days
-        day_map = {
-            "mon": "0", "tue": "1", "wed": "2", "thu": "3",
-            "fri": "4", "sat": "5", "sun": "6"
-        }
-        
-        days = self.config.schedule_days
-        if days == "mon-fri":
-            day_of_week = "0-4"  # Monday to Friday
-        elif days == "daily":
-            day_of_week = "*"
-        else:
-            # Parse custom format like "mon,wed,fri"
-            day_list = [day_map.get(d.strip().lower()[:3], d) for d in days.split(",")]
-            day_of_week = ",".join(day_list)
-        
-        # Add the scheduled job
-        self.scheduler.add_job(
-            self._scheduled_check,
-            CronTrigger(
-                hour=self.config.schedule_hour,
-                minute=self.config.schedule_minute,
-                day_of_week=day_of_week,
-                timezone=pytz.timezone(self.config.timezone)
-            ),
-            id="hygiene_check",
-            name="Scheduled Hygiene Check",
-            replace_existing=True
-        )
-        
-        logger.info(
-            f"Scheduled hygiene check: {self.config.schedule_hour:02d}:{self.config.schedule_minute:02d} "
-            f"on days {day_of_week} ({self.config.timezone})"
-        )
-    
-    async def _scheduled_check(self):
-        """Execute scheduled hygiene check"""
-        logger.info("Running scheduled hygiene check")
-        
-        try:
-            # Run check for all configured projects
-            result = await self.checker.check_hygiene(
-                project_key=None,  # All projects
-                trigger_type="scheduled"
-            )
-            
-            # Send notifications
-            if result.non_compliant_tickets > 0:
-                sent = await self.checker.send_notifications(result)
-                logger.info(f"Sent {sent} hygiene notifications")
-            else:
-                logger.info("No violations found, no notifications sent")
-                
         except Exception as e:
-            logger.exception(f"Scheduled hygiene check failed: {e}")
+            logger.error(f"Failed to send notification to {user_email}: {e}")
+            return {"sent": False, "error": str(e)}
     
-    def start(self):
-        """Start the scheduler"""
-        if not self.scheduler.running:
-            self.scheduler.start()
-            logger.info("Hygiene scheduler started")
-    
-    def stop(self):
-        """Stop the scheduler"""
-        if self.scheduler.running:
-            self.scheduler.shutdown()
-            logger.info("Hygiene scheduler stopped")
-    
-    def get_next_run(self) -> Optional[datetime]:
-        """Get next scheduled run time"""
-        job = self.scheduler.get_job("hygiene_check")
-        if job:
-            return job.next_run_time
-        return None
+    async def notify_channel(self, channel: str, hygiene_report: Dict[str, Any]) -> Dict[str, Any]:
+        """Send hygiene summary to a Slack channel."""
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                score = hygiene_report.get("hygiene_score", 0)
+                emoji = "🟢" if score >= 90 else "🟡" if score >= 70 else "🔴"
+                
+                message = f"{emoji} *Project Hygiene Report: {hygiene_report['project_key']}*\n\n"
+                message += f"• Score: *{score}%*\n"
+                message += f"• Compliant Tickets: {hygiene_report['compliant_tickets']}/{hygiene_report['total_tickets']}\n"
+                message += f"• Issues Found: {hygiene_report['violations_count']}\n"
+                
+                response = await client.post(
+                    f"{self.slack_agent_url}/execute",
+                    json={
+                        "action": "notify",
+                        "payload": {
+                            "channel": channel,
+                            "message": message
+                        }
+                    }
+                )
+                
+                return {"sent": response.status_code == 200, "channel": channel}
+        
+        except Exception as e:
+            logger.error(f"Failed to send channel notification: {e}")
+            return {"sent": False, "error": str(e)}
 
+# =============================================================================
+# Initialize Services
+# =============================================================================
 
-# ============================================================================
-# FASTAPI APPLICATION
-# ============================================================================
-
-# Global instances
-config: Optional[HygieneConfig] = None
-jira_client: Optional[JiraHygieneClient] = None
-slack_client: Optional[AsyncHttpClient] = None
-checker: Optional[HygieneChecker] = None
-scheduler: Optional[HygieneScheduler] = None
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan handler"""
-    global config, jira_client, slack_client, checker, scheduler
-    
-    # Startup
-    logger.info("Starting Jira Hygiene Agent...")
-    
-    setup_tracing("jira-hygiene-agent", service_version="1.0.0")
-    
-    # Initialize configuration
-    config = HygieneConfig(
-        projects=os.environ.get("HYGIENE_PROJECTS", "").split(",") if os.environ.get("HYGIENE_PROJECTS") else [],
-        timezone=os.environ.get("HYGIENE_TIMEZONE", "UTC"),
-        schedule_hour=int(os.environ.get("HYGIENE_SCHEDULE_HOUR", "9")),
-        schedule_minute=int(os.environ.get("HYGIENE_SCHEDULE_MINUTE", "0")),
-        schedule_days=os.environ.get("HYGIENE_SCHEDULE_DAYS", "mon-fri"),
-    )
-    
-    # Initialize clients
-    jira_client = JiraHygieneClient(config)
-    slack_client = AsyncHttpClient(timeout=30)
-    
-    # Initialize checker
-    checker = HygieneChecker(jira_client, slack_client, config)
-    
-    # Initialize and start scheduler
-    scheduler = HygieneScheduler(checker, config)
-    scheduler.start()
-    
-    logger.info("Jira Hygiene Agent started successfully")
-    
-    yield
-    
-    # Shutdown
-    logger.info("Shutting down Jira Hygiene Agent...")
-    scheduler.stop()
-    await slack_client.close()
-    logger.info("Jira Hygiene Agent shutdown complete")
-
-
-app = FastAPI(
-    title="Nexus Jira Hygiene Agent",
-    description="Quality Gatekeeper for Jira Data - Validates ticket completeness and compliance",
-    version="1.0.0",
-    lifespan=lifespan
+hygiene_checker = HygieneChecker(
+    jira_url=JIRA_URL,
+    username=JIRA_USERNAME,
+    api_token=JIRA_API_TOKEN,
+    mock_mode=JIRA_MOCK_MODE
 )
 
-# Add middleware
-app.add_middleware(MetricsMiddleware, agent_type="jira_hygiene")
-app.add_middleware(
-    AuthMiddleware,
-    secret_key=os.environ.get("NEXUS_JWT_SECRET"),
-    require_auth=os.environ.get("NEXUS_REQUIRE_AUTH", "false").lower() == "true"
-)
+notification_service = NotificationService(slack_agent_url=SLACK_AGENT_URL)
 
-# Add metrics endpoint
-create_metrics_endpoint(app)
+# Scheduler for automated checks
+scheduler = AsyncIOScheduler()
 
+# Create MCP server
+mcp_server = Server("nexus-jira-hygiene-agent")
 
-# ============================================================================
-# API ENDPOINTS
-# ============================================================================
+# =============================================================================
+# Scheduled Jobs
+# =============================================================================
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    next_run = scheduler.get_next_run() if scheduler else None
+async def scheduled_hygiene_check():
+    """Run scheduled hygiene check for all configured projects."""
+    logger.info("Running scheduled hygiene check...")
     
-    return {
-        "status": "healthy",
-        "service": "jira-hygiene-agent",
-        "mock_mode": jira_client.mock_mode if jira_client else True,
-        "scheduler_running": scheduler.scheduler.running if scheduler else False,
-        "next_scheduled_run": next_run.isoformat() if next_run else None
-    }
-
-
-@app.post("/run-check", response_model=AgentTaskResponse)
-async def run_check(
-    request: HygieneCheckRequest,
-    background_tasks: BackgroundTasks
-):
-    """
-    Manually trigger a hygiene check
+    # In production, this would fetch project keys from config
+    project_keys = os.getenv("HYGIENE_PROJECT_KEYS", "PROJ,NEXUS").split(",")
     
-    - **project_key**: Specific project to check (optional, checks all if not provided)
-    - **notify**: Send DM notifications to assignees (default: true)
-    - **dry_run**: Run check without sending notifications (default: false)
-    """
-    task_id = generate_task_id("hygiene")
+    for project_key in project_keys:
+        try:
+            hygiene = await hygiene_checker.check_project_hygiene(project_key.strip())
+            logger.info(f"Project {project_key}: Score={hygiene['hygiene_score']}%, Violations={hygiene['violations_count']}")
+            
+            # Notify each assignee with violations
+            for assignee_data in hygiene.get("by_assignee", []):
+                email = assignee_data["assignee"].get("email")
+                if email:
+                    await notification_service.notify_user(email, assignee_data["violations"])
+        
+        except Exception as e:
+            logger.error(f"Failed hygiene check for {project_key}: {e}")
+
+# =============================================================================
+# MCP Tool Definitions
+# =============================================================================
+
+@mcp_server.list_tools()
+async def list_tools() -> List[Tool]:
+    """List all available hygiene tools."""
+    return [
+        Tool(
+            name="check_project_hygiene",
+            description="Run a comprehensive hygiene check on a Jira project. Returns hygiene score, violations by category, and per-assignee breakdown.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_key": {
+                        "type": "string",
+                        "description": "Jira project key (e.g., PROJ, NEXUS)"
+                    }
+                },
+                "required": ["project_key"]
+            }
+        ),
+        Tool(
+            name="get_user_violations",
+            description="Get hygiene violations for a specific user in a project.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_key": {
+                        "type": "string",
+                        "description": "Jira project key"
+                    },
+                    "user_email": {
+                        "type": "string",
+                        "description": "User's email address"
+                    }
+                },
+                "required": ["project_key", "user_email"]
+            }
+        ),
+        Tool(
+            name="get_fix_recommendations",
+            description="Get specific recommendations for fixing hygiene issues on a ticket.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "ticket_key": {
+                        "type": "string",
+                        "description": "Jira ticket key"
+                    }
+                },
+                "required": ["ticket_key"]
+            }
+        ),
+        Tool(
+            name="notify_hygiene_issues",
+            description="Send hygiene notifications to users or channels via Slack.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_key": {
+                        "type": "string",
+                        "description": "Jira project key"
+                    },
+                    "notify_users": {
+                        "type": "boolean",
+                        "description": "Send DMs to users with violations",
+                        "default": True
+                    },
+                    "notify_channel": {
+                        "type": "string",
+                        "description": "Optional Slack channel for summary"
+                    }
+                },
+                "required": ["project_key"]
+            }
+        ),
+        Tool(
+            name="run_hygiene_check",
+            description="Manually trigger a hygiene check (same as scheduled check).",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_keys": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of project keys to check"
+                    }
+                },
+                "required": []
+            }
+        )
+    ]
+
+@mcp_server.call_tool()
+async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
+    """Execute a hygiene tool."""
+    logger.info(f"Tool call: {name} with args: {arguments}")
     
     try:
-        # Run hygiene check
-        result = await checker.check_hygiene(
-            project_key=request.project_key,
-            trigger_type="manual"
-        )
+        if name == "check_project_hygiene":
+            result = await hygiene_checker.check_project_hygiene(arguments["project_key"])
         
-        # Send notifications in background if not dry run
-        notifications_sent = 0
-        if request.notify and not request.dry_run and result.non_compliant_tickets > 0:
-            notifications_sent = await checker.send_notifications(result)
+        elif name == "get_user_violations":
+            result = await hygiene_checker.get_user_violations(
+                project_key=arguments["project_key"],
+                user_email=arguments["user_email"]
+            )
         
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.SUCCESS,
-            data={
-                "check_id": result.check_id,
-                "project": result.project_key,
-                "total_checked": result.total_tickets_checked,
-                "compliant": result.compliant_tickets,
-                "non_compliant": result.non_compliant_tickets,
-                "hygiene_score": result.hygiene_score,
-                "violation_summary": result.violation_summary,
-                "assignees_notified": notifications_sent,
-                "dry_run": request.dry_run
-            },
-            agent_type=AgentType.JIRA
-        )
+        elif name == "get_fix_recommendations":
+            result = await hygiene_checker.get_fix_recommendations(arguments["ticket_key"])
         
-    except Exception as e:
-        logger.exception(f"Hygiene check failed: {e}")
-        return AgentTaskResponse(
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            error_message=str(e),
-            agent_type=AgentType.JIRA
-        )
-
-
-@app.get("/status")
-async def get_status():
-    """Get current hygiene status and metrics"""
-    next_run = scheduler.get_next_run() if scheduler else None
-    
-    return {
-        "service": "jira-hygiene-agent",
-        "config": {
-            "projects": config.projects if config else [],
-            "required_fields": list(config.field_names.values()) if config else [],
-            "schedule": f"{config.schedule_hour:02d}:{config.schedule_minute:02d}" if config else "N/A",
-            "schedule_days": config.schedule_days if config else "N/A",
-            "timezone": config.timezone if config else "UTC"
-        },
-        "scheduler": {
-            "running": scheduler.scheduler.running if scheduler else False,
-            "next_run": next_run.isoformat() if next_run else None
-        },
-        "jira": {
-            "mock_mode": jira_client.mock_mode if jira_client else True,
-            "url": jira_client.jira_url if jira_client else None
-        }
-    }
-
-
-@app.get("/violations/{project_key}")
-async def get_violations(project_key: str):
-    """
-    Get current violations for a specific project
-    
-    Runs a check and returns violations without sending notifications
-    """
-    result = await checker.check_hygiene(
-        project_key=project_key,
-        trigger_type="api"
-    )
-    
-    return {
-        "project": project_key,
-        "hygiene_score": result.hygiene_score,
-        "total_tickets": result.total_tickets_checked,
-        "compliant": result.compliant_tickets,
-        "non_compliant": result.non_compliant_tickets,
-        "violations_by_assignee": [
-            {
-                "assignee": av.assignee_display_name,
-                "email": av.assignee_email,
-                "ticket_count": len(av.violations),
-                "tickets": [
-                    {
-                        "key": v.ticket_key,
-                        "summary": v.ticket_summary,
-                        "missing_fields": v.missing_fields
-                    }
-                    for v in av.violations
-                ]
+        elif name == "notify_hygiene_issues":
+            project_key = arguments["project_key"]
+            hygiene = await hygiene_checker.check_project_hygiene(project_key)
+            
+            notifications_sent = []
+            
+            if arguments.get("notify_users", True):
+                for assignee_data in hygiene.get("by_assignee", []):
+                    email = assignee_data["assignee"].get("email")
+                    if email:
+                        notif_result = await notification_service.notify_user(email, assignee_data["violations"])
+                        notifications_sent.append(notif_result)
+            
+            if arguments.get("notify_channel"):
+                channel_result = await notification_service.notify_channel(
+                    arguments["notify_channel"],
+                    hygiene
+                )
+                notifications_sent.append(channel_result)
+            
+            result = {
+                "project_key": project_key,
+                "hygiene_score": hygiene["hygiene_score"],
+                "notifications_sent": len([n for n in notifications_sent if n.get("sent")]),
+                "notifications": notifications_sent
             }
-            for av in result.violations_by_assignee
-        ],
-        "violation_summary": result.violation_summary
-    }
-
-
-@app.post("/execute", response_model=AgentTaskResponse)
-async def execute_task(request: AgentTaskRequest):
-    """
-    Generic task execution endpoint for orchestrator integration
-    """
-    action = request.action
-    payload = request.payload
+        
+        elif name == "run_hygiene_check":
+            project_keys = arguments.get("project_keys") or os.getenv("HYGIENE_PROJECT_KEYS", "PROJ").split(",")
+            results = []
+            
+            for pk in project_keys:
+                hygiene = await hygiene_checker.check_project_hygiene(pk.strip())
+                results.append({
+                    "project_key": pk.strip(),
+                    "hygiene_score": hygiene["hygiene_score"],
+                    "violations_count": hygiene["violations_count"]
+                })
+            
+            result = {"checked_projects": results, "checked_at": datetime.utcnow().isoformat()}
+        
+        else:
+            result = {"error": f"Unknown tool: {name}"}
+        
+        return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
     
-    if action == "run_check":
-        hygiene_request = HygieneCheckRequest(
-            project_key=payload.get("project_key"),
-            notify=payload.get("notify", True),
-            dry_run=payload.get("dry_run", False)
-        )
-        return await run_check(hygiene_request, BackgroundTasks())
-    else:
-        return AgentTaskResponse(
-            task_id=request.task_id,
-            status=TaskStatus.FAILED,
-            error_message=f"Unknown action: {action}",
-            agent_type=AgentType.JIRA
+    except Exception as e:
+        logger.error(f"Tool error: {e}")
+        return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
+
+# =============================================================================
+# Starlette App
+# =============================================================================
+
+async def health_check(request: Request) -> JSONResponse:
+    """Health check endpoint."""
+    return JSONResponse({
+        "status": "healthy",
+        "service": "nexus-jira-hygiene-agent",
+        "version": "2.0.0",
+        "transport": "mcp-sse",
+        "mock_mode": JIRA_MOCK_MODE,
+        "scheduler_running": scheduler.running,
+        "next_run": str(scheduler.get_jobs()[0].next_run_time) if scheduler.get_jobs() else None,
+        "timestamp": datetime.utcnow().isoformat()
+    })
+
+async def sse_endpoint(request: Request):
+    """SSE endpoint for MCP communication."""
+    transport = SseServerTransport("/messages")
+    async with transport.connect_sse(request.scope, request.receive, request._send) as streams:
+        await mcp_server.run(
+            streams[0],
+            streams[1],
+            mcp_server.create_initialization_options()
         )
 
+async def legacy_execute(request: Request) -> JSONResponse:
+    """Legacy REST endpoint for backward compatibility."""
+    try:
+        body = await request.json()
+        action = body.get("action", "")
+        payload = body.get("payload", {})
+        
+        action_map = {
+            "check_hygiene": ("check_project_hygiene", {"project_key": payload.get("project_key")}),
+            "get_violations": ("get_user_violations", {"project_key": payload.get("project_key"), "user_email": payload.get("user_email")}),
+            "get_recommendations": ("get_fix_recommendations", {"ticket_key": payload.get("ticket_key")}),
+            "run_check": ("run_hygiene_check", {"project_keys": payload.get("project_keys")}),
+        }
+        
+        if action not in action_map:
+            return JSONResponse({"error": f"Unknown action: {action}"}, status_code=400)
+        
+        tool_name, tool_args = action_map[action]
+        result = await call_tool(tool_name, tool_args)
+        
+        return JSONResponse({
+            "status": "success",
+            "data": json.loads(result[0].text) if result else {},
+            "agent_type": "jira_hygiene"
+        })
+    
+    except Exception as e:
+        logger.error(f"Execute error: {e}")
+        return JSONResponse({
+            "status": "failed",
+            "error_message": str(e),
+            "agent_type": "jira_hygiene"
+        }, status_code=500)
+
+async def manual_run(request: Request) -> JSONResponse:
+    """Manually trigger hygiene check."""
+    await scheduled_hygiene_check()
+    return JSONResponse({"message": "Hygiene check triggered"})
+
+async def startup():
+    """Start the scheduler."""
+    if HYGIENE_CHECK_SCHEDULE:
+        try:
+            parts = HYGIENE_CHECK_SCHEDULE.split()
+            trigger = CronTrigger(
+                minute=parts[0] if len(parts) > 0 else "0",
+                hour=parts[1] if len(parts) > 1 else "9",
+                day=parts[2] if len(parts) > 2 else "*",
+                month=parts[3] if len(parts) > 3 else "*",
+                day_of_week=parts[4] if len(parts) > 4 else "1-5"
+            )
+            scheduler.add_job(scheduled_hygiene_check, trigger, id="hygiene_check")
+            scheduler.start()
+            logger.info(f"Scheduler started with schedule: {HYGIENE_CHECK_SCHEDULE}")
+        except Exception as e:
+            logger.error(f"Failed to start scheduler: {e}")
+
+async def shutdown():
+    """Stop the scheduler and cleanup."""
+    scheduler.shutdown(wait=False)
+    await hygiene_checker.close()
+
+app = Starlette(
+    debug=os.getenv("NEXUS_ENV", "development") == "development",
+    routes=[
+        Route("/health", health_check, methods=["GET"]),
+        Route("/sse", sse_endpoint, methods=["GET"]),
+        Route("/execute", legacy_execute, methods=["POST"]),
+        Route("/run-check", manual_run, methods=["POST"]),
+        Route("/", health_check, methods=["GET"]),
+    ],
+    on_startup=[startup],
+    on_shutdown=[shutdown]
+)
+
+# =============================================================================
+# Main Entry Point
+# =============================================================================
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8005)
-
+    logger.info(f"🚀 Starting Nexus Jira Hygiene Agent (MCP over SSE) on port {PORT}")
+    logger.info(f"📡 Mock mode: {JIRA_MOCK_MODE}")
+    logger.info(f"📅 Schedule: {HYGIENE_CHECK_SCHEDULE}")
+    
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=PORT,
+        log_level="info"
+    )

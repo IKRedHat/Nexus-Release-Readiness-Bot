@@ -25,6 +25,97 @@ Nexus is your AI-powered release automation assistant. It connects to your exist
 2. **Invite the bot** to your desired channels: `/invite @nexus`
 3. **Start using commands** - see below for available options
 
+### Admin Dashboard Setup
+
+The Admin Dashboard allows you to configure Nexus without editing environment files:
+
+1. **Access the Dashboard**: http://localhost:3001
+2. **Configure LLM Provider**: Select your preferred AI model
+3. **Set API Keys**: Enter credentials for Jira, GitHub, Slack
+4. **Toggle Modes**: Switch between Mock and Live modes
+
+---
+
+## 🎛️ Admin Dashboard
+
+The Admin Dashboard is your control plane for managing Nexus. Access it at **http://localhost:3001**.
+
+### Dashboard Overview
+
+![Admin Dashboard](assets/mockups/admin-dashboard.svg)
+
+The dashboard provides:
+- **System Status**: Real-time health of all MCP servers
+- **Quick Actions**: Toggle Mock/Live mode, run health checks
+- **Configuration**: Manage all settings in one place
+
+### LLM Configuration
+
+Configure your AI model provider through the **Settings > LLM** tab:
+
+![LLM Config](assets/mockups/admin-dashboard-config.svg)
+
+#### Supported Providers
+
+| Provider | Models | When to Use |
+|----------|--------|-------------|
+| **OpenAI** | gpt-4o, gpt-4-turbo | Best accuracy, production workloads |
+| **Google Gemini** | gemini-2.0-flash, gemini-1.5-pro | Large context (1M tokens), cost-effective |
+| **Ollama** | llama3, mistral | Local/air-gapped deployments |
+| **Azure OpenAI** | Your deployments | Enterprise with Azure requirements |
+| **Anthropic** | claude-sonnet-4 | Complex reasoning tasks |
+| **Groq** | llama-3.1-70b | Ultra-fast inference |
+| **Mock** | - | Development/testing |
+
+#### Configuring a Provider
+
+1. **Select Provider**: Click on the provider card
+2. **Enter API Key**: Paste your API key (stored securely in Redis)
+3. **Choose Model**: Select from available models
+4. **Adjust Parameters**: Temperature, max tokens (optional)
+5. **Test Connection**: Click "Test Connection" to verify
+6. **Save**: Click "Save Configuration"
+
+#### Testing Your Configuration
+
+```bash
+# Via API
+curl -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Hello, are you working?"}'
+
+# Via Admin Dashboard
+Click "Test Connection" button
+```
+
+### Mode Switching
+
+Toggle between **Mock Mode** (for development) and **Live Mode** (for production):
+
+| Mode | Description |
+|------|-------------|
+| **Mock** | Uses simulated data - no external API calls |
+| **Live** | Connects to real Jira, GitHub, Jenkins, etc. |
+
+**Switching Modes:**
+
+1. Open Admin Dashboard
+2. Click "Mode" toggle in header
+3. Confirm the switch
+4. All agents will reload configuration
+
+### MCP Server Management
+
+View and manage connected MCP tool servers:
+
+![MCP Servers](assets/mockups/admin-observability.svg)
+
+**Features:**
+- **Health Status**: Green/red indicators for each server
+- **Tools Count**: Number of tools each server provides
+- **Last Check**: When the server was last verified
+- **Refresh**: Force reconnection to all servers
+
 ---
 
 ## Slack Commands

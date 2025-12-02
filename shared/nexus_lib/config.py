@@ -55,10 +55,28 @@ class ConfigKeys:
     JENKINS_API_TOKEN = "nexus:config:jenkins_api_token"
     
     # LLM Configuration
-    GEMINI_API_KEY = "nexus:config:gemini_api_key"
-    OPENAI_API_KEY = "nexus:config:openai_api_key"
     LLM_PROVIDER = "nexus:config:llm_provider"
     LLM_MODEL = "nexus:config:llm_model"
+    LLM_API_KEY = "nexus:config:llm_api_key"
+    LLM_BASE_URL = "nexus:config:llm_base_url"
+    LLM_TEMPERATURE = "nexus:config:llm_temperature"
+    LLM_MAX_TOKENS = "nexus:config:llm_max_tokens"
+    
+    # Provider-specific API Keys
+    OPENAI_API_KEY = "nexus:config:openai_api_key"
+    OPENAI_ORG = "nexus:config:openai_org"
+    GEMINI_API_KEY = "nexus:config:gemini_api_key"
+    ANTHROPIC_API_KEY = "nexus:config:anthropic_api_key"
+    GROQ_API_KEY = "nexus:config:groq_api_key"
+    
+    # Azure OpenAI
+    AZURE_OPENAI_ENDPOINT = "nexus:config:azure_openai_endpoint"
+    AZURE_OPENAI_API_VERSION = "nexus:config:azure_openai_api_version"
+    AZURE_OPENAI_DEPLOYMENT = "nexus:config:azure_openai_deployment"
+    
+    # Local/Self-hosted LLMs
+    OLLAMA_BASE_URL = "nexus:config:ollama_base_url"
+    VLLM_BASE_URL = "nexus:config:vllm_base_url"
     
     # Slack Configuration
     SLACK_BOT_TOKEN = "nexus:config:slack_bot_token"
@@ -117,10 +135,22 @@ ENV_VAR_MAPPING = {
     ConfigKeys.JENKINS_URL: "JENKINS_URL",
     ConfigKeys.JENKINS_USERNAME: "JENKINS_USERNAME",
     ConfigKeys.JENKINS_API_TOKEN: "JENKINS_API_TOKEN",
-    ConfigKeys.GEMINI_API_KEY: "GEMINI_API_KEY",
-    ConfigKeys.OPENAI_API_KEY: "OPENAI_API_KEY",
     ConfigKeys.LLM_PROVIDER: "LLM_PROVIDER",
     ConfigKeys.LLM_MODEL: "LLM_MODEL",
+    ConfigKeys.LLM_API_KEY: "LLM_API_KEY",
+    ConfigKeys.LLM_BASE_URL: "LLM_BASE_URL",
+    ConfigKeys.LLM_TEMPERATURE: "LLM_TEMPERATURE",
+    ConfigKeys.LLM_MAX_TOKENS: "LLM_MAX_TOKENS",
+    ConfigKeys.OPENAI_API_KEY: "OPENAI_API_KEY",
+    ConfigKeys.OPENAI_ORG: "OPENAI_ORG",
+    ConfigKeys.GEMINI_API_KEY: "GEMINI_API_KEY",
+    ConfigKeys.ANTHROPIC_API_KEY: "ANTHROPIC_API_KEY",
+    ConfigKeys.GROQ_API_KEY: "GROQ_API_KEY",
+    ConfigKeys.AZURE_OPENAI_ENDPOINT: "AZURE_OPENAI_ENDPOINT",
+    ConfigKeys.AZURE_OPENAI_API_VERSION: "AZURE_OPENAI_API_VERSION",
+    ConfigKeys.AZURE_OPENAI_DEPLOYMENT: "AZURE_OPENAI_DEPLOYMENT",
+    ConfigKeys.OLLAMA_BASE_URL: "OLLAMA_BASE_URL",
+    ConfigKeys.VLLM_BASE_URL: "VLLM_BASE_URL",
     ConfigKeys.SLACK_BOT_TOKEN: "SLACK_BOT_TOKEN",
     ConfigKeys.SLACK_SIGNING_SECRET: "SLACK_SIGNING_SECRET",
     ConfigKeys.SLACK_APP_TOKEN: "SLACK_APP_TOKEN",
@@ -144,8 +174,11 @@ SENSITIVE_KEYS = {
     ConfigKeys.JIRA_API_TOKEN,
     ConfigKeys.GITHUB_TOKEN,
     ConfigKeys.JENKINS_API_TOKEN,
-    ConfigKeys.GEMINI_API_KEY,
+    ConfigKeys.LLM_API_KEY,
     ConfigKeys.OPENAI_API_KEY,
+    ConfigKeys.GEMINI_API_KEY,
+    ConfigKeys.ANTHROPIC_API_KEY,
+    ConfigKeys.GROQ_API_KEY,
     ConfigKeys.SLACK_BOT_TOKEN,
     ConfigKeys.SLACK_SIGNING_SECRET,
     ConfigKeys.SLACK_APP_TOKEN,

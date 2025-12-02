@@ -770,6 +770,411 @@ def _get_mock_metrics() -> dict:
 
 
 # =============================================================================
+# LLM Configuration Endpoints
+# =============================================================================
+
+class LLMConfigUpdate(BaseModel):
+    """LLM configuration update request."""
+    provider: str = Field(..., description="LLM provider (openai, gemini, anthropic, ollama, groq, vllm, mock)")
+    model: str = Field(..., description="Model name")
+    api_key: Optional[str] = Field(None, description="API key for the provider")
+    base_url: Optional[str] = Field(None, description="Custom base URL")
+    temperature: float = Field(0.7, ge=0, le=2, description="Temperature for generation")
+    max_tokens: int = Field(4096, ge=1, le=128000, description="Max tokens")
+    # Provider-specific fields
+    azure_endpoint: Optional[str] = Field(None, description="Azure OpenAI endpoint")
+    azure_api_version: Optional[str] = Field(None, description="Azure API version")
+    azure_deployment: Optional[str] = Field(None, description="Azure deployment name")
+    organization: Optional[str] = Field(None, description="Organization ID (OpenAI)")
+
+
+# LLM Provider configuration registry
+LLM_PROVIDERS = {
+    "openai": {
+        "display_name": "OpenAI",
+        "description": "OpenAI's GPT models including GPT-4o and GPT-4 Turbo",
+        "required_fields": ["api_key"],
+        "optional_fields": ["organization", "base_url"],
+        "default_model": "gpt-4o",
+        "supports_streaming": True,
+        "supports_function_calling": True,
+    },
+    "azure_openai": {
+        "display_name": "Azure OpenAI",
+        "description": "OpenAI models hosted on Microsoft Azure",
+        "required_fields": ["api_key", "azure_endpoint", "azure_api_version", "azure_deployment"],
+        "optional_fields": [],
+        "default_model": "gpt-4o",
+        "supports_streaming": True,
+        "supports_function_calling": True,
+    },
+    "gemini": {
+        "display_name": "Google Gemini",
+        "description": "Google's Gemini models including Gemini Pro and Flash",
+        "required_fields": ["api_key"],
+        "optional_fields": [],
+        "default_model": "gemini-2.0-flash",
+        "supports_streaming": True,
+        "supports_function_calling": True,
+    },
+    "anthropic": {
+        "display_name": "Anthropic Claude",
+        "description": "Anthropic's Claude models including Claude 3.5 Sonnet",
+        "required_fields": ["api_key"],
+        "optional_fields": ["base_url"],
+        "default_model": "claude-sonnet-4-20250514",
+        "supports_streaming": True,
+        "supports_function_calling": True,
+    },
+    "ollama": {
+        "display_name": "Ollama (Local)",
+        "description": "Locally hosted open-source models via Ollama",
+        "required_fields": ["base_url", "model"],
+        "optional_fields": [],
+        "default_model": "llama3.1:8b",
+        "supports_streaming": True,
+        "supports_function_calling": False,
+    },
+    "groq": {
+        "display_name": "Groq",
+        "description": "Ultra-fast inference with Groq LPU hardware",
+        "required_fields": ["api_key"],
+        "optional_fields": [],
+        "default_model": "llama-3.1-70b-versatile",
+        "supports_streaming": True,
+        "supports_function_calling": True,
+    },
+    "vllm": {
+        "display_name": "vLLM (OpenAI Compatible)",
+        "description": "Self-hosted models via vLLM with OpenAI-compatible API",
+        "required_fields": ["base_url", "model"],
+        "optional_fields": ["api_key"],
+        "default_model": "meta-llama/Llama-3.1-8B-Instruct",
+        "supports_streaming": True,
+        "supports_function_calling": True,
+    },
+    "mock": {
+        "display_name": "Mock (Development)",
+        "description": "Mock LLM for development and testing",
+        "required_fields": [],
+        "optional_fields": [],
+        "default_model": "mock",
+        "supports_streaming": False,
+        "supports_function_calling": True,
+    },
+}
+
+
+@app.get("/llm/providers")
+async def get_llm_providers():
+    """
+    Get all supported LLM providers with their configuration requirements.
+    
+    Returns provider metadata for the admin UI to dynamically render
+    configuration forms based on the selected provider.
+    """
+    return {"providers": LLM_PROVIDERS}
+
+
+@app.get("/llm/config")
+async def get_llm_config():
+    """
+    Get the current LLM configuration.
+    
+    Returns the configured provider, model, and settings.
+    API keys are masked for security.
+    """
+    if not ConfigManager:
+        return {
+            "provider": "mock",
+            "model": "mock",
+            "temperature": 0.7,
+            "max_tokens": 4096
+        }
+    
+    provider = await ConfigManager.get(ConfigKeys.LLM_PROVIDER, "mock")
+    model = await ConfigManager.get(ConfigKeys.LLM_MODEL, LLM_PROVIDERS.get(provider, {}).get("default_model", "mock"))
+    
+    config = {
+        "provider": provider,
+        "model": model,
+        "temperature": float(await ConfigManager.get("nexus:config:llm_temperature", "0.7")),
+        "max_tokens": int(await ConfigManager.get("nexus:config:llm_max_tokens", "4096")),
+    }
+    
+    # Add provider-specific fields (masked)
+    if provider == "openai":
+        config["api_key"] = ""  # Never return actual key
+        config["organization"] = await ConfigManager.get(ConfigKeys.OPENAI_ORG, "")
+        config["base_url"] = await ConfigManager.get("nexus:config:llm_base_url", "")
+    elif provider == "azure_openai":
+        config["api_key"] = ""
+        config["azure_endpoint"] = await ConfigManager.get("nexus:config:azure_openai_endpoint", "")
+        config["azure_api_version"] = await ConfigManager.get("nexus:config:azure_openai_api_version", "2024-02-15-preview")
+        config["azure_deployment"] = await ConfigManager.get("nexus:config:azure_openai_deployment", "")
+    elif provider == "gemini":
+        config["api_key"] = ""
+    elif provider == "anthropic":
+        config["api_key"] = ""
+        config["base_url"] = await ConfigManager.get("nexus:config:llm_base_url", "")
+    elif provider == "ollama":
+        config["base_url"] = await ConfigManager.get("nexus:config:ollama_base_url", "http://localhost:11434")
+    elif provider == "groq":
+        config["api_key"] = ""
+    elif provider == "vllm":
+        config["base_url"] = await ConfigManager.get("nexus:config:vllm_base_url", "")
+        config["api_key"] = ""
+    
+    return config
+
+
+@app.post("/llm/config")
+async def update_llm_config(update: LLMConfigUpdate):
+    """
+    Update the LLM configuration.
+    
+    Stores the configuration in Redis for dynamic updates without restart.
+    """
+    if not ConfigManager:
+        raise HTTPException(500, "Configuration manager not available")
+    
+    # Validate provider
+    if update.provider not in LLM_PROVIDERS:
+        raise HTTPException(400, f"Invalid provider: {update.provider}")
+    
+    # Store configuration
+    config_updates = {
+        ConfigKeys.LLM_PROVIDER: update.provider,
+        ConfigKeys.LLM_MODEL: update.model,
+        "nexus:config:llm_temperature": str(update.temperature),
+        "nexus:config:llm_max_tokens": str(update.max_tokens),
+    }
+    
+    # Provider-specific configuration
+    if update.provider == "openai":
+        if update.api_key:
+            config_updates[ConfigKeys.OPENAI_API_KEY] = update.api_key
+        if update.organization:
+            config_updates[ConfigKeys.OPENAI_ORG] = update.organization
+        if update.base_url:
+            config_updates["nexus:config:llm_base_url"] = update.base_url
+    
+    elif update.provider == "azure_openai":
+        if update.api_key:
+            config_updates[ConfigKeys.OPENAI_API_KEY] = update.api_key
+        if update.azure_endpoint:
+            config_updates["nexus:config:azure_openai_endpoint"] = update.azure_endpoint
+        if update.azure_api_version:
+            config_updates["nexus:config:azure_openai_api_version"] = update.azure_api_version
+        if update.azure_deployment:
+            config_updates["nexus:config:azure_openai_deployment"] = update.azure_deployment
+    
+    elif update.provider == "gemini":
+        if update.api_key:
+            config_updates[ConfigKeys.GEMINI_API_KEY] = update.api_key
+    
+    elif update.provider == "anthropic":
+        if update.api_key:
+            config_updates["nexus:config:anthropic_api_key"] = update.api_key
+        if update.base_url:
+            config_updates["nexus:config:llm_base_url"] = update.base_url
+    
+    elif update.provider == "ollama":
+        if update.base_url:
+            config_updates["nexus:config:ollama_base_url"] = update.base_url
+    
+    elif update.provider == "groq":
+        if update.api_key:
+            config_updates["nexus:config:groq_api_key"] = update.api_key
+    
+    elif update.provider == "vllm":
+        if update.base_url:
+            config_updates["nexus:config:vllm_base_url"] = update.base_url
+        if update.api_key:
+            config_updates["nexus:config:llm_api_key"] = update.api_key
+    
+    # Save all configuration
+    success = await ConfigManager.set_bulk(config_updates)
+    
+    if success:
+        logger.info(f"LLM configuration updated: provider={update.provider}, model={update.model}")
+        CONFIG_CHANGES.labels(key="llm_config", source="admin_ui").inc()
+        
+        return {
+            "message": "LLM configuration updated successfully",
+            "provider": update.provider,
+            "model": update.model
+        }
+    else:
+        raise HTTPException(500, "Failed to update LLM configuration")
+
+
+@app.post("/llm/test")
+async def test_llm_connection(config: LLMConfigUpdate):
+    """
+    Test the LLM connection with the provided configuration.
+    
+    Attempts to send a simple prompt to verify connectivity and authentication.
+    """
+    provider = config.provider
+    
+    if provider == "mock":
+        return {
+            "success": True,
+            "message": "Mock LLM is always available",
+            "latency_ms": 0
+        }
+    
+    try:
+        import time
+        start_time = time.time()
+        
+        if provider == "openai":
+            if not config.api_key:
+                return {"success": False, "message": "API key is required"}
+            
+            from openai import AsyncOpenAI
+            client = AsyncOpenAI(
+                api_key=config.api_key,
+                organization=config.organization,
+                base_url=config.base_url or None
+            )
+            response = await client.chat.completions.create(
+                model=config.model,
+                messages=[{"role": "user", "content": "Say 'OK'"}],
+                max_tokens=5
+            )
+            latency = (time.time() - start_time) * 1000
+            return {
+                "success": True,
+                "message": f"Connected to OpenAI ({config.model})",
+                "latency_ms": round(latency, 2)
+            }
+        
+        elif provider == "gemini":
+            if not config.api_key:
+                return {"success": False, "message": "API key is required"}
+            
+            import google.generativeai as genai
+            genai.configure(api_key=config.api_key)
+            model = genai.GenerativeModel(config.model)
+            response = model.generate_content("Say 'OK'")
+            latency = (time.time() - start_time) * 1000
+            return {
+                "success": True,
+                "message": f"Connected to Gemini ({config.model})",
+                "latency_ms": round(latency, 2)
+            }
+        
+        elif provider == "anthropic":
+            if not config.api_key:
+                return {"success": False, "message": "API key is required"}
+            
+            from anthropic import AsyncAnthropic
+            client = AsyncAnthropic(api_key=config.api_key)
+            response = await client.messages.create(
+                model=config.model,
+                max_tokens=5,
+                messages=[{"role": "user", "content": "Say 'OK'"}]
+            )
+            latency = (time.time() - start_time) * 1000
+            return {
+                "success": True,
+                "message": f"Connected to Anthropic ({config.model})",
+                "latency_ms": round(latency, 2)
+            }
+        
+        elif provider == "ollama":
+            if not config.base_url:
+                return {"success": False, "message": "Ollama URL is required"}
+            
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # First check if Ollama is running
+                health_response = await client.get(f"{config.base_url}/api/tags")
+                if health_response.status_code == 200:
+                    latency = (time.time() - start_time) * 1000
+                    return {
+                        "success": True,
+                        "message": f"Connected to Ollama at {config.base_url}",
+                        "latency_ms": round(latency, 2)
+                    }
+                else:
+                    return {"success": False, "message": f"Ollama returned status {health_response.status_code}"}
+        
+        elif provider == "groq":
+            if not config.api_key:
+                return {"success": False, "message": "API key is required"}
+            
+            from groq import AsyncGroq
+            client = AsyncGroq(api_key=config.api_key)
+            response = await client.chat.completions.create(
+                model=config.model,
+                messages=[{"role": "user", "content": "Say 'OK'"}],
+                max_tokens=5
+            )
+            latency = (time.time() - start_time) * 1000
+            return {
+                "success": True,
+                "message": f"Connected to Groq ({config.model})",
+                "latency_ms": round(latency, 2)
+            }
+        
+        elif provider == "vllm":
+            if not config.base_url:
+                return {"success": False, "message": "vLLM URL is required"}
+            
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # Check vLLM health endpoint
+                health_response = await client.get(f"{config.base_url}/health")
+                if health_response.status_code == 200:
+                    latency = (time.time() - start_time) * 1000
+                    return {
+                        "success": True,
+                        "message": f"Connected to vLLM at {config.base_url}",
+                        "latency_ms": round(latency, 2)
+                    }
+                else:
+                    return {"success": False, "message": f"vLLM returned status {health_response.status_code}"}
+        
+        elif provider == "azure_openai":
+            if not all([config.api_key, config.azure_endpoint, config.azure_deployment]):
+                return {"success": False, "message": "API key, endpoint, and deployment are required"}
+            
+            from openai import AsyncAzureOpenAI
+            client = AsyncAzureOpenAI(
+                api_key=config.api_key,
+                azure_endpoint=config.azure_endpoint,
+                api_version=config.azure_api_version or "2024-02-15-preview"
+            )
+            response = await client.chat.completions.create(
+                model=config.azure_deployment,
+                messages=[{"role": "user", "content": "Say 'OK'"}],
+                max_tokens=5
+            )
+            latency = (time.time() - start_time) * 1000
+            return {
+                "success": True,
+                "message": f"Connected to Azure OpenAI ({config.azure_deployment})",
+                "latency_ms": round(latency, 2)
+            }
+        
+        else:
+            return {"success": False, "message": f"Unknown provider: {provider}"}
+    
+    except ImportError as e:
+        return {
+            "success": False,
+            "message": f"Provider SDK not installed: {str(e)}"
+        }
+    except Exception as e:
+        logger.error(f"LLM connection test failed: {e}")
+        return {
+            "success": False,
+            "message": f"Connection failed: {str(e)}"
+        }
+
+
+# =============================================================================
 # Configuration Templates
 # =============================================================================
 
