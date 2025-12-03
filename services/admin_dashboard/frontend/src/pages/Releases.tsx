@@ -76,7 +76,7 @@ interface Risk {
   status: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = '/api';
 
 const statusColors: Record<string, string> = {
   planning: 'bg-slate-500',
@@ -109,7 +109,7 @@ export const Releases: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
+  const [, setSelectedRelease] = useState<Release | null>(null);
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [summary, setSummary] = useState({
     total: 0,
@@ -454,7 +454,7 @@ export const Releases: React.FC = () => {
                 {release.milestones && release.milestones.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-gray-800">
                     <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                      {release.milestones.map((milestone, idx) => (
+                      {release.milestones.map((milestone) => (
                         <div
                           key={milestone.id}
                           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap ${

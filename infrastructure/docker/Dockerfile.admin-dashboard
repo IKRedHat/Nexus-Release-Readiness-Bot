@@ -15,8 +15,8 @@ WORKDIR /app/frontend
 # Copy package files
 COPY services/admin_dashboard/frontend/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (use npm install for flexibility, npm ci for strict CI)
+RUN npm install --legacy-peer-deps
 
 # Copy frontend source
 COPY services/admin_dashboard/frontend/ ./
