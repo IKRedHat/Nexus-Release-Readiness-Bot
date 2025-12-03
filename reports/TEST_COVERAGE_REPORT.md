@@ -1,44 +1,45 @@
 # 📊 Nexus Test Coverage Report
 
-**Generated:** 2025-12-04 01:03:15
-**Total Tests:** 741
+**Generated:** 2025-12-04 01:29:17
+**Total Tests:** 1099
 
 ## 📋 Executive Summary
 
 | Metric | Value |
 |--------|-------|
-| Total Tests | **741** |
-| Unit Tests | 407 |
-| E2E Tests | 288 |
-| Integration Tests | 24 |
-| Smoke Tests | 22 |
-| Components Covered | 6/11 |
-| Overall Health | 🟡 43% |
+| Total Tests | **1099** |
+| Unit Tests | 575 |
+| E2E Tests | 360 |
+| Integration Tests | 60 |
+| Smoke Tests | 72 |
+| Components Covered | 8/11 |
+| Overall Health | 🟡 61% |
 
 ## 📈 Test Distribution by Category
 
 ```
-unit         |████████████████████████████████████████| 407
-e2e          |████████████████████████████░░░░░░░░░░░░| 288
-integration  |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  24
-smoke        |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  22
+unit         |████████████████████████████████████████| 575
+e2e          |█████████████████████████░░░░░░░░░░░░░░░| 360
+smoke        |█████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  72
+integration  |████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  60
+performance  |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  32
 ```
 
 ## 🧩 Component Coverage
 
 | Component | Description | Tests | Unit | E2E | Int | Smoke | Coverage |
 |-----------|-------------|-------|------|-----|-----|-------|----------|
+| orchestrator ⭐ | Central ReAct Engine & Query Processing... | 72 | 0 | 72 | 0 | 0 | 🟢 100% |
 | admin_dashboard ⭐ | Web UI, Configuration, Release Managemen... | 110 | 0 | 110 | 0 | 0 | 🟢 100% |
+| shared_lib ⭐ | Shared Library (Schemas, LLM, Config, Ut... | 94 | 94 | 0 | 0 | 0 | 🟢 100% |
 | analytics  | DORA Metrics, Predictions, Anomaly Detec... | 42 | 42 | 0 | 0 | 0 | 🟢 84% |
 | jira_agent ⭐ | Jira Integration (Tickets, Sprints, Hier... | 26 | 0 | 26 | 0 | 0 | 🟢 78% |
 | git_ci_agent ⭐ | GitHub & Jenkins Integration... | 24 | 0 | 24 | 0 | 0 | 🟢 72% |
 | rca_agent  | Root Cause Analysis for Build Failures... | 24 | 0 | 24 | 0 | 0 | 🟢 72% |
 | webhooks  | Webhook Integrations & Event Delivery... | 34 | 34 | 0 | 0 | 0 | 🟢 68% |
-| orchestrator ⭐ | Central ReAct Engine & Query Processing... | 0 | 0 | 0 | 0 | 0 | ⚫ 0% |
 | reporting_agent  | Report Generation & Confluence Publishin... | 0 | 0 | 0 | 0 | 0 | ⚫ 0% |
 | slack_agent ⭐ | Slack Bot & App Home... | 0 | 0 | 0 | 0 | 0 | ⚫ 0% |
 | jira_hygiene_agent  | Jira Data Quality & Hygiene Checks... | 0 | 0 | 0 | 0 | 0 | ⚫ 0% |
-| shared_lib ⭐ | Shared Library (Schemas, LLM, Config, Ut... | 0 | 0 | 0 | 0 | 0 | ⚫ 0% |
 
 *⭐ = Critical component*
 
@@ -114,25 +115,22 @@ smoke        |██░░░░░░░░░░░░░░░░░░░░
 
 ## 🔍 Identified Coverage Gaps
 
-- ⚠️ **orchestrator** (Critical): Only 0% coverage
 - ⚠️ **slack_agent** (Critical): Only 0% coverage
-- ⚠️ **shared_lib** (Critical): Only 0% coverage
+- 📋 **orchestrator**: Missing unit tests
 - 📋 **jira_agent**: Missing unit tests
 - 📋 **git_ci_agent**: Missing unit tests
 - 📋 **rca_agent**: Missing unit tests
 - 📋 **analytics**: Missing E2E tests
 - 📋 **webhooks**: Missing E2E tests
-- ❌ **orchestrator**: No test coverage
+- 📋 **shared_lib**: Missing E2E tests
 - ❌ **reporting_agent**: No test coverage
 - ❌ **slack_agent**: No test coverage
 - ❌ **jira_hygiene_agent**: No test coverage
-- ❌ **shared_lib**: No test coverage
 
 ## 💡 Recommendations
 
 - 1. **Increase Integration Tests**: Add more tests for inter-service communication
-- 2. **Prioritize Critical Components**: Focus on orchestrator, slack_agent, shared_lib
-- 3. **Expand Smoke Tests**: Add more quick health verification tests
+- 2. **Prioritize Critical Components**: Focus on slack_agent
 - 4. **Add Negative Tests**: Ensure error handling is properly tested
 - 5. **Performance Tests**: Consider adding load/stress tests for critical paths
 
@@ -140,10 +138,11 @@ smoke        |██░░░░░░░░░░░░░░░░░░░░
 
 | Category | Files | Tests |
 |----------|-------|-------|
-| unit | 9 | 407 |
-| e2e | 8 | 288 |
-| integration | 1 | 24 |
-| smoke | 1 | 22 |
+| unit | 11 | 575 |
+| e2e | 9 | 360 |
+| integration | 2 | 60 |
+| smoke | 2 | 72 |
+| performance | 1 | 32 |
 
 ---
 

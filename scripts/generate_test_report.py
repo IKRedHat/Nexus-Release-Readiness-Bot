@@ -113,6 +113,11 @@ TEST_CATEGORIES = {
         "path": TESTS_DIR / "smoke",
         "description": "Quick health verification tests",
         "weight": 0.5
+    },
+    "performance": {
+        "path": TESTS_DIR / "performance",
+        "description": "Performance and load tests",
+        "weight": 1.0
     }
 }
 

@@ -87,40 +87,41 @@
 <body>
 
 <h1>📊 Nexus Test Coverage Report</h1>
-<p>**Generated:** 2025-12-04 01:03:15</p>
-<p>**Total Tests:** 741</p>
+<p>**Generated:** 2025-12-04 01:29:17</p>
+<p>**Total Tests:** 1099</p>
 <h2>📋 Executive Summary</h2>
 <table>
 <tr><td>Metric</td><td>Value</td></tr>
-<tr><td>Total Tests</td><td>**741**</td></tr>
-<tr><td>Unit Tests</td><td>407</td></tr>
-<tr><td>E2E Tests</td><td>288</td></tr>
-<tr><td>Integration Tests</td><td>24</td></tr>
-<tr><td>Smoke Tests</td><td>22</td></tr>
-<tr><td>Components Covered</td><td>6/11</td></tr>
-<tr><td>Overall Health</td><td class="warning">🟡 43%</td></tr>
+<tr><td>Total Tests</td><td>**1099**</td></tr>
+<tr><td>Unit Tests</td><td>575</td></tr>
+<tr><td>E2E Tests</td><td>360</td></tr>
+<tr><td>Integration Tests</td><td>60</td></tr>
+<tr><td>Smoke Tests</td><td>72</td></tr>
+<tr><td>Components Covered</td><td>8/11</td></tr>
+<tr><td>Overall Health</td><td class="warning">🟡 61%</td></tr>
 </table>
 <h2>📈 Test Distribution by Category</h2>
 <pre>
-unit         |████████████████████████████████████████| 407
-e2e          |████████████████████████████░░░░░░░░░░░░| 288
-integration  |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  24
-smoke        |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  22
+unit         |████████████████████████████████████████| 575
+e2e          |█████████████████████████░░░░░░░░░░░░░░░| 360
+smoke        |█████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  72
+integration  |████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  60
+performance  |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  32
 </pre>
 <h2>🧩 Component Coverage</h2>
 <table>
 <tr><td>Component</td><td>Description</td><td>Tests</td><td>Unit</td><td>E2E</td><td>Int</td><td>Smoke</td><td>Coverage</td></tr>
+<tr><td>orchestrator ⭐</td><td>Central ReAct Engine & Query Processing...</td><td>72</td><td>0</td><td>72</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
 <tr><td>admin_dashboard ⭐</td><td>Web UI, Configuration, Release Managemen...</td><td>110</td><td>0</td><td>110</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
+<tr><td>shared_lib ⭐</td><td>Shared Library (Schemas, LLM, Config, Ut...</td><td>94</td><td>94</td><td>0</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
 <tr><td>analytics</td><td>DORA Metrics, Predictions, Anomaly Detec...</td><td>42</td><td>42</td><td>0</td><td>0</td><td>0</td><td class="success">🟢 84%</td></tr>
 <tr><td>jira_agent ⭐</td><td>Jira Integration (Tickets, Sprints, Hier...</td><td>26</td><td>0</td><td>26</td><td>0</td><td>0</td><td class="success">🟢 78%</td></tr>
 <tr><td>git_ci_agent ⭐</td><td>GitHub & Jenkins Integration...</td><td>24</td><td>0</td><td>24</td><td>0</td><td>0</td><td class="success">🟢 72%</td></tr>
 <tr><td>rca_agent</td><td>Root Cause Analysis for Build Failures...</td><td>24</td><td>0</td><td>24</td><td>0</td><td>0</td><td class="success">🟢 72%</td></tr>
 <tr><td>webhooks</td><td>Webhook Integrations & Event Delivery...</td><td>34</td><td>34</td><td>0</td><td>0</td><td>0</td><td class="success">🟢 68%</td></tr>
-<tr><td>orchestrator ⭐</td><td>Central ReAct Engine & Query Processing...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
 <tr><td>reporting_agent</td><td>Report Generation & Confluence Publishin...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
 <tr><td>slack_agent ⭐</td><td>Slack Bot & App Home...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
 <tr><td>jira_hygiene_agent</td><td>Jira Data Quality & Hygiene Checks...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
-<tr><td>shared_lib ⭐</td><td>Shared Library (Schemas, LLM, Config, Ut...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
 </table>
 <p>*⭐ = Critical component*</p>
 <h2>🔌 API Endpoint Coverage</h2>
@@ -203,35 +204,33 @@ smoke        |██░░░░░░░░░░░░░░░░░░░░
 </ul>
 <h2>🔍 Identified Coverage Gaps</h2>
 <ul>
-<li>⚠️ **orchestrator** (Critical): Only 0% coverage</li>
 <li>⚠️ **slack_agent** (Critical): Only 0% coverage</li>
-<li>⚠️ **shared_lib** (Critical): Only 0% coverage</li>
+<li>📋 **orchestrator**: Missing unit tests</li>
 <li>📋 **jira_agent**: Missing unit tests</li>
 <li>📋 **git_ci_agent**: Missing unit tests</li>
 <li>📋 **rca_agent**: Missing unit tests</li>
 <li>📋 **analytics**: Missing E2E tests</li>
 <li>📋 **webhooks**: Missing E2E tests</li>
-<li>❌ **orchestrator**: No test coverage</li>
+<li>📋 **shared_lib**: Missing E2E tests</li>
 <li>❌ **reporting_agent**: No test coverage</li>
 <li>❌ **slack_agent**: No test coverage</li>
 <li>❌ **jira_hygiene_agent**: No test coverage</li>
-<li>❌ **shared_lib**: No test coverage</li>
 </ul>
 <h2>💡 Recommendations</h2>
 <ul>
 <li>1. **Increase Integration Tests**: Add more tests for inter-service communication</li>
-<li>2. **Prioritize Critical Components**: Focus on orchestrator, slack_agent, shared_lib</li>
-<li>3. **Expand Smoke Tests**: Add more quick health verification tests</li>
+<li>2. **Prioritize Critical Components**: Focus on slack_agent</li>
 <li>4. **Add Negative Tests**: Ensure error handling is properly tested</li>
 <li>5. **Performance Tests**: Consider adding load/stress tests for critical paths</li>
 </ul>
 <h2>📁 Test File Summary</h2>
 <table>
 <tr><td>Category</td><td>Files</td><td>Tests</td></tr>
-<tr><td>unit</td><td>9</td><td>407</td></tr>
-<tr><td>e2e</td><td>8</td><td>288</td></tr>
-<tr><td>integration</td><td>1</td><td>24</td></tr>
-<tr><td>smoke</td><td>1</td><td>22</td></tr>
+<tr><td>unit</td><td>11</td><td>575</td></tr>
+<tr><td>e2e</td><td>9</td><td>360</td></tr>
+<tr><td>integration</td><td>2</td><td>60</td></tr>
+<tr><td>smoke</td><td>2</td><td>72</td></tr>
+<tr><td>performance</td><td>1</td><td>32</td></tr>
 </table>
 <p>---</p>
 <p>*Report generated by <code>scripts/generate_test_report.py</code>*</p>
