@@ -11,27 +11,32 @@ flowchart TB
     subgraph Client["Client Layer"]
         Slack[Slack Workspace]
         API[REST API]
+        AdminUI[Admin Dashboard UI<br/>Vercel/Docker]
     end
     
     subgraph Gateway["Gateway Layer"]
         SlackAgent[Slack Agent<br/>Port 8084]
+        AdminDash[Admin Dashboard API<br/>Port 8088]
     end
     
     subgraph Core["Core Layer"]
         Orchestrator[Central Orchestrator<br/>Port 8080]
         ReAct[ReAct Engine]
+        SpecRegistry[Specialist Registry]
         Memory[(Vector Memory<br/>ChromaDB/pgvector)]
         LLM[LLM Provider<br/>Gemini/OpenAI]
+        ConfigMgr[ConfigManager<br/>Redis-backed]
     end
     
-    subgraph Agents["Agent Layer"]
+    subgraph Agents["Specialist Agents"]
         JiraAgent[Jira Agent<br/>Port 8081]
         GitAgent[Git/CI Agent<br/>Port 8082]
         ReportAgent[Reporting Agent<br/>Port 8083]
-        HygieneAgent[Jira Hygiene Agent<br/>Port 8005]
+        HygieneAgent[Jira Hygiene Agent<br/>Port 8085]
         RCAAgent[RCA Agent<br/>Port 8006]
         Analytics[Analytics Service<br/>Port 8086]
         Webhooks[Webhooks Service<br/>Port 8087]
+        Scheduling[Scheduling Agent]
     end
     
     subgraph External["External Systems"]
@@ -39,25 +44,28 @@ flowchart TB
         GitHub[GitHub]
         Jenkins[Jenkins CI]
         Confluence[Confluence]
+        Smartsheet[Smartsheet]
     end
     
     subgraph Observability["Observability"]
-        Prometheus[Prometheus]
-        Grafana[Grafana]
-        Jaeger[Jaeger]
+        Prometheus[Prometheus<br/>Port 9090]
+        Grafana[Grafana<br/>Port 3000]
+        Jaeger[Jaeger<br/>Port 16686]
     end
     
     Slack --> SlackAgent
     API --> Orchestrator
+    AdminUI --> AdminDash
     SlackAgent --> Orchestrator
+    AdminDash --> ConfigMgr
+    AdminDash --> Agents
     
     Orchestrator --> ReAct
+    Orchestrator --> SpecRegistry
+    SpecRegistry --> Agents
     ReAct --> Memory
     ReAct --> LLM
-    
-    Orchestrator --> JiraAgent
-    Orchestrator --> GitAgent
-    Orchestrator --> ReportAgent
+    ConfigMgr --> Agents
     
     HygieneAgent --> JiraAgent
     HygieneAgent --> SlackAgent
@@ -74,6 +82,8 @@ flowchart TB
     GitAgent --> GitHub
     GitAgent --> Jenkins
     ReportAgent --> Confluence
+    
+    AdminDash --> Smartsheet
     
     Analytics --> Prometheus
     Analytics --> Memory
@@ -314,7 +324,7 @@ Handles Slack workspace interactions with rich interactive experiences.
 | `/notify` | POST | Send channel notification |
 | `/send-dm` | POST | Send direct message by email |
 
-### Jira Hygiene Agent (Port 8005) 🆕
+### Jira Hygiene Agent (Port 8085)
 
 Proactive quality gatekeeper that monitors and enforces Jira data hygiene through scheduled checks and interactive notifications.
 
@@ -640,6 +650,190 @@ Event-driven webhook service for integrating with external systems.
 
 ---
 
+### Admin Dashboard (Port 8088)
+
+Web-based management interface for system configuration, monitoring, and release management.
+
+```mermaid
+flowchart TB
+    subgraph Frontend["React Frontend"]
+        UI[Vite + React + Tailwind]
+        Pages[Dashboard / Config / Metrics / Releases]
+    end
+    
+    subgraph Backend["FastAPI Backend"]
+        API[REST API]
+        Config[ConfigManager]
+        Health[Health Aggregator]
+        Release[Release Manager]
+    end
+    
+    subgraph Storage["Data Layer"]
+        Redis[(Redis)]
+        Agents[Agent APIs]
+        External[External Sources]
+    end
+    
+    UI --> API
+    Pages --> API
+    
+    API --> Config
+    API --> Health
+    API --> Release
+    
+    Config --> Redis
+    Health --> Agents
+    Release --> External
+```
+
+**Capabilities:**
+- **Dynamic Configuration**: Change settings without service restarts
+- **Mode Switching**: Toggle Mock/Live mode instantly across all agents
+- **Health Monitoring**: Real-time agent health with auto-refresh
+- **Observability Dashboard**: Integrated metrics, charts, and Grafana links
+- **Release Management**: Track versions, dates, milestones from external sources
+
+**Release Management Features:**
+- Create and track releases with target dates
+- Import from Smartsheet, CSV, or webhooks
+- Visual release calendar view
+- Milestone and risk tracking
+- Release readiness metrics
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health-check` | GET | Service health |
+| `/mode` | GET/POST | Get/set mock/live mode |
+| `/config` | GET/PUT | Configuration management |
+| `/agents/health` | GET | All agents health status |
+| `/api/metrics` | GET | Aggregated observability metrics |
+| `/releases` | GET/POST | Release CRUD |
+| `/releases/calendar` | GET | Calendar view data |
+| `/releases/sync/smartsheet` | POST | Import from Smartsheet |
+
+**Deployment Options:**
+- **Docker**: Included in docker-compose with backend API
+- **Vercel**: Frontend deployed to Vercel CDN for production
+- **Kubernetes**: Helm chart with separate frontend/backend pods
+
+---
+
+### Specialist Registry
+
+The Specialist Registry is a centralized service discovery and health monitoring system for all agents.
+
+```mermaid
+flowchart LR
+    subgraph Orchestrator["Orchestrator"]
+        ReAct[ReAct Engine]
+        Registry[SpecialistRegistry]
+    end
+    
+    subgraph Specialists["Specialist Agents"]
+        Jira[Jira Agent]
+        Git[Git/CI Agent]
+        Slack[Slack Agent]
+        Report[Reporting Agent]
+        Hygiene[Hygiene Agent]
+        RCA[RCA Agent]
+        Analytics[Analytics]
+        Webhooks[Webhooks]
+        Scheduling[Scheduling]
+    end
+    
+    ReAct --> Registry
+    Registry --> Specialists
+    Registry -.->|Health Monitor| Specialists
+```
+
+**Capabilities:**
+- **Service Discovery**: Dynamic URL resolution from environment or K8s
+- **Health Monitoring**: Background health checks every 30 seconds
+- **Tool Registry**: Central catalog of all available tools per agent
+- **Critical Verification**: Validates essential specialists on startup
+
+**Registered Specialists (9 agents):**
+
+| Specialist | Tools |
+|------------|-------|
+| Jira | get_ticket, search_tickets, update_ticket, get_sprint_stats |
+| Git/CI | get_repo_health, get_pr_status, trigger_build, get_build_status |
+| Slack | send_notification, open_modal, send_dm |
+| Reporting | generate_report, analyze_release, publish_report |
+| Hygiene | run_hygiene_check, get_hygiene_report, get_rules |
+| RCA | analyze_failure, get_rca_history |
+| Analytics | get_dora_metrics, get_kpis, get_trends, get_predictions |
+| Webhooks | subscribe, unsubscribe, send_event |
+| Scheduling | schedule_check, list_schedules, cancel_schedule |
+
+**API Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/specialists` | GET | List all specialists with health |
+| `/specialists/{id}` | GET | Get specialist details |
+| `/specialists/{id}/health` | POST | Trigger health check |
+| `/specialists/tools/all` | GET | List all available tools |
+
+---
+
+### Dynamic Configuration (ConfigManager)
+
+Redis-backed configuration management with real-time propagation.
+
+```mermaid
+flowchart LR
+    subgraph Sources["Configuration Sources"]
+        Env[Environment Variables]
+        Redis[(Redis)]
+        AdminUI[Admin Dashboard]
+    end
+    
+    subgraph ConfigMgr["ConfigManager"]
+        Cache[Local Cache<br/>TTL: 60s]
+        Resolver[Priority Resolver]
+    end
+    
+    subgraph Agents["All Agents"]
+        Agent1[Agent 1]
+        Agent2[Agent 2]
+        AgentN[Agent N]
+    end
+    
+    Sources --> ConfigMgr
+    ConfigMgr --> Agents
+    AdminUI -->|Real-time| Redis
+    Redis -->|Propagate| ConfigMgr
+```
+
+**Features:**
+- **Priority Resolution**: Redis > Environment > Default
+- **Caching**: 60-second TTL for performance
+- **Mode Switching**: Instant mock/live toggle across all agents
+- **Sensitive Masking**: Auto-mask API keys and tokens
+- **Templates**: Pre-built configurations for integrations
+
+**Usage:**
+```python
+from nexus_lib import ConfigManager
+
+config = ConfigManager()
+
+# Check mode
+if config.is_mock_mode():
+    return mock_data()
+
+# Get config with fallback
+jira_url = config.get("JIRA_URL", default="https://jira.example.com")
+
+# Set config (propagates to all agents)
+await config.set("SYSTEM_MODE", "live")
+```
+
+---
+
 ## Observability
 
 ### Grafana Dashboard
@@ -741,42 +935,79 @@ Structured JSON logging with correlation IDs:
 ### Development (Docker Compose)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Docker Network                            │
-├─────────────┬─────────────┬─────────────┬─────────────┬────────┤
-│ Orchestrator│  Jira Agent │ Git/CI Agent│Report Agent │Hygiene │
-│   :8080     │    :8081    │    :8082    │   :8083     │ :8005  │
-├─────────────┴─────────────┴─────────────┴─────────────┴────────┤
-│                    Slack Agent :8084                             │
-├─────────────┬─────────────┬─────────────┬──────────────────────┤
-│  PostgreSQL │    Redis    │  Prometheus │       Grafana        │
-│    :5432    │    :6379    │    :9090    │       :3000          │
-└─────────────┴─────────────┴─────────────┴──────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Docker Network                                 │
+├─────────────┬─────────────┬─────────────┬─────────────┬─────────────────┤
+│ Orchestrator│  Jira Agent │ Git/CI Agent│Report Agent │   Slack Agent   │
+│   :8080     │    :8081    │    :8082    │   :8083     │      :8084      │
+├─────────────┼─────────────┼─────────────┼─────────────┼─────────────────┤
+│   Hygiene   │  RCA Agent  │  Analytics  │  Webhooks   │ Admin Dashboard │
+│   :8085     │    :8006    │    :8086    │   :8087     │      :8088      │
+├─────────────┴─────────────┴─────────────┴─────────────┴─────────────────┤
+│                       Observability Stack                                │
+├─────────────┬─────────────┬─────────────┬──────────────────────────────┤
+│  Prometheus │   Grafana   │   Jaeger    │                              │
+│    :9090    │    :3000    │   :16686    │                              │
+├─────────────┴─────────────┴─────────────┴──────────────────────────────┤
+│                          Data Layer                                      │
+├─────────────┬─────────────┬─────────────────────────────────────────────┤
+│  PostgreSQL │    Redis    │                                              │
+│    :5432    │    :6379    │   (ConfigManager, Cache, Sessions)          │
+└─────────────┴─────────────┴─────────────────────────────────────────────┘
 ```
 
 ### Production (Kubernetes)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Ingress (NGINX)                             │
-├───────────────────────┬─────────────────────────────────────────┤
-│        /api/*         │              /slack/*                    │
-├───────────────────────┴─────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────┐    ┌─────────────────────────────────────┐ │
-│  │  Orchestrator   │    │       Agent Deployments             │ │
-│  │  (2+ replicas)  │────│  - Jira Agent                       │ │
-│  │       HPA       │    │  - Git/CI Agent                     │ │
-│  └─────────────────┘    │  - Reporting Agent                  │ │
-│           │             │  - Slack Agent                       │ │
-│           │             │  - Jira Hygiene Agent (NEW)         │ │
-│           │             └─────────────────────────────────────┘ │
-│           │                                                      │
-│  ┌─────────────────┐    ┌─────────────────────────────────────┐ │
-│  │   PostgreSQL    │    │     Redis (Cache/Pubsub)            │ │
-│  │   (pgvector)    │    │                                     │ │
-│  └─────────────────┘    └─────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Ingress (NGINX)                                  │
+├──────────────┬───────────────┬───────────────┬──────────────────────────┤
+│    /api/*    │   /slack/*    │   /admin/*    │     Static Assets        │
+├──────────────┴───────────────┴───────────────┴──────────────────────────┤
+│                                                                          │
+│  ┌──────────────────┐    ┌────────────────────────────────────────────┐ │
+│  │   Orchestrator   │    │           Specialist Agents                │ │
+│  │   (2+ replicas)  │────│  - Jira Agent        - Analytics           │ │
+│  │        HPA       │    │  - Git/CI Agent      - Webhooks            │ │
+│  │ SpecialistRegist │    │  - Reporting Agent   - Scheduling          │ │
+│  └──────────────────┘    │  - Slack Agent       - RCA Agent           │ │
+│           │              │  - Jira Hygiene Agent                      │ │
+│           │              └────────────────────────────────────────────┘ │
+│           │                                                              │
+│  ┌──────────────────┐    ┌────────────────────────────────────────────┐ │
+│  │ Admin Dashboard  │    │         Frontend (Vercel CDN)             │ │
+│  │    Backend API   │    │  nexus-admin.vercel.app                    │ │
+│  │      :8088       │    │  - React + Vite                            │ │
+│  └──────────────────┘    │  - Auto-deploy on push                     │ │
+│           │              └────────────────────────────────────────────┘ │
+│           │                                                              │
+│  ┌──────────────────┐    ┌────────────────────────────────────────────┐ │
+│  │    PostgreSQL    │    │       Redis (ConfigManager/Cache)          │ │
+│  │    (pgvector)    │    │                                            │ │
+│  └──────────────────┘    └────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Frontend Deployment (Vercel)
+
+The Admin Dashboard frontend can be deployed to Vercel for production:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Vercel Edge Network                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│  nexus-admin.vercel.app                                                  │
+│  ├── Preview Deployments (PR-based)                                      │
+│  ├── Production (main branch)                                            │
+│  └── Staging (develop branch)                                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Features:                                                               │
+│  - Automatic HTTPS & CDN                                                 │
+│  - Zero-config deployments                                               │
+│  - Preview URLs for every PR                                             │
+│  - Environment variable management                                       │
+│  - Rollback support                                                      │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -785,14 +1016,18 @@ Structured JSON logging with correlation IDs:
 
 | Service | Port | Description |
 |---------|------|-------------|
-| Orchestrator | 8080 | Central coordination |
+| Orchestrator | 8080 | Central coordination with Specialist Registry |
 | Jira Agent | 8081 | Jira operations |
 | Git/CI Agent | 8082 | GitHub + Jenkins |
 | Reporting Agent | 8083 | Report generation |
 | Slack Agent | 8084 | Slack interface |
-| **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
+| Jira Hygiene Agent | 8085 | Proactive quality checks |
+| RCA Agent | 8006 | Root cause analysis |
+| Analytics Service | 8086 | DORA metrics & KPIs |
+| Webhooks Service | 8087 | Event distribution |
+| **Admin Dashboard** | **8088** | **Web-based management UI** |
 | PostgreSQL | 5432 | Database |
-| Redis | 6379 | Cache |
+| Redis | 6379 | Cache & ConfigManager |
 | Prometheus | 9090 | Metrics |
 | Grafana | 3000 | Dashboards |
 | Jaeger | 16686 | Tracing UI |
@@ -1120,3 +1355,123 @@ The App Home responds to:
 2. **Reduced Friction**: One-click actions
 3. **Personalization**: User-specific hygiene issues
 4. **Discoverability**: Surfaces AI recommendations proactively
+
+---
+
+## Testing Architecture
+
+Nexus employs a comprehensive multi-layered testing strategy with **1,449 tests** ensuring reliability across all components.
+
+### Test Pyramid
+
+```mermaid
+flowchart TB
+    subgraph Tests["Test Layers (1,449 total)"]
+        direction TB
+        Unit["🧪 Unit Tests<br/>875 tests<br/>Isolated component testing"]
+        E2E["🔄 E2E Tests<br/>410 tests<br/>Service endpoint testing"]
+        Integration["🔗 Integration Tests<br/>60 tests<br/>Inter-service workflows"]
+        Smoke["💨 Smoke Tests<br/>72 tests<br/>Health verification"]
+        Performance["⚡ Performance Tests<br/>32 tests<br/>Load & latency"]
+    end
+    
+    Unit --> E2E
+    E2E --> Integration
+    Integration --> Smoke
+    Smoke --> Performance
+```
+
+### Test Coverage by Component
+
+| Component | Unit | E2E | Total | Coverage |
+|-----------|------|-----|-------|----------|
+| **Orchestrator** | 30 | 72 | 102 | 100% |
+| **Jira Agent** | 100 | 26 | 126 | 100% |
+| **Git/CI Agent** | 94 | 24 | 118 | 100% |
+| **Slack Agent** | 106 | 50 | 156 | 100% |
+| **Admin Dashboard** | - | 110 | 110 | 100% |
+| **Shared Library** | 94 | - | 94 | 100% |
+| **Hygiene Agent** | 40 | 20 | 60 | 80% |
+| **RCA Agent** | 30 | 24 | 54 | 80% |
+| **Analytics** | 42 | - | 42 | 84% |
+| **Webhooks** | 34 | - | 34 | 68% |
+
+### Test Infrastructure
+
+```mermaid
+flowchart LR
+    subgraph CI["GitHub Actions CI"]
+        Lint[Lint & Format]
+        Security[Security Scan]
+        UnitJob[Unit Tests<br/>Python 3.10/3.11/3.12]
+        IntJob[Integration Tests]
+        E2EJob[E2E Tests]
+        SmokeJob[Smoke Tests]
+        Coverage[Codecov Upload]
+    end
+    
+    subgraph Reports["Test Reports"]
+        HTML[HTML Report]
+        XML[JUnit XML]
+        CovReport[Coverage Report]
+    end
+    
+    Lint --> Security
+    Security --> UnitJob
+    UnitJob --> IntJob
+    IntJob --> E2EJob
+    E2EJob --> SmokeJob
+    SmokeJob --> Coverage
+    
+    UnitJob --> Reports
+    E2EJob --> Reports
+    Coverage --> CovReport
+```
+
+### Test Categories
+
+| Category | Purpose | Speed | When to Run |
+|----------|---------|-------|-------------|
+| **Unit** | Isolated component testing | ⚡ Fast | Every commit |
+| **E2E** | Service endpoint testing | 🚀 Medium | Every PR |
+| **Integration** | Inter-service workflows | 🔗 Medium | Pre-merge |
+| **Smoke** | Health verification | 💨 Fast | Post-deploy |
+| **Performance** | Load & latency testing | ⏱️ Slow | Release |
+
+### Key Test Files
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `tests/unit/test_jira_agent.py` | 100 | JiraClient, parsing, operations |
+| `tests/unit/test_slack_agent.py` | 106 | SlackClient, BlockKitBuilder, modals |
+| `tests/unit/test_git_ci_agent.py` | 94 | GitHub, Jenkins, Security clients |
+| `tests/unit/test_shared_lib.py` | 94 | Schemas, LLM, ConfigManager |
+| `tests/unit/test_error_handling.py` | 40 | Error scenarios, edge cases |
+| `tests/e2e/test_admin_dashboard.py` | 110 | Dashboard, releases, metrics |
+| `tests/e2e/test_orchestrator.py` | 72 | Queries, specialists, memory |
+| `tests/e2e/test_slack_agent.py` | 50 | Commands, events, interactions |
+| `tests/integration/test_full_workflows.py` | 36 | Complete workflow chains |
+| `tests/smoke/test_comprehensive_smoke.py` | 47 | Full system verification |
+| `tests/performance/test_load.py` | 32 | Load testing, latency |
+
+### Running Tests
+
+```bash
+# All tests
+pytest
+
+# By category
+pytest -m unit           # 875 tests
+pytest -m e2e            # 410 tests
+pytest -m integration    # 60 tests
+pytest -m smoke          # 72 tests
+pytest -m performance    # 32 tests
+
+# With coverage
+pytest --cov=shared --cov=services --cov-report=html
+
+# Generate report
+python scripts/generate_test_report.py
+```
+
+📖 **[Full Testing Documentation](testing.md)**
