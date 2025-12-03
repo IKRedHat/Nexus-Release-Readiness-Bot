@@ -1,337 +1,451 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="1000" height="650">
   <defs>
-    <!-- Gradients -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0f172a"/>
-      <stop offset="100%" style="stop-color:#1e293b"/>
+    <!-- Red/Black Gradients -->
+    <linearGradient id="darkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#080808"/>
+      <stop offset="100%" style="stop-color:#0f0808"/>
     </linearGradient>
     
-    <linearGradient id="userGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#f43f5e"/>
-      <stop offset="100%" style="stop-color:#e11d48"/>
+    <linearGradient id="redBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ff0000;stop-opacity:0"/>
+      <stop offset="50%" style="stop-color:#ff3333;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ff0000;stop-opacity:0"/>
     </linearGradient>
     
-    <linearGradient id="slackGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4ade80"/>
-      <stop offset="100%" style="stop-color:#22c55e"/>
-    </linearGradient>
-    
-    <linearGradient id="orchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#818cf8"/>
-      <stop offset="100%" style="stop-color:#6366f1"/>
-    </linearGradient>
-    
-    <linearGradient id="llmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#c084fc"/>
-      <stop offset="100%" style="stop-color:#a855f7"/>
-    </linearGradient>
-    
-    <linearGradient id="agentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#22d3ee"/>
-      <stop offset="100%" style="stop-color:#06b6d4"/>
-    </linearGradient>
-    
-    <linearGradient id="extGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#fbbf24"/>
-      <stop offset="100%" style="stop-color:#f59e0b"/>
+    <linearGradient id="stepGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4444"/>
+      <stop offset="100%" style="stop-color:#aa0000"/>
     </linearGradient>
     
     <!-- Filters -->
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feFlood flood-color="#ff0000" flood-opacity="0.5"/>
+      <feComposite in2="blur" operator="in"/>
       <feMerge>
-        <feMergeNode in="coloredBlur"/>
+        <feMergeNode/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
     
-    <filter id="shadow">
-      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
     
-    <!-- Arrows -->
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M 0 0 L 12 6 L 0 12 z" fill="#6366f1"/>
-    </marker>
-    
-    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M 0 0 L 12 6 L 0 12 z" fill="#22c55e"/>
-    </marker>
-    
-    <marker id="arrowCyan" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M 0 0 L 12 6 L 0 12 z" fill="#06b6d4"/>
-    </marker>
-    
-    <marker id="arrowOrange" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M 0 0 L 12 6 L 0 12 z" fill="#f59e0b"/>
-    </marker>
-    
-    <marker id="arrowPurple" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M 0 0 L 12 6 L 0 12 z" fill="#a855f7"/>
+    <!-- Markers -->
+    <marker id="arrowRed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ff3333"/>
     </marker>
   </defs>
   
   <style>
-    @keyframes dash {
-      to { stroke-dashoffset: -40; }
-    }
     @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.1); opacity: 0.8; }
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
     }
-    @keyframes fadeIn {
-      0% { opacity: 0; }
-      100% { opacity: 1; }
+    
+    @keyframes dash {
+      to { stroke-dashoffset: -30; }
     }
-    @keyframes slideRight {
-      0% { transform: translateX(-20px); opacity: 0; }
+    
+    @keyframes flow {
+      0% { offset-distance: 0%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { offset-distance: 100%; opacity: 0; }
+    }
+    
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 0 3px #ff0000); }
+      50% { filter: drop-shadow(0 0 15px #ff3333); }
+    }
+    
+    @keyframes typeIn {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+    
+    @keyframes fadeSlide {
+      0% { transform: translateX(-10px); opacity: 0; }
       100% { transform: translateX(0); opacity: 1; }
     }
-    @keyframes dot {
-      0%, 20% { opacity: 0; }
-      40% { opacity: 1; }
-      100% { opacity: 0; }
+    
+    @keyframes scanDown {
+      0% { transform: translateY(0); opacity: 0.5; }
+      100% { transform: translateY(650px); opacity: 0; }
     }
-    .flow-arrow { 
-      stroke-dasharray: 10 5; 
-      animation: dash 1s linear infinite; 
+    
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
     }
-    .participant { filter: url(#shadow); }
-    .pulse { animation: pulse 2s ease-in-out infinite; }
-    .message-dot { animation: dot 2s ease-in-out infinite; }
+    
+    @keyframes ripple {
+      0% { r: 10; opacity: 0.8; }
+      100% { r: 30; opacity: 0; }
+    }
+    
+    .pulse { animation: pulse 2s ease-in-out infinite; transform-origin: center; }
+    .flow-line { stroke-dasharray: 8 4; animation: dash 1s linear infinite; }
+    .glow { animation: glow 2s ease-in-out infinite; }
+    .fade-slide { animation: fadeSlide 0.5s ease-out forwards; }
+    .scan { animation: scanDown 3s linear infinite; }
+    .blink { animation: blink 1s step-end infinite; }
   </style>
   
   <!-- Background -->
-  <rect width="100%" height="100%" fill="url(#bgGrad)"/>
+  <rect width="100%" height="100%" fill="url(#darkBg)"/>
   
-  <!-- Grid -->
-  <g opacity="0.05">
-    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#fff" stroke-width="1"/>
+  <!-- Subtle grid -->
+  <g opacity="0.1">
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ff0000" stroke-width="0.3"/>
     </pattern>
     <rect width="100%" height="100%" fill="url(#grid)"/>
   </g>
   
+  <!-- Scan line -->
+  <rect x="0" y="0" width="100%" height="2" fill="url(#redBar)" class="scan"/>
+  
   <!-- Title -->
   <g filter="url(#glow)">
-    <text x="600" y="45" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="bold" fill="#fff" text-anchor="middle">
-      🔄 NEXUS WORKFLOW SEQUENCE
+    <text x="500" y="35" font-family="'Arial Black', Arial, sans-serif" font-size="24" fill="#ffffff" text-anchor="middle" letter-spacing="2">
+      WORKFLOW SEQUENCE
     </text>
-    <text x="600" y="70" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#94a3b8" text-anchor="middle">
-      Real-time data flow from user query to intelligent response
+    <text x="500" y="55" font-family="Arial, sans-serif" font-size="11" fill="#ff6666" text-anchor="middle" letter-spacing="3">
+      USER QUERY → INTELLIGENT RESPONSE
     </text>
   </g>
   
-  <!-- ============================================ -->
-  <!-- PARTICIPANTS (Swimlanes) -->
-  <!-- ============================================ -->
-  
-  <!-- Participant Headers -->
-  <g id="participantHeaders" transform="translate(0, 90)">
-    <!-- User -->
-    <g class="participant">
-      <rect x="40" y="0" width="120" height="50" rx="25" fill="url(#userGrad)" filter="url(#glow)"/>
-      <text x="100" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">👤 User</text>
+  <!-- Timeline header -->
+  <g transform="translate(0, 80)">
+    <!-- Step circles -->
+    <g transform="translate(80, 0)">
+      <circle r="20" fill="url(#stepGrad)" filter="url(#softGlow)" class="pulse"/>
+      <text y="5" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">1</text>
+      <text y="45" font-family="Arial, sans-serif" font-size="8" fill="#ff9999" text-anchor="middle">QUERY</text>
     </g>
+    
+    <line x1="105" y1="0" x2="165" y2="0" stroke="#660000" stroke-width="2"/>
+    
+    <g transform="translate(190, 0)">
+      <circle r="20" fill="url(#stepGrad)" filter="url(#softGlow)" class="pulse" style="animation-delay: 0.2s"/>
+      <text y="5" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">2</text>
+      <text y="45" font-family="Arial, sans-serif" font-size="8" fill="#ff9999" text-anchor="middle">PARSE</text>
+    </g>
+    
+    <line x1="215" y1="0" x2="275" y2="0" stroke="#660000" stroke-width="2"/>
+    
+    <g transform="translate(300, 0)">
+      <circle r="20" fill="url(#stepGrad)" filter="url(#softGlow)" class="pulse" style="animation-delay: 0.4s"/>
+      <text y="5" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">3</text>
+      <text y="45" font-family="Arial, sans-serif" font-size="8" fill="#ff9999" text-anchor="middle">THINK</text>
+    </g>
+    
+    <line x1="325" y1="0" x2="385" y2="0" stroke="#660000" stroke-width="2"/>
+    
+    <g transform="translate(410, 0)">
+      <circle r="20" fill="url(#stepGrad)" filter="url(#softGlow)" class="pulse" style="animation-delay: 0.6s"/>
+      <text y="5" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">4</text>
+      <text y="45" font-family="Arial, sans-serif" font-size="8" fill="#ff9999" text-anchor="middle">ACTION</text>
+    </g>
+    
+    <line x1="435" y1="0" x2="495" y2="0" stroke="#660000" stroke-width="2"/>
+    
+    <g transform="translate(520, 0)">
+      <circle r="20" fill="url(#stepGrad)" filter="url(#softGlow)" class="pulse" style="animation-delay: 0.8s"/>
+      <text y="5" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">5</text>
+      <text y="45" font-family="Arial, sans-serif" font-size="8" fill="#ff9999" text-anchor="middle">FETCH</text>
+    </g>
+    
+    <line x1="545" y1="0" x2="605" y2="0" stroke="#660000" stroke-width="2"/>
+    
+    <g transform="translate(630, 0)">
+      <circle r="20" fill="url(#stepGrad)" filter="url(#softGlow)" class="pulse" style="animation-delay: 1s"/>
+      <text y="5" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">6</text>
+      <text y="45" font-family="Arial, sans-serif" font-size="8" fill="#ff9999" text-anchor="middle">OBSERVE</text>
+    </g>
+    
+    <line x1="655" y1="0" x2="715" y2="0" stroke="#660000" stroke-width="2"/>
+    
+    <g transform="translate(740, 0)">
+      <circle r="20" fill="url(#stepGrad)" filter="url(#softGlow)" class="pulse" style="animation-delay: 1.2s"/>
+      <text y="5" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">7</text>
+      <text y="45" font-family="Arial, sans-serif" font-size="8" fill="#ff9999" text-anchor="middle">DECIDE</text>
+    </g>
+    
+    <line x1="765" y1="0" x2="825" y2="0" stroke="#660000" stroke-width="2"/>
+    
+    <g transform="translate(850, 0)">
+      <circle r="20" fill="#00aa00" filter="url(#softGlow)" class="pulse" style="animation-delay: 1.4s"/>
+      <text y="5" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">✓</text>
+      <text y="45" font-family="Arial, sans-serif" font-size="8" fill="#88ff88" text-anchor="middle">RESPOND</text>
+    </g>
+  </g>
+  
+  <!-- Flow visualization boxes -->
+  <g transform="translate(50, 180)">
+    <!-- User -->
+    <g class="fade-slide" style="animation-delay: 0.1s">
+      <rect x="0" y="0" width="120" height="60" rx="8" fill="#1a0808" stroke="#ff3333" stroke-width="2" class="glow"/>
+      <text x="60" y="28" font-family="Arial, sans-serif" font-size="16" fill="#fff" text-anchor="middle">👤</text>
+      <text x="60" y="48" font-family="Arial, sans-serif" font-size="10" fill="#ff9999" text-anchor="middle">User Input</text>
+    </g>
+    
+    <!-- Arrow 1 -->
+    <path d="M 130 30 L 180 30" stroke="#ff3333" stroke-width="2" class="flow-line" marker-end="url(#arrowRed)"/>
+    <circle r="4" fill="#ff6666" filter="url(#softGlow)">
+      <animateMotion dur="1s" repeatCount="indefinite">
+        <mpath href="#flow1"/>
+      </animateMotion>
+    </circle>
+    <path id="flow1" d="M 130 30 L 180 30" fill="none"/>
     
     <!-- Slack Agent -->
-    <g class="participant">
-      <rect x="220" y="0" width="140" height="50" rx="25" fill="url(#slackGrad)" filter="url(#glow)"/>
-      <text x="290" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">💬 Slack Agent</text>
+    <g class="fade-slide" style="animation-delay: 0.2s">
+      <rect x="190" y="0" width="120" height="60" rx="8" fill="#1a0808" stroke="#cc0000" stroke-width="2"/>
+      <text x="250" y="28" font-family="Arial, sans-serif" font-size="16" fill="#fff" text-anchor="middle">💬</text>
+      <text x="250" y="48" font-family="Arial, sans-serif" font-size="10" fill="#ff9999" text-anchor="middle">Slack Agent</text>
     </g>
+    
+    <!-- Arrow 2 -->
+    <path d="M 320 30 L 370 30" stroke="#ff3333" stroke-width="2" class="flow-line" marker-end="url(#arrowRed)"/>
+    <circle r="4" fill="#ff6666" filter="url(#softGlow)">
+      <animateMotion dur="1s" repeatCount="indefinite" begin="0.3s">
+        <mpath href="#flow2"/>
+      </animateMotion>
+    </circle>
+    <path id="flow2" d="M 320 30 L 370 30" fill="none"/>
     
     <!-- Orchestrator -->
-    <g class="participant pulse">
-      <rect x="420" y="0" width="160" height="50" rx="25" fill="url(#orchGrad)" filter="url(#glow)"/>
-      <text x="500" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">🧠 Orchestrator</text>
+    <g class="fade-slide" style="animation-delay: 0.3s">
+      <rect x="380" y="-10" width="140" height="80" rx="8" fill="#200808" stroke="#ff0000" stroke-width="3" class="glow"/>
+      <text x="450" y="18" font-family="Arial, sans-serif" font-size="16" fill="#fff" text-anchor="middle">🧠</text>
+      <text x="450" y="38" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold">Orchestrator</text>
+      <text x="450" y="55" font-family="Arial, sans-serif" font-size="8" fill="#ff6666" text-anchor="middle">ReAct Engine</text>
     </g>
     
-    <!-- LLM -->
-    <g class="participant">
-      <rect x="640" y="0" width="140" height="50" rx="25" fill="url(#llmGrad)" filter="url(#glow)"/>
-      <text x="710" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">🤖 Gemini LLM</text>
-    </g>
+    <!-- Arrow 3 -->
+    <path d="M 530 30 L 580 30" stroke="#ff3333" stroke-width="2" class="flow-line" marker-end="url(#arrowRed)"/>
+    <circle r="4" fill="#ff6666" filter="url(#softGlow)">
+      <animateMotion dur="1s" repeatCount="indefinite" begin="0.6s">
+        <mpath href="#flow3"/>
+      </animateMotion>
+    </circle>
+    <path id="flow3" d="M 530 30 L 580 30" fill="none"/>
     
     <!-- Agents -->
-    <g class="participant">
-      <rect x="840" y="0" width="140" height="50" rx="25" fill="url(#agentGrad)" filter="url(#glow)"/>
-      <text x="910" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">🔧 Agents</text>
+    <g class="fade-slide" style="animation-delay: 0.4s">
+      <rect x="590" y="0" width="120" height="60" rx="8" fill="#1a0808" stroke="#cc0000" stroke-width="2"/>
+      <text x="650" y="28" font-family="Arial, sans-serif" font-size="16" fill="#fff" text-anchor="middle">🔧</text>
+      <text x="650" y="48" font-family="Arial, sans-serif" font-size="10" fill="#ff9999" text-anchor="middle">Specialist Agents</text>
     </g>
+    
+    <!-- Arrow 4 -->
+    <path d="M 720 30 L 770 30" stroke="#ff3333" stroke-width="2" class="flow-line" marker-end="url(#arrowRed)"/>
+    <circle r="4" fill="#ff6666" filter="url(#softGlow)">
+      <animateMotion dur="1s" repeatCount="indefinite" begin="0.9s">
+        <mpath href="#flow4"/>
+      </animateMotion>
+    </circle>
+    <path id="flow4" d="M 720 30 L 770 30" fill="none"/>
     
     <!-- External -->
-    <g class="participant">
-      <rect x="1040" y="0" width="120" height="50" rx="25" fill="url(#extGrad)" filter="url(#glow)"/>
-      <text x="1100" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">🌐 External</text>
+    <g class="fade-slide" style="animation-delay: 0.5s">
+      <rect x="780" y="0" width="120" height="60" rx="8" fill="#1a0808" stroke="#990000" stroke-width="2"/>
+      <text x="840" y="28" font-family="Arial, sans-serif" font-size="16" fill="#fff" text-anchor="middle">🌐</text>
+      <text x="840" y="48" font-family="Arial, sans-serif" font-size="10" fill="#ff9999" text-anchor="middle">External APIs</text>
     </g>
   </g>
   
-  <!-- Lifelines -->
-  <g id="lifelines" stroke="#475569" stroke-width="2" stroke-dasharray="5 5">
-    <line x1="100" y1="160" x2="100" y2="700"/>
-    <line x1="290" y1="160" x2="290" y2="700"/>
-    <line x1="500" y1="160" x2="500" y2="700"/>
-    <line x1="710" y1="160" x2="710" y2="700"/>
-    <line x1="910" y1="160" x2="910" y2="700"/>
-    <line x1="1100" y1="160" x2="1100" y2="700"/>
+  <!-- Detail cards -->
+  <g transform="translate(50, 280)">
+    <!-- Card 1: Query -->
+    <g class="fade-slide" style="animation-delay: 0.6s">
+      <rect x="0" y="0" width="180" height="100" rx="10" fill="#120808" stroke="#440000" stroke-width="1"/>
+      <rect x="0" y="0" width="180" height="25" rx="10" fill="#330000"/>
+      <text x="15" y="17" font-family="Arial, sans-serif" font-size="10" fill="#ff9999" font-weight="bold">1. USER QUERY</text>
+      <text x="15" y="45" font-family="'Courier New', monospace" font-size="9" fill="#ff6666">/nexus status v2.0</text>
+      <text x="15" y="65" font-family="Arial, sans-serif" font-size="8" fill="#666666">Natural language input</text>
+      <text x="15" y="80" font-family="Arial, sans-serif" font-size="8" fill="#666666">via Slack or REST API</text>
+      <circle cx="165" cy="12" r="4" fill="#ff3333" class="blink"/>
+    </g>
+    
+    <!-- Card 2: ReAct -->
+    <g class="fade-slide" style="animation-delay: 0.7s">
+      <rect x="200" y="0" width="180" height="100" rx="10" fill="#120808" stroke="#440000" stroke-width="1"/>
+      <rect x="200" y="0" width="180" height="25" rx="10" fill="#330000"/>
+      <text x="215" y="17" font-family="Arial, sans-serif" font-size="10" fill="#ff9999" font-weight="bold">2. ReAct LOOP</text>
+      <g transform="translate(220, 40)">
+        <circle r="10" fill="#cc0000" class="pulse"/>
+        <text y="4" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">💭</text>
+      </g>
+      <text x="240" y="45" font-family="Arial, sans-serif" font-size="8" fill="#888">Think</text>
+      <g transform="translate(280, 40)">
+        <circle r="10" fill="#cc0000" class="pulse" style="animation-delay: 0.3s"/>
+        <text y="4" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">⚡</text>
+      </g>
+      <text x="300" y="45" font-family="Arial, sans-serif" font-size="8" fill="#888">Act</text>
+      <g transform="translate(340, 40)">
+        <circle r="10" fill="#cc0000" class="pulse" style="animation-delay: 0.6s"/>
+        <text y="4" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">👁</text>
+      </g>
+      <text x="355" y="45" font-family="Arial, sans-serif" font-size="8" fill="#888">See</text>
+      <text x="215" y="75" font-family="Arial, sans-serif" font-size="8" fill="#666666">LLM reasoning with</text>
+      <text x="215" y="90" font-family="Arial, sans-serif" font-size="8" fill="#666666">tool orchestration</text>
+    </g>
+    
+    <!-- Card 3: Tools -->
+    <g class="fade-slide" style="animation-delay: 0.8s">
+      <rect x="400" y="0" width="180" height="100" rx="10" fill="#120808" stroke="#440000" stroke-width="1"/>
+      <rect x="400" y="0" width="180" height="25" rx="10" fill="#330000"/>
+      <text x="415" y="17" font-family="Arial, sans-serif" font-size="10" fill="#ff9999" font-weight="bold">3. TOOL EXECUTION</text>
+      <text x="415" y="45" font-family="Arial, sans-serif" font-size="8" fill="#ff6666">📋 get_sprint_stats</text>
+      <text x="415" y="60" font-family="Arial, sans-serif" font-size="8" fill="#ff6666">🔧 get_build_status</text>
+      <text x="415" y="75" font-family="Arial, sans-serif" font-size="8" fill="#ff6666">🔍 get_security_scan</text>
+      <text x="415" y="90" font-family="Arial, sans-serif" font-size="8" fill="#666666">50+ available tools</text>
+    </g>
+    
+    <!-- Card 4: Response -->
+    <g class="fade-slide" style="animation-delay: 0.9s">
+      <rect x="600" y="0" width="180" height="100" rx="10" fill="#081208" stroke="#004400" stroke-width="1"/>
+      <rect x="600" y="0" width="180" height="25" rx="10" fill="#003300"/>
+      <text x="615" y="17" font-family="Arial, sans-serif" font-size="10" fill="#88ff88" font-weight="bold">4. FINAL RESPONSE</text>
+      <text x="615" y="45" font-family="Arial, sans-serif" font-size="12" fill="#00ff00">✅ GO</text>
+      <text x="615" y="65" font-family="Arial, sans-serif" font-size="8" fill="#88ff88">93% completion rate</text>
+      <text x="615" y="80" font-family="Arial, sans-serif" font-size="8" fill="#88ff88">All tests passing</text>
+      <text x="615" y="95" font-family="Arial, sans-serif" font-size="8" fill="#666666">Rich Block Kit message</text>
+    </g>
   </g>
   
-  <!-- ============================================ -->
-  <!-- SEQUENCE MESSAGES -->
-  <!-- ============================================ -->
-  
-  <!-- Step 1: User sends command -->
-  <g id="step1" transform="translate(0, 170)">
-    <rect x="25" y="0" width="150" height="35" rx="5" fill="#1e293b" stroke="#f43f5e" stroke-width="2"/>
-    <text x="100" y="22" font-family="'Consolas', monospace" font-size="11" fill="#fda4af" text-anchor="middle">/nexus status v2.0</text>
+  <!-- Agent detail section -->
+  <g transform="translate(50, 420)">
+    <text x="0" y="15" font-family="Arial, sans-serif" font-size="12" fill="#ff6666" font-weight="bold">SPECIALIST AGENTS</text>
     
-    <line x1="100" y1="35" x2="280" y2="35" stroke="#f43f5e" stroke-width="2" class="flow-arrow" marker-end="url(#arrow)"/>
-    <circle cx="100" cy="35" r="6" fill="#f43f5e" class="message-dot"/>
+    <g transform="translate(0, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">📋</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">Jira :8081</text>
+    </g>
     
-    <text x="190" y="28" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">① Slash Command</text>
+    <g transform="translate(100, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">🔧</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">Git/CI :8082</text>
+    </g>
+    
+    <g transform="translate(200, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">📝</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">Reports :8083</text>
+    </g>
+    
+    <g transform="translate(300, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">💬</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">Slack :8084</text>
+    </g>
+    
+    <g transform="translate(400, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">🧹</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">Hygiene :8085</text>
+    </g>
+    
+    <g transform="translate(500, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">🔍</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">RCA :8006</text>
+    </g>
+    
+    <g transform="translate(600, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">📊</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">Analytics :8086</text>
+    </g>
+    
+    <g transform="translate(700, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">🔔</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">Webhooks :8087</text>
+    </g>
+    
+    <g transform="translate(800, 35)">
+      <rect x="0" y="0" width="90" height="50" rx="5" fill="#150808" stroke="#550000" stroke-width="1"/>
+      <text x="45" y="22" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">🎛️</text>
+      <text x="45" y="40" font-family="Arial, sans-serif" font-size="7" fill="#ff9999" text-anchor="middle">Admin :8088</text>
+    </g>
   </g>
   
-  <!-- Step 2: Slack Agent processes -->
-  <g id="step2" transform="translate(0, 220)">
-    <rect x="220" y="0" width="140" height="25" rx="5" fill="#22c55e" opacity="0.2" stroke="#22c55e"/>
-    <text x="290" y="17" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#86efac" text-anchor="middle">Parse Command</text>
+  <!-- External systems -->
+  <g transform="translate(50, 530)">
+    <text x="0" y="15" font-family="Arial, sans-serif" font-size="12" fill="#996600" font-weight="bold">EXTERNAL INTEGRATIONS</text>
     
-    <line x1="290" y1="30" x2="490" y2="30" stroke="#22c55e" stroke-width="2" class="flow-arrow" marker-end="url(#arrowGreen)"/>
-    <circle cx="290" cy="30" r="6" fill="#22c55e" class="message-dot" style="animation-delay: 0.3s"/>
+    <g transform="translate(0, 30)">
+      <rect x="0" y="0" width="70" height="40" rx="5" fill="#181208" stroke="#664400" stroke-width="1"/>
+      <text x="35" y="18" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle">🎫</text>
+      <text x="35" y="32" font-family="Arial, sans-serif" font-size="7" fill="#ffcc66" text-anchor="middle">Jira</text>
+    </g>
     
-    <text x="390" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">② AgentTaskRequest</text>
+    <g transform="translate(80, 30)">
+      <rect x="0" y="0" width="70" height="40" rx="5" fill="#181208" stroke="#664400" stroke-width="1"/>
+      <text x="35" y="18" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle">🐙</text>
+      <text x="35" y="32" font-family="Arial, sans-serif" font-size="7" fill="#ffcc66" text-anchor="middle">GitHub</text>
+    </g>
+    
+    <g transform="translate(160, 30)">
+      <rect x="0" y="0" width="70" height="40" rx="5" fill="#181208" stroke="#664400" stroke-width="1"/>
+      <text x="35" y="18" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle">⚙️</text>
+      <text x="35" y="32" font-family="Arial, sans-serif" font-size="7" fill="#ffcc66" text-anchor="middle">Jenkins</text>
+    </g>
+    
+    <g transform="translate(240, 30)">
+      <rect x="0" y="0" width="70" height="40" rx="5" fill="#181208" stroke="#664400" stroke-width="1"/>
+      <text x="35" y="18" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle">📚</text>
+      <text x="35" y="32" font-family="Arial, sans-serif" font-size="7" fill="#ffcc66" text-anchor="middle">Confluence</text>
+    </g>
+    
+    <g transform="translate(320, 30)">
+      <rect x="0" y="0" width="70" height="40" rx="5" fill="#181208" stroke="#664400" stroke-width="1"/>
+      <text x="35" y="18" font-family="Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle">📊</text>
+      <text x="35" y="32" font-family="Arial, sans-serif" font-size="7" fill="#ffcc66" text-anchor="middle">Smartsheet</text>
+    </g>
   </g>
   
-  <!-- Step 3: Orchestrator receives, starts ReAct -->
-  <g id="step3" transform="translate(0, 265)">
-    <rect x="420" y="0" width="160" height="60" rx="8" fill="#6366f1" opacity="0.2" stroke="#6366f1"/>
-    <text x="500" y="20" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#a5b4fc" text-anchor="middle" font-weight="bold">ReAct Loop Start</text>
-    <text x="500" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#818cf8" text-anchor="middle">Iteration 1/10</text>
-    <text x="500" y="52" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#818cf8" text-anchor="middle">③ Initialize</text>
+  <!-- Performance metrics -->
+  <g transform="translate(550, 530)">
+    <text x="0" y="15" font-family="Arial, sans-serif" font-size="12" fill="#ff6666" font-weight="bold">PERFORMANCE</text>
+    
+    <rect x="0" y="25" width="400" height="60" rx="8" fill="#120808" stroke="#330000" stroke-width="1"/>
+    
+    <g transform="translate(30, 50)">
+      <text x="0" y="0" font-family="'Courier New', monospace" font-size="20" fill="#ff3333" font-weight="bold">~2s</text>
+      <text x="0" y="18" font-family="Arial, sans-serif" font-size="8" fill="#666">Avg Latency</text>
+    </g>
+    
+    <g transform="translate(120, 50)">
+      <text x="0" y="0" font-family="'Courier New', monospace" font-size="20" fill="#ff3333" font-weight="bold">10</text>
+      <text x="0" y="18" font-family="Arial, sans-serif" font-size="8" fill="#666">Services</text>
+    </g>
+    
+    <g transform="translate(200, 50)">
+      <text x="0" y="0" font-family="'Courier New', monospace" font-size="20" fill="#ff3333" font-weight="bold">50+</text>
+      <text x="0" y="18" font-family="Arial, sans-serif" font-size="8" fill="#666">Tools</text>
+    </g>
+    
+    <g transform="translate(290, 50)">
+      <text x="0" y="0" font-family="'Courier New', monospace" font-size="20" fill="#ff3333" font-weight="bold">1.4K</text>
+      <text x="0" y="18" font-family="Arial, sans-serif" font-size="8" fill="#666">Tests</text>
+    </g>
   </g>
   
-  <!-- Step 4: Orchestrator queries LLM for thinking -->
-  <g id="step4" transform="translate(0, 340)">
-    <line x1="500" y1="0" x2="700" y2="0" stroke="#a855f7" stroke-width="2" class="flow-arrow" marker-end="url(#arrowPurple)"/>
-    <circle cx="500" cy="0" r="6" fill="#a855f7" class="message-dot" style="animation-delay: 0.6s"/>
-    
-    <text x="600" y="-7" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">④ Thought: "What do I need?"</text>
-    
-    <!-- LLM processes -->
-    <rect x="640" y="10" width="140" height="40" rx="5" fill="#a855f7" opacity="0.2" stroke="#a855f7"/>
-    <text x="710" y="28" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#d8b4fe" text-anchor="middle">Analyze query context</text>
-    <text x="710" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#d8b4fe" text-anchor="middle">Select tools needed</text>
-    
-    <!-- LLM responds -->
-    <line x1="700" y1="55" x2="510" y2="55" stroke="#a855f7" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrowPurple)"/>
-    <text x="600" y="68" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Action: get_sprint_stats</text>
-  </g>
-  
-  <!-- Step 5: Orchestrator calls Agent -->
-  <g id="step5" transform="translate(0, 420)">
-    <line x1="500" y1="0" x2="900" y2="0" stroke="#06b6d4" stroke-width="2" class="flow-arrow" marker-end="url(#arrowCyan)"/>
-    <circle cx="500" cy="0" r="6" fill="#06b6d4" class="message-dot" style="animation-delay: 0.9s"/>
-    
-    <text x="700" y="-7" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">⑤ Tool Call: Jira Agent</text>
-    
-    <rect x="220" y="8" width="90" height="20" rx="3" fill="#06b6d4" opacity="0.3"/>
-    <text x="265" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#67e8f9" text-anchor="middle">Jira :8081</text>
-    
-    <rect x="320" y="8" width="90" height="20" rx="3" fill="#06b6d4" opacity="0.15"/>
-    <text x="365" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#67e8f9" text-anchor="middle">Git :8082</text>
-  </g>
-  
-  <!-- Step 6: Agent calls External -->
-  <g id="step6" transform="translate(0, 460)">
-    <rect x="840" y="0" width="140" height="25" rx="5" fill="#06b6d4" opacity="0.2" stroke="#06b6d4"/>
-    <text x="910" y="17" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#67e8f9" text-anchor="middle">Process Request</text>
-    
-    <line x1="910" y1="30" x2="1090" y2="30" stroke="#f59e0b" stroke-width="2" class="flow-arrow" marker-end="url(#arrowOrange)"/>
-    <circle cx="910" cy="30" r="6" fill="#f59e0b" class="message-dot" style="animation-delay: 1.2s"/>
-    
-    <text x="1000" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">⑥ REST API Call</text>
-    
-    <!-- External processes -->
-    <rect x="1040" y="40" width="120" height="30" rx="5" fill="#f59e0b" opacity="0.2" stroke="#f59e0b"/>
-    <text x="1100" y="60" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fcd34d" text-anchor="middle">Jira Cloud API</text>
-    
-    <!-- External responds -->
-    <line x1="1090" y1="75" x2="920" y2="75" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrowOrange)"/>
-    <text x="1000" y="88" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Sprint Data JSON</text>
-  </g>
-  
-  <!-- Step 7: Agent returns to Orchestrator -->
-  <g id="step7" transform="translate(0, 550)">
-    <line x1="900" y1="0" x2="510" y2="0" stroke="#06b6d4" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrowCyan)"/>
-    
-    <text x="700" y="-7" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">⑦ Observation: {completed: 42, total: 45}</text>
-  </g>
-  
-  <!-- Step 8: Orchestrator queries LLM for final answer -->
-  <g id="step8" transform="translate(0, 580)">
-    <rect x="420" y="0" width="160" height="35" rx="5" fill="#6366f1" opacity="0.2" stroke="#6366f1"/>
-    <text x="500" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#a5b4fc" text-anchor="middle">Loop complete</text>
-    <text x="500" y="28" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#818cf8" text-anchor="middle">⑧ Generate Response</text>
-    
-    <line x1="500" y1="40" x2="700" y2="40" stroke="#a855f7" stroke-width="2" class="flow-arrow" marker-end="url(#arrowPurple)"/>
-    <text x="600" y="53" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Synthesize findings</text>
-    
-    <line x1="700" y1="60" x2="510" y2="60" stroke="#a855f7" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrowPurple)"/>
-    <text x="600" y="73" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Final Answer: GO ✅</text>
-  </g>
-  
-  <!-- Step 9: Return to Slack -->
-  <g id="step9" transform="translate(0, 660)">
-    <line x1="490" y1="0" x2="300" y2="0" stroke="#22c55e" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrowGreen)"/>
-    <text x="390" y="-7" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">⑨ AgentTaskResponse</text>
-    
-    <rect x="220" y="8" width="140" height="25" rx="5" fill="#22c55e" opacity="0.2" stroke="#22c55e"/>
-    <text x="290" y="26" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#86efac" text-anchor="middle">Format Block Kit</text>
-    
-    <line x1="280" y1="38" x2="110" y2="38" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrow)"/>
-    <text x="190" y="51" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">⑩ Rich Response</text>
-  </g>
-  
-  <!-- Final User Response -->
-  <g id="finalResponse" transform="translate(0, 710)">
-    <rect x="20" y="0" width="160" height="60" rx="8" fill="#1e293b" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
-    <text x="100" y="20" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#22c55e" text-anchor="middle" font-weight="bold">✅ Release v2.0: GO</text>
-    <text x="100" y="35" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8" text-anchor="middle">93% completion rate</text>
-    <text x="100" y="50" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8" text-anchor="middle">All tests passing</text>
-  </g>
-  
-  <!-- ============================================ -->
-  <!-- LEGEND -->
-  <!-- ============================================ -->
-  <g id="legend" transform="translate(850, 710)">
-    <rect x="0" y="0" width="330" height="80" rx="10" fill="#1e293b" stroke="#475569" stroke-width="1"/>
-    
-    <text x="165" y="20" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">Legend</text>
-    
-    <line x1="20" y1="35" x2="60" y2="35" stroke="#6366f1" stroke-width="2"/>
-    <text x="70" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Sync Call</text>
-    
-    <line x1="130" y1="35" x2="170" y2="35" stroke="#6366f1" stroke-width="2" stroke-dasharray="5 3"/>
-    <text x="180" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Response</text>
-    
-    <line x1="240" y1="35" x2="280" y2="35" stroke="#6366f1" stroke-width="2" class="flow-arrow"/>
-    <text x="290" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Animated</text>
-    
-    <rect x="20" y="50" width="40" height="15" rx="3" fill="#6366f1" opacity="0.2" stroke="#6366f1"/>
-    <text x="70" y="62" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Processing</text>
-    
-    <circle cx="145" cy="57" r="5" fill="#22c55e"/>
-    <text x="160" y="62" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Data Packet</text>
-    
-    <text x="250" y="62" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#64748b">~2s total latency</text>
-  </g>
-  
-  <!-- Timing annotations -->
-  <g id="timing" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#64748b">
-    <text x="15" y="200" transform="rotate(-90, 15, 200)">~50ms</text>
-    <text x="15" y="330" transform="rotate(-90, 15, 330)">~200ms</text>
-    <text x="15" y="480" transform="rotate(-90, 15, 480)">~500ms</text>
-    <text x="15" y="630" transform="rotate(-90, 15, 630)">~100ms</text>
-  </g>
+  <!-- Footer -->
+  <text x="500" y="630" font-family="'Courier New', monospace" font-size="9" fill="#330000" text-anchor="middle">
+    NEXUS v2.5.0 • AI-Powered Release Automation • github.com/IKRedHat/Nexus-Release-Readiness-Bot
+  </text>
 </svg>
-
