@@ -87,147 +87,107 @@
 <body>
 
 <h1>📊 Nexus Test Coverage Report</h1>
-<p>**Generated:** 2025-12-04 01:29:17</p>
-<p>**Total Tests:** 1099</p>
+<p>**Generated:** 2025-12-04 01:42:54</p>
+<p>**Total Tests:** 1449</p>
 <h2>📋 Executive Summary</h2>
 <table>
 <tr><td>Metric</td><td>Value</td></tr>
-<tr><td>Total Tests</td><td>**1099**</td></tr>
-<tr><td>Unit Tests</td><td>575</td></tr>
-<tr><td>E2E Tests</td><td>360</td></tr>
+<tr><td>Total Tests</td><td>**1449**</td></tr>
+<tr><td>Unit Tests</td><td>875</td></tr>
+<tr><td>E2E Tests</td><td>410</td></tr>
 <tr><td>Integration Tests</td><td>60</td></tr>
 <tr><td>Smoke Tests</td><td>72</td></tr>
-<tr><td>Components Covered</td><td>8/11</td></tr>
-<tr><td>Overall Health</td><td class="warning">🟡 61%</td></tr>
+<tr><td>Components Covered</td><td>9/11</td></tr>
+<tr><td>Overall Health</td><td class="success">🟢 75%</td></tr>
 </table>
 <h2>📈 Test Distribution by Category</h2>
 <pre>
-unit         |████████████████████████████████████████| 575
-e2e          |█████████████████████████░░░░░░░░░░░░░░░| 360
-smoke        |█████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  72
-integration  |████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  60
-performance  |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  32
+unit         |████████████████████████████████████████| 875
+e2e          |██████████████████░░░░░░░░░░░░░░░░░░░░░░| 410
+smoke        |███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  72
+integration  |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  60
+performance  |█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  32
 </pre>
 <h2>🧩 Component Coverage</h2>
 <table>
 <tr><td>Component</td><td>Description</td><td>Tests</td><td>Unit</td><td>E2E</td><td>Int</td><td>Smoke</td><td>Coverage</td></tr>
 <tr><td>orchestrator ⭐</td><td>Central ReAct Engine & Query Processing...</td><td>72</td><td>0</td><td>72</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
+<tr><td>jira_agent ⭐</td><td>Jira Integration (Tickets, Sprints, Hier...</td><td>126</td><td>100</td><td>26</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
+<tr><td>git_ci_agent ⭐</td><td>GitHub & Jenkins Integration...</td><td>118</td><td>94</td><td>24</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
+<tr><td>slack_agent ⭐</td><td>Slack Bot & App Home...</td><td>156</td><td>106</td><td>50</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
 <tr><td>admin_dashboard ⭐</td><td>Web UI, Configuration, Release Managemen...</td><td>110</td><td>0</td><td>110</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
 <tr><td>shared_lib ⭐</td><td>Shared Library (Schemas, LLM, Config, Ut...</td><td>94</td><td>94</td><td>0</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
 <tr><td>analytics</td><td>DORA Metrics, Predictions, Anomaly Detec...</td><td>42</td><td>42</td><td>0</td><td>0</td><td>0</td><td class="success">🟢 84%</td></tr>
-<tr><td>jira_agent ⭐</td><td>Jira Integration (Tickets, Sprints, Hier...</td><td>26</td><td>0</td><td>26</td><td>0</td><td>0</td><td class="success">🟢 78%</td></tr>
-<tr><td>git_ci_agent ⭐</td><td>GitHub & Jenkins Integration...</td><td>24</td><td>0</td><td>24</td><td>0</td><td>0</td><td class="success">🟢 72%</td></tr>
 <tr><td>rca_agent</td><td>Root Cause Analysis for Build Failures...</td><td>24</td><td>0</td><td>24</td><td>0</td><td>0</td><td class="success">🟢 72%</td></tr>
 <tr><td>webhooks</td><td>Webhook Integrations & Event Delivery...</td><td>34</td><td>34</td><td>0</td><td>0</td><td>0</td><td class="success">🟢 68%</td></tr>
 <tr><td>reporting_agent</td><td>Report Generation & Confluence Publishin...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
-<tr><td>slack_agent ⭐</td><td>Slack Bot & App Home...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
 <tr><td>jira_hygiene_agent</td><td>Jira Data Quality & Hygiene Checks...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
 </table>
 <p>*⭐ = Critical component*</p>
 <h2>🔌 API Endpoint Coverage</h2>
 <table>
 <tr><td>Service</td><td>Endpoints</td><td>Tested</td><td>Untested</td><td>Coverage</td></tr>
-<tr><td>slack_agent</td><td>6</td><td>4</td><td>2</td><td class="warning">⚠️ 66%</td></tr>
-<tr><td>admin_dashboard</td><td>14</td><td>9</td><td>5</td><td class="warning">⚠️ 64%</td></tr>
-<tr><td>hygiene_agent</td><td>4</td><td>2</td><td>2</td><td class="warning">⚠️ 50%</td></tr>
-<tr><td>rca_agent</td><td>4</td><td>2</td><td>2</td><td class="warning">⚠️ 50%</td></tr>
-<tr><td>orchestrator</td><td>8</td><td>3</td><td>5</td><td class="danger">❌ 37%</td></tr>
-<tr><td>git_ci_agent</td><td>3</td><td>1</td><td>2</td><td class="danger">❌ 33%</td></tr>
-<tr><td>reporting_agent</td><td>3</td><td>1</td><td>2</td><td class="danger">❌ 33%</td></tr>
-<tr><td>webhooks</td><td>6</td><td>2</td><td>4</td><td class="danger">❌ 33%</td></tr>
-<tr><td>jira_agent</td><td>4</td><td>1</td><td>3</td><td class="danger">❌ 25%</td></tr>
-<tr><td>analytics</td><td>7</td><td>1</td><td>6</td><td class="danger">❌ 14%</td></tr>
+<tr><td>jira_agent</td><td>4</td><td>4</td><td>0</td><td class="success">✅ 100%</td></tr>
+<tr><td>slack_agent</td><td>6</td><td>6</td><td>0</td><td class="success">✅ 100%</td></tr>
+<tr><td>analytics</td><td>7</td><td>7</td><td>0</td><td class="success">✅ 100%</td></tr>
+<tr><td>webhooks</td><td>6</td><td>6</td><td>0</td><td class="success">✅ 100%</td></tr>
+<tr><td>admin_dashboard</td><td>14</td><td>12</td><td>2</td><td class="success">✅ 85%</td></tr>
+<tr><td>hygiene_agent</td><td>4</td><td>3</td><td>1</td><td class="warning">⚠️ 75%</td></tr>
+<tr><td>rca_agent</td><td>4</td><td>3</td><td>1</td><td class="warning">⚠️ 75%</td></tr>
+<tr><td>git_ci_agent</td><td>3</td><td>2</td><td>1</td><td class="warning">⚠️ 66%</td></tr>
+<tr><td>reporting_agent</td><td>3</td><td>2</td><td>1</td><td class="warning">⚠️ 66%</td></tr>
+<tr><td>orchestrator</td><td>8</td><td>4</td><td>4</td><td class="warning">⚠️ 50%</td></tr>
 </table>
 <h3>⚠️ Untested Endpoints</h3>
 <p>**orchestrator:**</p>
 <ul>
-<li>`GET /health`</li>
 <li>`GET /livez`</li>
 <li>`GET /readyz`</li>
 <li>`POST /query`</li>
 <li>`GET /specialists`</li>
 </ul>
-<p>**jira_agent:**</p>
-<ul>
-<li>`GET /health`</li>
-<li>`POST /execute`</li>
-<li>`POST /search`</li>
-</ul>
 <p>**git_ci_agent:**</p>
 <ul>
-<li>`GET /health`</li>
 <li>`POST /execute`</li>
 </ul>
 <p>**reporting_agent:**</p>
 <ul>
-<li>`GET /health`</li>
-<li>`POST /execute`</li>
-</ul>
-<p>**slack_agent:**</p>
-<ul>
-<li>`GET /health`</li>
 <li>`POST /execute`</li>
 </ul>
 <p>**hygiene_agent:**</p>
 <ul>
-<li>`GET /health`</li>
 <li>`POST /execute`</li>
 </ul>
 <p>**rca_agent:**</p>
 <ul>
-<li>`GET /health`</li>
 <li>`POST /analyze`</li>
-</ul>
-<p>**analytics:**</p>
-<ul>
-<li>`GET /health`</li>
-<li>`GET /api/v1/kpis`</li>
-<li>`GET /api/v1/trends`</li>
-<li>`GET /api/v1/insights`</li>
-<li>`GET /api/v1/teams`</li>
-<li>`GET /api/v1/anomalies`</li>
-</ul>
-<p>**webhooks:**</p>
-<ul>
-<li>`GET /health`</li>
-<li>`GET /api/v1/event-types`</li>
-<li>`GET /api/v1/subscriptions`</li>
-<li>`GET /api/v1/deliveries`</li>
 </ul>
 <p>**admin_dashboard:**</p>
 <ul>
-<li>`GET /health`</li>
-<li>`POST /mode`</li>
-<li>`GET /health-check`</li>
 <li>`GET /releases`</li>
 <li>`POST /releases`</li>
 </ul>
 <h2>🔍 Identified Coverage Gaps</h2>
 <ul>
-<li>⚠️ **slack_agent** (Critical): Only 0% coverage</li>
 <li>📋 **orchestrator**: Missing unit tests</li>
-<li>📋 **jira_agent**: Missing unit tests</li>
-<li>📋 **git_ci_agent**: Missing unit tests</li>
 <li>📋 **rca_agent**: Missing unit tests</li>
 <li>📋 **analytics**: Missing E2E tests</li>
 <li>📋 **webhooks**: Missing E2E tests</li>
 <li>📋 **shared_lib**: Missing E2E tests</li>
 <li>❌ **reporting_agent**: No test coverage</li>
-<li>❌ **slack_agent**: No test coverage</li>
 <li>❌ **jira_hygiene_agent**: No test coverage</li>
 </ul>
 <h2>💡 Recommendations</h2>
 <ul>
 <li>1. **Increase Integration Tests**: Add more tests for inter-service communication</li>
-<li>2. **Prioritize Critical Components**: Focus on slack_agent</li>
 <li>4. **Add Negative Tests**: Ensure error handling is properly tested</li>
 <li>5. **Performance Tests**: Consider adding load/stress tests for critical paths</li>
 </ul>
 <h2>📁 Test File Summary</h2>
 <table>
 <tr><td>Category</td><td>Files</td><td>Tests</td></tr>
-<tr><td>unit</td><td>11</td><td>575</td></tr>
-<tr><td>e2e</td><td>9</td><td>360</td></tr>
+<tr><td>unit</td><td>14</td><td>875</td></tr>
+<tr><td>e2e</td><td>10</td><td>410</td></tr>
 <tr><td>integration</td><td>2</td><td>60</td></tr>
 <tr><td>smoke</td><td>2</td><td>72</td></tr>
 <tr><td>performance</td><td>1</td><td>32</td></tr>
