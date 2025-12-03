@@ -56,8 +56,8 @@ RUN pip install --no-cache-dir /wheels/* \
 COPY shared /app/shared
 COPY services/orchestrator /app/services/orchestrator
 
-# Set Python path
-ENV PYTHONPATH="${PYTHONPATH}:/app:/app/shared"
+# Set Python path (include orchestrator directory for local imports)
+ENV PYTHONPATH="${PYTHONPATH}:/app:/app/shared:/app/services/orchestrator"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 

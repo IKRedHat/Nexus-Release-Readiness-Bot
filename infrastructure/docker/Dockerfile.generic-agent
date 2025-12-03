@@ -65,8 +65,8 @@ RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 COPY shared /app/shared
 COPY services/agents/${AGENT_NAME} /app/services/agents/${AGENT_NAME}
 
-# Set environment
-ENV PYTHONPATH="${PYTHONPATH}:/app:/app/shared"
+# Set environment (include agent directory for local imports)
+ENV PYTHONPATH="${PYTHONPATH}:/app:/app/shared:/app/services/agents/${AGENT_NAME}"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
