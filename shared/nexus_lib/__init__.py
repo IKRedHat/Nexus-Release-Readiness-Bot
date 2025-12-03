@@ -99,7 +99,22 @@ from nexus_lib.utils import (
     format_iso_datetime,
 )
 
-__version__ = "1.0.0"
+from nexus_lib.specialists import (
+    SpecialistStatus,
+    SpecialistCategory,
+    ToolParameter,
+    SpecialistTool,
+    SpecialistDefinition,
+    SpecialistHealth,
+    SpecialistRegistry,
+    specialist_registry,
+    SPECIALIST_DEFINITIONS,
+    get_healthy_specialists,
+    is_specialist_available,
+    get_specialist_for_tool,
+)
+
+__version__ = "2.3.0"
 __all__ = [
     # Version
     "__version__",
@@ -191,5 +206,18 @@ __all__ = [
     "utc_now",
     "parse_iso_datetime",
     "format_iso_datetime",
+    # Specialists
+    "SpecialistStatus",
+    "SpecialistCategory",
+    "ToolParameter",
+    "SpecialistTool",
+    "SpecialistDefinition",
+    "SpecialistHealth",
+    "SpecialistRegistry",
+    "specialist_registry",
+    "SPECIALIST_DEFINITIONS",
+    "get_healthy_specialists",
+    "is_specialist_available",
+    "get_specialist_for_tool",
 ]
 
