@@ -73,11 +73,14 @@ nav:
   - Admin Dashboard:
     - Overview: admin-dashboard.md
     - User Tutorial: admin-dashboard-tutorial.md
-  - Operations:
-    - Deployment: runbooks/deployment.md
+  - Deployment:
+    - Backend Deployment: runbooks/deployment.md
+    - Frontend Deployment: frontend-deployment-guide.md
     - GitHub Setup: GITHUB_SETUP.md
+  - Operations:
     - Monitoring: runbooks/monitoring.md
     - Troubleshooting: runbooks/troubleshooting.md
+    - API Testing: api-testing-guide.md
   - Contributing:
     - Guide: ../CONTRIBUTING.md
     - Code of Conduct: ../CODE_OF_CONDUCT.md
