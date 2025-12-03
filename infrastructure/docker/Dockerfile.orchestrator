@@ -3,7 +3,7 @@
 # ============================================================================
 
 # Stage 1: Builder - Install dependencies and build wheels
-FROM python:3.11-slim as builder
+FROM python:3.14-slim as builder
 
 WORKDIR /build
 
@@ -26,7 +26,7 @@ RUN pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels ./shared/
 
 
 # Stage 2: Runtime - Minimal production image
-FROM python:3.11-slim as runtime
+FROM python:3.14-slim as runtime
 
 # Labels
 LABEL maintainer="Nexus Team <nexus@example.com>"
