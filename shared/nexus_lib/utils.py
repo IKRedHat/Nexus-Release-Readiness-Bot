@@ -242,28 +242,47 @@ class AsyncHttpClient:
 class AgentRegistry:
     """Registry for discovering and routing to agents"""
     
+    # Complete mapping of all specialist agents
+    AGENT_MAPPINGS = {
+        # Core Data Agents
+        "jira": {"env": "JIRA_AGENT_URL", "port": 8081},
+        "git_ci": {"env": "GIT_CI_AGENT_URL", "port": 8082},
+        
+        # Communication Agents
+        "slack": {"env": "SLACK_AGENT_URL", "port": 8084},
+        
+        # Analysis Agents
+        "reporting": {"env": "REPORTING_AGENT_URL", "port": 8083},
+        "rca": {"env": "RCA_AGENT_URL", "port": 8006},
+        
+        # Automation Agents
+        "hygiene": {"env": "HYGIENE_AGENT_URL", "port": 8005},
+        "scheduling": {"env": "SCHEDULING_AGENT_URL", "port": 8085},
+        "webhooks": {"env": "WEBHOOKS_URL", "port": 8087},
+        
+        # Observability
+        "analytics": {"env": "ANALYTICS_URL", "port": 8086},
+        
+        # Admin Dashboard
+        "admin": {"env": "ADMIN_DASHBOARD_URL", "port": 8088},
+    }
+    
     def __init__(self):
         self._agents: Dict[str, str] = {}
         self._load_from_env()
     
     def _load_from_env(self):
         """Load agent URLs from environment variables"""
-        agent_mappings = {
-            "jira": "JIRA_AGENT_URL",
-            "git_ci": "GIT_CI_AGENT_URL",
-            "slack": "SLACK_AGENT_URL",
-            "reporting": "REPORTING_AGENT_URL",
-            "scheduling": "SCHEDULING_AGENT_URL",
-            "rca": "RCA_AGENT_URL"
-        }
-        
-        for agent_type, env_var in agent_mappings.items():
+        for agent_type, config in self.AGENT_MAPPINGS.items():
+            env_var = config["env"]
+            default_port = config["port"]
+            
             url = os.environ.get(env_var)
             if url:
                 self._agents[agent_type] = url
             else:
-                # Default to kubernetes service discovery pattern
-                self._agents[agent_type] = f"http://{agent_type.replace('_', '-')}-agent:8080"
+                # Default to localhost with service port for development
+                self._agents[agent_type] = f"http://localhost:{default_port}"
     
     def get_url(self, agent_type: str) -> Optional[str]:
         """Get URL for an agent type"""
@@ -276,6 +295,10 @@ class AgentRegistry:
     def list_agents(self) -> Dict[str, str]:
         """List all registered agents"""
         return self._agents.copy()
+    
+    def get_all_agent_types(self) -> List[str]:
+        """Get list of all known agent types"""
+        return list(self.AGENT_MAPPINGS.keys())
 
 
 # Global registry instance

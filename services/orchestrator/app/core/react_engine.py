@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../shared")))
 
 from nexus_lib.utils import AsyncHttpClient, agent_registry, generate_task_id
+from nexus_lib.specialists import specialist_registry, SpecialistStatus
 from nexus_lib.instrumentation import (
     track_llm_usage,
     track_tool_usage,
@@ -47,8 +48,11 @@ class Tool(BaseModel):
     required_params: List[str] = Field(default_factory=list)
 
 
-# Define available tools
+# Define available tools - comprehensive list for all specialist agents
 AVAILABLE_TOOLS: Dict[str, Tool] = {
+    # ==========================================================================
+    # JIRA AGENT TOOLS
+    # ==========================================================================
     "get_jira_ticket": Tool(
         name="get_jira_ticket",
         description="Fetch details of a Jira ticket by its key (e.g., PROJ-123). Returns ticket summary, status, assignee, and other details.",
@@ -91,6 +95,10 @@ AVAILABLE_TOOLS: Dict[str, Tool] = {
         method="GET",
         required_params=["project_key"]
     ),
+    
+    # ==========================================================================
+    # GIT/CI AGENT TOOLS
+    # ==========================================================================
     "get_repo_health": Tool(
         name="get_repo_health",
         description="Check GitHub repository health including branch status, open PRs, and CI status.",
@@ -131,6 +139,10 @@ AVAILABLE_TOOLS: Dict[str, Tool] = {
         method="GET",
         required_params=["repo_name"]
     ),
+    
+    # ==========================================================================
+    # REPORTING AGENT TOOLS
+    # ==========================================================================
     "generate_report": Tool(
         name="generate_report",
         description="Generate a release readiness HTML report from provided data.",
@@ -156,6 +168,10 @@ AVAILABLE_TOOLS: Dict[str, Tool] = {
         method="POST",
         required_params=["report_data"]
     ),
+    
+    # ==========================================================================
+    # SLACK AGENT TOOLS
+    # ==========================================================================
     "send_slack_notification": Tool(
         name="send_slack_notification",
         description="Send a message to a Slack channel with optional Block Kit formatting.",
@@ -165,7 +181,19 @@ AVAILABLE_TOOLS: Dict[str, Tool] = {
         parameters={"channel": "Channel ID", "message": "Message text", "blocks": "Block Kit blocks (optional)"},
         required_params=["channel", "message"]
     ),
-    # RCA Tools
+    "send_slack_dm": Tool(
+        name="send_slack_dm",
+        description="Send a direct message to a Slack user.",
+        agent_type="slack",
+        endpoint="/dm",
+        method="POST",
+        parameters={"user_id": "Slack user ID", "message": "Message text"},
+        required_params=["user_id", "message"]
+    ),
+    
+    # ==========================================================================
+    # RCA AGENT TOOLS
+    # ==========================================================================
     "analyze_build_failure": Tool(
         name="analyze_build_failure",
         description="Analyze a failed Jenkins build to determine root cause. Uses LLM to correlate error logs with git diffs to identify which code change caused the failure and suggest fixes.",
@@ -181,15 +209,182 @@ AVAILABLE_TOOLS: Dict[str, Tool] = {
         },
         required_params=["job_name", "build_number"]
     ),
+    "get_rca_history": Tool(
+        name="get_rca_history",
+        description="Get history of RCA analyses for a job or repository.",
+        agent_type="rca",
+        endpoint="/history",
+        method="GET",
+        parameters={"job_name": "Jenkins job name", "repo_name": "Repository name"},
+        required_params=[]
+    ),
+    
+    # ==========================================================================
+    # JIRA HYGIENE AGENT TOOLS
+    # ==========================================================================
+    "run_hygiene_check": Tool(
+        name="run_hygiene_check",
+        description="Run a hygiene check on Jira data for a project. Identifies missing fields, stale tickets, and other quality issues.",
+        agent_type="hygiene",
+        endpoint="/check/{project_key}",
+        method="POST",
+        parameters={"check_types": "Types of checks to run (optional)"},
+        required_params=["project_key"]
+    ),
+    "get_hygiene_score": Tool(
+        name="get_hygiene_score",
+        description="Get the current hygiene score for a project. Returns score, trends, and issue breakdown.",
+        agent_type="hygiene",
+        endpoint="/score/{project_key}",
+        method="GET",
+        required_params=["project_key"]
+    ),
+    "fix_hygiene_issues": Tool(
+        name="fix_hygiene_issues",
+        description="Automatically fix identified hygiene issues for a project.",
+        agent_type="hygiene",
+        endpoint="/fix",
+        method="POST",
+        parameters={"issue_ids": "Specific issue IDs to fix (optional)"},
+        required_params=["project_key"]
+    ),
+    "get_hygiene_history": Tool(
+        name="get_hygiene_history",
+        description="Get historical hygiene scores and trends for a project.",
+        agent_type="hygiene",
+        endpoint="/history/{project_key}",
+        method="GET",
+        required_params=["project_key"]
+    ),
+    
+    # ==========================================================================
+    # ANALYTICS SERVICE TOOLS
+    # ==========================================================================
+    "get_dora_metrics": Tool(
+        name="get_dora_metrics",
+        description="Get DORA (DevOps Research and Assessment) metrics: deployment frequency, lead time, change failure rate, and MTTR.",
+        agent_type="analytics",
+        endpoint="/dora",
+        method="GET",
+        parameters={"project": "Project identifier", "from_date": "Start date (ISO)", "to_date": "End date (ISO)"},
+        required_params=[]
+    ),
+    "get_release_kpis": Tool(
+        name="get_release_kpis",
+        description="Get key performance indicators for releases including velocity, quality, and efficiency metrics.",
+        agent_type="analytics",
+        endpoint="/kpis",
+        method="GET",
+        parameters={"project": "Project identifier", "release_version": "Specific release version"},
+        required_params=[]
+    ),
+    "get_trend_analysis": Tool(
+        name="get_trend_analysis",
+        description="Analyze trends in release metrics over time. Identifies patterns, anomalies, and forecasts.",
+        agent_type="analytics",
+        endpoint="/trends",
+        method="GET",
+        parameters={"metric": "Metric to analyze (velocity, quality)", "period": "Time period (7d, 30d, 90d)"},
+        required_params=[]
+    ),
+    "predict_release_readiness": Tool(
+        name="predict_release_readiness",
+        description="Predict release readiness based on historical data and current trajectory.",
+        agent_type="analytics",
+        endpoint="/predict",
+        method="POST",
+        parameters={"target_date": "Target release date"},
+        required_params=["release_version"]
+    ),
+    
+    # ==========================================================================
+    # WEBHOOKS SERVICE TOOLS
+    # ==========================================================================
+    "create_webhook_subscription": Tool(
+        name="create_webhook_subscription",
+        description="Create a new webhook subscription for event notifications.",
+        agent_type="webhooks",
+        endpoint="/subscriptions",
+        method="POST",
+        parameters={"secret": "HMAC secret for signature verification"},
+        required_params=["event_type", "target_url"]
+    ),
+    "list_webhook_subscriptions": Tool(
+        name="list_webhook_subscriptions",
+        description="List all active webhook subscriptions.",
+        agent_type="webhooks",
+        endpoint="/subscriptions",
+        method="GET",
+        required_params=[]
+    ),
+    "get_webhook_delivery_status": Tool(
+        name="get_webhook_delivery_status",
+        description="Get delivery status and history for webhook events.",
+        agent_type="webhooks",
+        endpoint="/deliveries",
+        method="GET",
+        parameters={"subscription_id": "Subscription ID"},
+        required_params=[]
+    ),
+    
+    # ==========================================================================
+    # SCHEDULING AGENT TOOLS
+    # ==========================================================================
+    "schedule_task": Tool(
+        name="schedule_task",
+        description="Schedule a recurring or one-time task.",
+        agent_type="scheduling",
+        endpoint="/schedule",
+        method="POST",
+        parameters={"cron": "Cron expression for recurring", "run_at": "ISO datetime for one-time", "payload": "Task payload"},
+        required_params=["task_type"]
+    ),
+    "list_scheduled_tasks": Tool(
+        name="list_scheduled_tasks",
+        description="List all scheduled tasks.",
+        agent_type="scheduling",
+        endpoint="/tasks",
+        method="GET",
+        required_params=[]
+    ),
 }
 
 
-def get_tools_description() -> str:
-    """Generate tools description for LLM prompt"""
+def get_tools_description(include_health: bool = False) -> str:
+    """
+    Generate tools description for LLM prompt.
+    
+    Args:
+        include_health: If True, indicate which tools are currently available based on specialist health.
+    """
     lines = ["Available tools:"]
+    
+    # Group tools by agent type
+    tools_by_agent: Dict[str, List[Tool]] = {}
     for name, tool in AVAILABLE_TOOLS.items():
-        params = ", ".join(tool.required_params) if tool.required_params else "none"
-        lines.append(f"- {name}: {tool.description} (Required params: {params})")
+        if tool.agent_type not in tools_by_agent:
+            tools_by_agent[tool.agent_type] = []
+        tools_by_agent[tool.agent_type].append(tool)
+    
+    for agent_type, tools in tools_by_agent.items():
+        # Check specialist health if requested
+        status_indicator = ""
+        if include_health:
+            health = specialist_registry.get_health(agent_type)
+            if health:
+                if health.status == SpecialistStatus.HEALTHY:
+                    status_indicator = " ✓"
+                elif health.status == SpecialistStatus.DEGRADED:
+                    status_indicator = " ⚠"
+                else:
+                    status_indicator = " ✗ (unavailable)"
+        
+        lines.append(f"\n## {agent_type.upper()}{status_indicator}")
+        for tool in tools:
+            params = ", ".join(tool.required_params) if tool.required_params else "none"
+            lines.append(f"- {tool.name}: {tool.description}")
+            lines.append(f"  Required params: {params}")
+    
     return "\n".join(lines)
 
 
@@ -396,17 +591,56 @@ What is your next step?"""
     async def _get_agent_client(self, agent_type: str) -> AsyncHttpClient:
         """Get or create HTTP client for an agent"""
         if agent_type not in self.http_clients:
-            url = agent_registry.get_url(agent_type)
+            # First try specialist registry (preferred)
+            url = specialist_registry.get_url(agent_type)
+            if not url:
+                # Fallback to legacy agent registry
+                url = agent_registry.get_url(agent_type)
+            if not url:
+                raise ValueError(f"No URL configured for agent: {agent_type}")
             self.http_clients[agent_type] = AsyncHttpClient(base_url=url)
         return self.http_clients[agent_type]
+    
+    async def _check_specialist_available(self, agent_type: str) -> tuple:
+        """
+        Check if a specialist is available.
+        
+        Returns:
+            Tuple of (is_available: bool, status_message: str)
+        """
+        health = specialist_registry.get_health(agent_type)
+        if not health:
+            # Force a health check
+            health = await specialist_registry.check_health(agent_type)
+        
+        if health.status == SpecialistStatus.HEALTHY:
+            return True, "healthy"
+        elif health.status == SpecialistStatus.DEGRADED:
+            return True, f"degraded: {health.error_message}"
+        else:
+            return False, f"unavailable: {health.error_message or 'service down'}"
     
     async def _execute_tool(self, tool_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool and return the result"""
         if tool_name not in AVAILABLE_TOOLS:
-            return {"error": f"Unknown tool: {tool_name}"}
+            return {"error": f"Unknown tool: {tool_name}", "available_tools": list(AVAILABLE_TOOLS.keys())}
         
         tool = AVAILABLE_TOOLS[tool_name]
-        client = await self._get_agent_client(tool.agent_type)
+        
+        # Check specialist availability
+        is_available, status_msg = await self._check_specialist_available(tool.agent_type)
+        if not is_available:
+            logger.warning(f"Specialist {tool.agent_type} is {status_msg} - tool {tool_name} cannot be executed")
+            return {
+                "error": f"Specialist '{tool.agent_type}' is currently unavailable",
+                "status": status_msg,
+                "suggestion": "The service may be starting up or experiencing issues. Try again in a moment."
+            }
+        
+        try:
+            client = await self._get_agent_client(tool.agent_type)
+        except ValueError as e:
+            return {"error": str(e)}
         
         # Build endpoint with path parameters
         endpoint = tool.endpoint
@@ -418,15 +652,18 @@ What is your next step?"""
         query_params = {k: v for k, v in args.items() if f"{{{k}}}" not in tool.endpoint}
         
         try:
+            logger.info(f"Executing tool: {tool_name} on {tool.agent_type}")
+            
             if tool.method == "GET":
                 result = await client.get(endpoint, params=query_params if query_params else None)
             else:
                 result = await client.post(endpoint, json_body=args)
             
+            logger.debug(f"Tool {tool_name} completed successfully")
             return result
         except Exception as e:
-            logger.error(f"Tool execution failed: {e}")
-            return {"error": str(e)}
+            logger.error(f"Tool execution failed for {tool_name}: {e}")
+            return {"error": str(e), "tool": tool_name, "agent": tool.agent_type}
     
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM response into structured components"""

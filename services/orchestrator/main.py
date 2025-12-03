@@ -25,6 +25,11 @@ from nexus_lib.schemas.agent_contract import (
 from nexus_lib.middleware import MetricsMiddleware, AuthMiddleware, RequestIdMiddleware
 from nexus_lib.instrumentation import setup_tracing, create_metrics_endpoint
 from nexus_lib.utils import generate_task_id
+from nexus_lib.specialists import (
+    specialist_registry,
+    SpecialistStatus,
+    SPECIALIST_DEFINITIONS,
+)
 
 from app.core.react_engine import ReActEngine
 from app.core.memory import VectorMemory, ConversationMemory
@@ -48,26 +53,79 @@ async def lifespan(app: FastAPI):
     global react_engine, vector_memory, conversation_memory
     
     # Startup
-    logger.info("Starting Nexus Central Orchestrator...")
+    logger.info("=" * 60)
+    logger.info("Starting Nexus Central Orchestrator v2.3.0")
+    logger.info("=" * 60)
     
-    setup_tracing("central-orchestrator", service_version="1.0.0")
+    setup_tracing("central-orchestrator", service_version="2.3.0")
     
     # Initialize memory systems
+    logger.info("Initializing memory systems...")
     vector_memory = VectorMemory()
     conversation_memory = ConversationMemory()
     
     # Initialize ReAct engine
+    logger.info("Initializing ReAct reasoning engine...")
     react_engine = ReActEngine(
         memory_client=vector_memory,
         max_iterations=int(os.environ.get("MAX_REACT_ITERATIONS", "10"))
     )
     
+    # Register and verify specialist agents
+    logger.info("-" * 60)
+    logger.info("SPECIALIST AGENT REGISTRATION")
+    logger.info("-" * 60)
+    logger.info(f"Registered {len(SPECIALIST_DEFINITIONS)} specialist agents:")
+    
+    for spec_id, definition in SPECIALIST_DEFINITIONS.items():
+        url = specialist_registry.get_url(spec_id)
+        critical = "⚠️  CRITICAL" if definition.is_critical else ""
+        logger.info(f"  • {definition.name} ({spec_id})")
+        logger.info(f"    URL: {url}")
+        logger.info(f"    Tools: {len(definition.tools)} | Category: {definition.category.value} {critical}")
+    
+    # Verify specialist health
+    logger.info("-" * 60)
+    logger.info("SPECIALIST HEALTH CHECK")
+    logger.info("-" * 60)
+    
+    health_results = await specialist_registry.check_all_health()
+    healthy_count = sum(1 for h in health_results.values() if h.status == SpecialistStatus.HEALTHY)
+    
+    for spec_id, health in health_results.items():
+        definition = SPECIALIST_DEFINITIONS.get(spec_id)
+        status_icon = "✅" if health.status == SpecialistStatus.HEALTHY else "❌"
+        logger.info(f"  {status_icon} {definition.name if definition else spec_id}: {health.status.value}")
+        if health.error_message:
+            logger.warning(f"      Error: {health.error_message}")
+        elif health.response_time_ms:
+            logger.info(f"      Response time: {health.response_time_ms:.0f}ms")
+    
+    logger.info(f"\nHealthy specialists: {healthy_count}/{len(SPECIALIST_DEFINITIONS)}")
+    
+    # Check critical specialists
+    all_critical_healthy, unhealthy_critical = await specialist_registry.verify_critical_specialists()
+    if not all_critical_healthy:
+        logger.warning(f"⚠️  Critical specialists unavailable: {unhealthy_critical}")
+        logger.warning("   Some features may be limited until these services are available.")
+    else:
+        logger.info("✅ All critical specialists are healthy")
+    
+    # Start background health monitoring
+    await specialist_registry.start_health_monitoring()
+    
+    logger.info("-" * 60)
     logger.info("Nexus Central Orchestrator started successfully")
+    logger.info("=" * 60)
     
     yield
     
     # Shutdown
     logger.info("Shutting down Nexus Central Orchestrator...")
+    
+    # Stop health monitoring
+    await specialist_registry.stop_health_monitoring()
+    
     if react_engine:
         await react_engine.close()
     logger.info("Shutdown complete")
@@ -126,15 +184,18 @@ async def health_check():
     Returns the current health status of the orchestrator and its dependencies.
     """
     memory_stats = await vector_memory.get_stats() if vector_memory else {}
+    specialist_summary = specialist_registry.get_status_summary()
     
     return HealthCheck(
         status="healthy",
         service="central-orchestrator",
-        version="1.0.0",
+        version="2.3.0",
         dependencies={
             "memory_backend": memory_stats.get("backend", "unknown"),
             "memory_count": str(memory_stats.get("count", 0)),
-            "react_engine": "ready" if react_engine else "not_initialized"
+            "react_engine": "ready" if react_engine else "not_initialized",
+            "specialists_healthy": str(specialist_summary.get("healthy", 0)),
+            "specialists_total": str(specialist_summary.get("total", 0))
         }
     )
 
@@ -155,6 +216,134 @@ async def liveness_check():
     Kubernetes liveness probe
     """
     return {"status": "alive"}
+
+
+# ============================================================================
+# SPECIALIST MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@app.get("/specialists")
+async def list_specialists():
+    """
+    List all registered specialist agents
+    
+    Returns a summary of all specialists including their status, capabilities,
+    and health information.
+    """
+    summary = specialist_registry.get_status_summary()
+    
+    # Add tools information for each specialist
+    for spec_id, spec_info in summary["specialists"].items():
+        definition = SPECIALIST_DEFINITIONS.get(spec_id)
+        if definition:
+            spec_info["tools"] = [
+                {"name": t.name, "description": t.description}
+                for t in definition.tools
+            ]
+            spec_info["dependencies"] = definition.dependencies
+    
+    return {
+        "orchestrator_version": "2.3.0",
+        "total_specialists": summary["total"],
+        "healthy": summary["healthy"],
+        "degraded": summary["degraded"],
+        "unhealthy": summary["unhealthy"],
+        "specialists": summary["specialists"]
+    }
+
+
+@app.get("/specialists/{specialist_id}")
+async def get_specialist(specialist_id: str):
+    """
+    Get detailed information about a specific specialist
+    
+    Returns complete definition, health status, and all available tools.
+    """
+    definition = SPECIALIST_DEFINITIONS.get(specialist_id)
+    if not definition:
+        raise HTTPException(status_code=404, detail=f"Specialist '{specialist_id}' not found")
+    
+    health = specialist_registry.get_health(specialist_id)
+    url = specialist_registry.get_url(specialist_id)
+    
+    return {
+        "id": definition.id,
+        "name": definition.name,
+        "description": definition.description,
+        "category": definition.category.value,
+        "is_critical": definition.is_critical,
+        "url": url,
+        "port": definition.port,
+        "health": {
+            "status": health.status.value if health else "unknown",
+            "last_check": health.last_check.isoformat() if health and health.last_check else None,
+            "response_time_ms": health.response_time_ms if health else None,
+            "error": health.error_message if health else None,
+            "consecutive_failures": health.consecutive_failures if health else 0
+        },
+        "tools": [
+            {
+                "name": t.name,
+                "description": t.description,
+                "endpoint": t.endpoint,
+                "method": t.method,
+                "required_params": t.required_params
+            }
+            for t in definition.tools
+        ],
+        "dependencies": definition.dependencies
+    }
+
+
+@app.post("/specialists/{specialist_id}/health")
+async def check_specialist_health(specialist_id: str):
+    """
+    Trigger a health check for a specific specialist
+    
+    Forces an immediate health check and returns the result.
+    """
+    definition = SPECIALIST_DEFINITIONS.get(specialist_id)
+    if not definition:
+        raise HTTPException(status_code=404, detail=f"Specialist '{specialist_id}' not found")
+    
+    health = await specialist_registry.check_health(specialist_id)
+    
+    return {
+        "specialist_id": specialist_id,
+        "name": definition.name,
+        "status": health.status.value,
+        "response_time_ms": health.response_time_ms,
+        "error": health.error_message,
+        "checked_at": health.last_check.isoformat() if health.last_check else None
+    }
+
+
+@app.get("/specialists/tools/all")
+async def list_all_tools():
+    """
+    List all available tools across all specialists
+    
+    Returns a flat list of all tools that the ReAct engine can use.
+    """
+    all_tools = specialist_registry.get_all_tools()
+    
+    tools_list = []
+    for tool_name, (spec_id, tool) in all_tools.items():
+        definition = SPECIALIST_DEFINITIONS.get(spec_id)
+        tools_list.append({
+            "name": tool_name,
+            "specialist_id": spec_id,
+            "specialist_name": definition.name if definition else spec_id,
+            "description": tool.description,
+            "endpoint": tool.endpoint,
+            "method": tool.method,
+            "required_params": tool.required_params
+        })
+    
+    return {
+        "total_tools": len(tools_list),
+        "tools": sorted(tools_list, key=lambda x: x["name"])
+    }
 
 
 @app.post("/execute", response_model=AgentTaskResponse)
