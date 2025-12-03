@@ -33,3 +33,8 @@ wheels/
 .vscode/
 .idea/
 .DS_Store
+
+# Setup script artifacts
+.setup.lock
+.setup_checkpoint
+setup.log
