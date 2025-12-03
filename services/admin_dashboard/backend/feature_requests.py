@@ -1,15 +1,16 @@
 """
-Feature Request and Bug Report Service
+Enterprise Feature Request and Bug Report Service
 
-Handles:
-- Feature request and bug report submissions
-- Automatic Jira ticket creation
-- Field mapping between form and Jira
-- Request tracking and management
+Provides comprehensive management of feature requests with:
+- Persistent Redis-backed storage
+- Automatic Jira ticket creation with component assignment
+- Background job processing
+- Audit trail
+- Notifications
 """
 
+import logging
 import os
-import secrets
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -18,7 +19,19 @@ from nexus_lib.schemas.rbac import (
     RequestType, Priority, RequestStatus,
     JiraFieldMapping,
 )
-from nexus_lib.utils import AgentClient
+
+# Import enterprise storage layer
+from storage import (
+    FeatureRequestRepository,
+    JiraTicketService,
+    JiraConfig,
+    NotificationService,
+)
+from storage.feature_request_repository import get_repository
+from storage.jira_integration import get_jira_service, get_job_queue, TicketCreationResult
+from storage.notification_service import get_notification_service
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -26,299 +39,329 @@ from nexus_lib.utils import AgentClient
 # =============================================================================
 
 class FeatureRequestConfig:
-    """Feature request configuration"""
+    """Feature request service configuration"""
     
-    # Jira settings
+    # Jira settings (loaded from environment)
     JIRA_PROJECT_KEY = os.getenv("NEXUS_JIRA_PROJECT", "NEXUS")
     JIRA_AGENT_URL = os.getenv("JIRA_AGENT_URL", "http://localhost:8081")
     
     # Auto-create Jira tickets
     AUTO_CREATE_JIRA = os.getenv("NEXUS_AUTO_CREATE_JIRA", "true").lower() == "true"
     
-    # Default field mapping
-    DEFAULT_MAPPING = JiraFieldMapping(
-        project_key=JIRA_PROJECT_KEY,
-        issue_type_feature="Story",
-        issue_type_bug="Bug",
-    )
-
-
-# =============================================================================
-# IN-MEMORY STORAGE (Replace with database in production)
-# =============================================================================
-
-class FeatureRequestStore:
-    """In-memory feature request store"""
+    # Use background queue for Jira creation
+    USE_BACKGROUND_QUEUE = os.getenv("NEXUS_JIRA_ASYNC", "true").lower() == "true"
     
-    def __init__(self):
-        self.requests: Dict[str, FeatureRequest] = {}
-        self.field_mapping: JiraFieldMapping = FeatureRequestConfig.DEFAULT_MAPPING
-
-
-feature_store = FeatureRequestStore()
+    # Notifications
+    NOTIFY_ON_CREATE = os.getenv("NEXUS_NOTIFY_ON_CREATE", "true").lower() == "true"
+    NOTIFY_ON_STATUS_CHANGE = os.getenv("NEXUS_NOTIFY_ON_STATUS", "true").lower() == "true"
 
 
 # =============================================================================
-# JIRA INTEGRATION
-# =============================================================================
-
-class JiraIntegration:
-    """Handles Jira ticket creation from feature requests"""
-    
-    @staticmethod
-    def map_to_jira_fields(request: FeatureRequest, mapping: JiraFieldMapping) -> Dict:
-        """Map feature request fields to Jira API payload"""
-        
-        # Determine issue type
-        issue_type = mapping.issue_type_bug if request.type == RequestType.BUG_REPORT else mapping.issue_type_feature
-        
-        # Map priority
-        jira_priority = mapping.priority_mapping.get(request.priority, "Medium")
-        
-        # Build description
-        description = f"*Submitted by:* {request.submitter_name} ({request.submitter_email})\n\n"
-        description += f"*Type:* {request.type.replace('_', ' ').title()}\n\n"
-        description += f"---\n\n"
-        description += f"h2. Description\n{request.description}\n\n"
-        
-        if request.type == RequestType.BUG_REPORT:
-            if request.steps_to_reproduce:
-                description += f"h2. Steps to Reproduce\n{request.steps_to_reproduce}\n\n"
-            if request.expected_behavior:
-                description += f"h2. Expected Behavior\n{request.expected_behavior}\n\n"
-            if request.actual_behavior:
-                description += f"h2. Actual Behavior\n{request.actual_behavior}\n\n"
-            if request.environment:
-                description += f"h2. Environment\n{request.environment}\n\n"
-            if request.browser:
-                description += f"h2. Browser\n{request.browser}\n\n"
-        else:
-            if request.use_case:
-                description += f"h2. Use Case\n{request.use_case}\n\n"
-            if request.business_value:
-                description += f"h2. Business Value\n{request.business_value}\n\n"
-            if request.acceptance_criteria:
-                description += f"h2. Acceptance Criteria\n{request.acceptance_criteria}\n\n"
-        
-        # Build labels
-        labels = [f"{mapping.label_prefix}{l}" for l in request.labels]
-        labels.append(f"{mapping.label_prefix}submitted-via-dashboard")
-        labels.append(f"{mapping.label_prefix}{request.type}")
-        
-        # Build Jira payload
-        jira_payload = {
-            "fields": {
-                "project": {"key": mapping.project_key},
-                "summary": request.title,
-                "description": description,
-                "issuetype": {"name": issue_type},
-                "priority": {"name": jira_priority},
-                "labels": labels,
-            }
-        }
-        
-        # Add component if specified
-        if request.component:
-            jira_payload["fields"]["components"] = [{"name": request.component}]
-        
-        # Add environment for bugs
-        if request.type == RequestType.BUG_REPORT and request.environment:
-            jira_payload["fields"]["environment"] = request.environment
-        
-        return jira_payload
-    
-    @staticmethod
-    async def create_jira_ticket(request: FeatureRequest) -> Optional[Dict]:
-        """Create a Jira ticket via the Jira Agent"""
-        if not FeatureRequestConfig.AUTO_CREATE_JIRA:
-            return None
-        
-        try:
-            # Map fields
-            jira_payload = JiraIntegration.map_to_jira_fields(
-                request, 
-                feature_store.field_mapping
-            )
-            
-            # Call Jira Agent
-            client = AgentClient(FeatureRequestConfig.JIRA_AGENT_URL)
-            response = await client.post(
-                "/execute",
-                json={
-                    "action": "create_issue",
-                    "payload": jira_payload,
-                },
-            )
-            
-            if response and response.get("success"):
-                return {
-                    "key": response.get("data", {}).get("key"),
-                    "url": response.get("data", {}).get("self"),
-                }
-            
-            return None
-            
-        except Exception as e:
-            print(f"Failed to create Jira ticket: {e}")
-            return None
-
-
-# =============================================================================
-# FEATURE REQUEST SERVICE
+# ENTERPRISE FEATURE REQUEST SERVICE
 # =============================================================================
 
 class FeatureRequestService:
-    """Service for managing feature requests and bug reports"""
+    """
+    Enterprise service for managing feature requests and bug reports.
     
-    @staticmethod
+    Features:
+    - Persistent storage with Redis
+    - Automatic Jira ticket creation
+    - Component-based assignment
+    - Background job processing
+    - Comprehensive audit trail
+    - Slack/webhook notifications
+    """
+    
+    _instance: Optional['FeatureRequestService'] = None
+    
+    def __init__(self):
+        self.repository: Optional[FeatureRequestRepository] = None
+        self.jira_service: Optional[JiraTicketService] = None
+        self.notification_service: Optional[NotificationService] = None
+        self._initialized = False
+    
+    @classmethod
+    async def get_instance(cls) -> 'FeatureRequestService':
+        """Get or create singleton instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+            await cls._instance.initialize()
+        return cls._instance
+    
+    async def initialize(self):
+        """Initialize all services."""
+        if self._initialized:
+            return
+        
+        self.repository = await get_repository()
+        self.jira_service = await get_jira_service()
+        self.notification_service = await get_notification_service()
+        
+        # Start background job queue if enabled
+        if FeatureRequestConfig.USE_BACKGROUND_QUEUE:
+            await get_job_queue()
+        
+        self._initialized = True
+        logger.info("FeatureRequestService initialized")
+    
+    # =========================================================================
+    # CRUD Operations
+    # =========================================================================
+    
     async def create_request(
+        self,
         data: FeatureRequestCreate,
         submitter_id: str,
         submitter_email: str,
         submitter_name: str,
     ) -> FeatureRequest:
-        """Create a new feature request or bug report"""
+        """
+        Create a new feature request or bug report.
         
-        request_id = f"fr-{secrets.token_hex(8)}"
+        This will:
+        1. Store the request in persistent storage
+        2. Create a Jira ticket (if configured)
+        3. Send notifications
+        4. Return the created request
+        """
+        # Prepare request data
+        request_data = {
+            "type": data.type,
+            "title": data.title,
+            "description": data.description,
+            "priority": data.priority,
+            "component": data.component,
+            "labels": data.labels,
+            "steps_to_reproduce": data.steps_to_reproduce,
+            "expected_behavior": data.expected_behavior,
+            "actual_behavior": data.actual_behavior,
+            "environment": data.environment,
+            "browser": data.browser,
+            "use_case": data.use_case,
+            "business_value": data.business_value,
+            "acceptance_criteria": data.acceptance_criteria,
+            "submitter_id": submitter_id,
+            "submitter_email": submitter_email,
+            "submitter_name": submitter_name,
+            "status": RequestStatus.SUBMITTED,
+        }
         
-        request = FeatureRequest(
-            id=request_id,
-            type=data.type,
-            title=data.title,
-            description=data.description,
-            priority=data.priority,
-            component=data.component,
-            labels=data.labels,
-            steps_to_reproduce=data.steps_to_reproduce,
-            expected_behavior=data.expected_behavior,
-            actual_behavior=data.actual_behavior,
-            environment=data.environment,
-            browser=data.browser,
-            use_case=data.use_case,
-            business_value=data.business_value,
-            acceptance_criteria=data.acceptance_criteria,
-            submitter_id=submitter_id,
-            submitter_email=submitter_email,
-            submitter_name=submitter_name,
-        )
+        # Store in repository
+        record = await self.repository.create(request_data, submitter_id)
         
         # Create Jira ticket
-        jira_result = await JiraIntegration.create_jira_ticket(request)
-        if jira_result:
-            request.jira_key = jira_result.get("key")
-            request.jira_url = jira_result.get("url")
-            request.status = RequestStatus.TRIAGED
+        jira_data = None
+        if FeatureRequestConfig.AUTO_CREATE_JIRA:
+            jira_data = await self._create_jira_ticket(record)
+            
+            # Update record with Jira data
+            if jira_data:
+                record = await self.repository.update(
+                    record["id"],
+                    {
+                        "jira_key": jira_data.get("key"),
+                        "jira_url": jira_data.get("url"),
+                        "status": RequestStatus.TRIAGED,
+                    },
+                    "system"
+                )
         
-        # Store request
-        feature_store.requests[request_id] = request
+        # Send notifications
+        if FeatureRequestConfig.NOTIFY_ON_CREATE:
+            await self._send_notifications(record, jira_data)
         
-        return request
+        logger.info(f"Created feature request {record['id']} by {submitter_email}")
+        
+        return self._to_model(record)
     
-    @staticmethod
-    def get_request(request_id: str) -> Optional[FeatureRequest]:
-        """Get a feature request by ID"""
-        return feature_store.requests.get(request_id)
+    async def get_request(self, request_id: str) -> Optional[FeatureRequest]:
+        """Get a feature request by ID."""
+        record = await self.repository.get(request_id)
+        if record:
+            return self._to_model(record)
+        return None
     
-    @staticmethod
-    def update_request(request_id: str, data: FeatureRequestUpdate) -> Optional[FeatureRequest]:
-        """Update a feature request"""
-        request = feature_store.requests.get(request_id)
-        if not request:
+    async def update_request(
+        self, 
+        request_id: str, 
+        data: FeatureRequestUpdate,
+        updated_by: str = "system",
+    ) -> Optional[FeatureRequest]:
+        """
+        Update a feature request.
+        
+        Handles:
+        - Status change notifications
+        - Jira ticket sync (if linked)
+        """
+        old_record = await self.repository.get(request_id)
+        if not old_record:
             return None
         
-        update_data = data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(request, key, value)
+        old_status = old_record.get("status")
         
-        request.updated_at = datetime.utcnow()
-        feature_store.requests[request_id] = request
+        # Apply updates
+        updates = data.model_dump(exclude_unset=True)
+        record = await self.repository.update(request_id, updates, updated_by)
         
-        return request
+        if not record:
+            return None
+        
+        # Status change handling
+        new_status = record.get("status")
+        if old_status != new_status:
+            # Notify on status change
+            if FeatureRequestConfig.NOTIFY_ON_STATUS_CHANGE:
+                await self.notification_service.notify_status_change(
+                    record, old_status, new_status, updated_by
+                )
+            
+            # Sync to Jira
+            if record.get("jira_key"):
+                await self.jira_service.update_ticket(
+                    record["jira_key"],
+                    {"status": new_status}
+                )
+        
+        return self._to_model(record)
     
-    @staticmethod
-    def delete_request(request_id: str) -> bool:
-        """Delete a feature request"""
-        if request_id in feature_store.requests:
-            del feature_store.requests[request_id]
-            return True
-        return False
+    async def delete_request(self, request_id: str, deleted_by: str) -> bool:
+        """Delete a feature request (soft delete)."""
+        return await self.repository.delete(request_id, deleted_by)
     
-    @staticmethod
-    def list_requests(
+    # =========================================================================
+    # Query Operations
+    # =========================================================================
+    
+    async def list_requests(
+        self,
         type_filter: Optional[RequestType] = None,
         status_filter: Optional[RequestStatus] = None,
+        priority_filter: Optional[Priority] = None,
+        component_filter: Optional[str] = None,
         submitter_id: Optional[str] = None,
+        search_term: Optional[str] = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> List[FeatureRequest]:
-        """List feature requests with optional filters"""
-        requests = list(feature_store.requests.values())
+        """List feature requests with optional filters."""
+        results, _ = await self.repository.list(
+            type_filter=type_filter.value if type_filter else None,
+            status_filter=status_filter.value if status_filter else None,
+            priority_filter=priority_filter.value if priority_filter else None,
+            component_filter=component_filter,
+            submitter_id=submitter_id,
+            search_term=search_term,
+            limit=limit,
+            offset=offset,
+        )
         
-        if type_filter:
-            requests = [r for r in requests if r.type == type_filter]
-        
-        if status_filter:
-            requests = [r for r in requests if r.status == status_filter]
-        
-        if submitter_id:
-            requests = [r for r in requests if r.submitter_id == submitter_id]
-        
-        # Sort by created_at descending
-        requests.sort(key=lambda x: x.created_at, reverse=True)
-        
-        return requests[:limit]
+        return [self._to_model(r) for r in results]
     
-    @staticmethod
-    def get_stats() -> Dict:
-        """Get feature request statistics"""
-        requests = list(feature_store.requests.values())
+    async def get_stats(self) -> Dict:
+        """Get aggregated statistics."""
+        return await self.repository.get_stats()
+    
+    async def get_audit_trail(self, request_id: str, limit: int = 50) -> List[Dict]:
+        """Get audit trail for a request."""
+        return await self.repository.get_audit_trail(request_id, limit)
+    
+    # =========================================================================
+    # Jira Integration
+    # =========================================================================
+    
+    async def _create_jira_ticket(self, record: Dict) -> Optional[Dict]:
+        """Create Jira ticket for a feature request."""
+        if FeatureRequestConfig.USE_BACKGROUND_QUEUE:
+            # Use background queue
+            job_queue = await get_job_queue()
+            await job_queue.enqueue(record)
+            return None  # Jira data will be updated async
+        else:
+            # Synchronous creation
+            result, data = await self.jira_service.create_ticket(record)
+            
+            if result == TicketCreationResult.SUCCESS:
+                return data
+            
+            return None
+    
+    async def sync_with_jira(self, request_id: str) -> Optional[str]:
+        """
+        Sync status from Jira back to feature request.
         
-        return {
-            "total": len(requests),
-            "by_type": {
-                "feature_request": len([r for r in requests if r.type == RequestType.FEATURE_REQUEST]),
-                "bug_report": len([r for r in requests if r.type == RequestType.BUG_REPORT]),
-                "improvement": len([r for r in requests if r.type == RequestType.IMPROVEMENT]),
-                "documentation": len([r for r in requests if r.type == RequestType.DOCUMENTATION]),
-                "question": len([r for r in requests if r.type == RequestType.QUESTION]),
-            },
-            "by_status": {
-                "submitted": len([r for r in requests if r.status == RequestStatus.SUBMITTED]),
-                "triaged": len([r for r in requests if r.status == RequestStatus.TRIAGED]),
-                "in_progress": len([r for r in requests if r.status == RequestStatus.IN_PROGRESS]),
-                "completed": len([r for r in requests if r.status == RequestStatus.COMPLETED]),
-                "rejected": len([r for r in requests if r.status == RequestStatus.REJECTED]),
-            },
-            "by_priority": {
-                "critical": len([r for r in requests if r.priority == Priority.CRITICAL]),
-                "high": len([r for r in requests if r.priority == Priority.HIGH]),
-                "medium": len([r for r in requests if r.priority == Priority.MEDIUM]),
-                "low": len([r for r in requests if r.priority == Priority.LOW]),
-            },
-            "with_jira": len([r for r in requests if r.jira_key]),
-        }
+        Returns the updated status if changed, None otherwise.
+        """
+        record = await self.repository.get(request_id)
+        if not record or not record.get("jira_key"):
+            return None
+        
+        jira_status = await self.jira_service.sync_status(record)
+        
+        if jira_status:
+            # Map Jira status to our status
+            status_mapping = {
+                "Done": RequestStatus.COMPLETED,
+                "Closed": RequestStatus.COMPLETED,
+                "In Progress": RequestStatus.IN_PROGRESS,
+                "In Review": RequestStatus.IN_PROGRESS,
+                "To Do": RequestStatus.TRIAGED,
+                "Open": RequestStatus.TRIAGED,
+                "Won't Do": RequestStatus.REJECTED,
+                "Rejected": RequestStatus.REJECTED,
+            }
+            
+            new_status = status_mapping.get(jira_status)
+            
+            if new_status and new_status != record.get("status"):
+                await self.repository.update(
+                    request_id,
+                    {"status": new_status, "jira_status": jira_status},
+                    "jira_sync"
+                )
+                return new_status
+        
+        return None
     
-    # -------------------------------------------------------------------------
-    # Field Mapping Management
-    # -------------------------------------------------------------------------
+    async def process_jira_webhook(self, payload: Dict) -> Dict:
+        """Process incoming Jira webhook."""
+        result = await self.jira_service.process_webhook(payload)
+        
+        # If we have updates, apply them
+        if result.get("action") == "processed" and result.get("updates"):
+            jira_key = result.get("jira_key")
+            
+            # Find feature request by Jira key
+            record = await self.repository.get_by_jira_key(jira_key)
+            
+            if record:
+                await self.repository.update(
+                    record["id"],
+                    result["updates"],
+                    "jira_webhook"
+                )
+        
+        return result
     
-    @staticmethod
-    def get_field_mapping() -> JiraFieldMapping:
-        """Get current Jira field mapping"""
-        return feature_store.field_mapping
+    # =========================================================================
+    # Notifications
+    # =========================================================================
     
-    @staticmethod
-    def update_field_mapping(mapping: JiraFieldMapping) -> JiraFieldMapping:
-        """Update Jira field mapping"""
-        feature_store.field_mapping = mapping
-        return mapping
+    async def _send_notifications(self, record: Dict, jira_data: Optional[Dict]):
+        """Send notifications for new request."""
+        try:
+            await self.notification_service.notify_new_request(record, jira_data)
+        except Exception as e:
+            logger.error(f"Failed to send notifications: {e}")
     
-    # -------------------------------------------------------------------------
-    # Component Management
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Configuration
+    # =========================================================================
     
     @staticmethod
     def get_available_components() -> List[str]:
-        """Get list of available components for selection"""
+        """Get list of available components."""
         return [
             "orchestrator",
             "jira-agent",
@@ -339,7 +382,7 @@ class FeatureRequestService:
     
     @staticmethod
     def get_available_labels() -> List[str]:
-        """Get list of available labels for selection"""
+        """Get list of available labels."""
         return [
             "ui",
             "api",
@@ -357,4 +400,127 @@ class FeatureRequestService:
             "deployment",
             "testing",
         ]
+    
+    # =========================================================================
+    # Field Mapping Configuration
+    # =========================================================================
+    
+    async def get_jira_config(self) -> JiraConfig:
+        """Get current Jira configuration."""
+        return self.jira_service.config if self.jira_service else JiraConfig()
+    
+    async def update_jira_config(self, config: Dict) -> JiraConfig:
+        """Update Jira configuration (runtime only)."""
+        if self.jira_service:
+            for key, value in config.items():
+                if hasattr(self.jira_service.config, key):
+                    setattr(self.jira_service.config, key, value)
+        return self.jira_service.config if self.jira_service else JiraConfig()
+    
+    # =========================================================================
+    # Background Job Management
+    # =========================================================================
+    
+    async def get_job_queue_stats(self) -> Dict:
+        """Get background job queue statistics."""
+        job_queue = await get_job_queue()
+        return job_queue.get_queue_stats()
+    
+    async def retry_failed_jobs(self) -> int:
+        """Retry failed Jira creation jobs."""
+        job_queue = await get_job_queue()
+        return await job_queue.retry_failed()
+    
+    # =========================================================================
+    # Export
+    # =========================================================================
+    
+    async def export_requests(
+        self, 
+        format: str = "json",
+        filters: Optional[Dict] = None,
+    ) -> str:
+        """Export feature requests to specified format."""
+        return await self.repository.export(format, filters)
+    
+    # =========================================================================
+    # Helpers
+    # =========================================================================
+    
+    def _to_model(self, record: Dict) -> FeatureRequest:
+        """Convert storage record to Pydantic model."""
+        # Handle datetime fields
+        created_at = record.get("created_at")
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        
+        updated_at = record.get("updated_at")
+        if isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+        
+        return FeatureRequest(
+            id=record["id"],
+            type=RequestType(record.get("type", "feature_request")),
+            title=record.get("title", ""),
+            description=record.get("description", ""),
+            priority=Priority(record.get("priority", "medium")),
+            component=record.get("component"),
+            labels=record.get("labels", []),
+            steps_to_reproduce=record.get("steps_to_reproduce"),
+            expected_behavior=record.get("expected_behavior"),
+            actual_behavior=record.get("actual_behavior"),
+            environment=record.get("environment"),
+            browser=record.get("browser"),
+            use_case=record.get("use_case"),
+            business_value=record.get("business_value"),
+            acceptance_criteria=record.get("acceptance_criteria"),
+            status=RequestStatus(record.get("status", "submitted")),
+            submitter_id=record.get("submitter_id", ""),
+            submitter_email=record.get("submitter_email", ""),
+            submitter_name=record.get("submitter_name", ""),
+            jira_key=record.get("jira_key"),
+            jira_url=record.get("jira_url"),
+            created_at=created_at or datetime.utcnow(),
+            updated_at=updated_at or datetime.utcnow(),
+            attachments=record.get("attachments", []),
+        )
 
+
+# =============================================================================
+# Module-level convenience functions
+# =============================================================================
+
+async def get_service() -> FeatureRequestService:
+    """Get the feature request service instance."""
+    return await FeatureRequestService.get_instance()
+
+
+# For backward compatibility
+async def create_request(*args, **kwargs):
+    service = await get_service()
+    return await service.create_request(*args, **kwargs)
+
+
+async def get_request(request_id: str):
+    service = await get_service()
+    return await service.get_request(request_id)
+
+
+async def update_request(*args, **kwargs):
+    service = await get_service()
+    return await service.update_request(*args, **kwargs)
+
+
+async def delete_request(request_id: str, deleted_by: str):
+    service = await get_service()
+    return await service.delete_request(request_id, deleted_by)
+
+
+async def list_requests(*args, **kwargs):
+    service = await get_service()
+    return await service.list_requests(*args, **kwargs)
+
+
+async def get_stats():
+    service = await get_service()
+    return await service.get_stats()

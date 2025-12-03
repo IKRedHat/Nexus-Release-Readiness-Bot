@@ -51,7 +51,9 @@ try:
         create_access_token, create_refresh_token, verify_local_auth,
         rbac_store, LocalAuthRequest,
     )
-    from feature_requests import FeatureRequestService, JiraIntegration
+    from feature_requests import (
+        FeatureRequestService, get_service as get_feature_service,
+    )
     from nexus_lib.schemas.rbac import (
         User, UserCreate, UserUpdate, UserWithPermissions,
         Role, RoleCreate, RoleUpdate,
@@ -59,11 +61,21 @@ try:
         FeatureRequest, FeatureRequestCreate, FeatureRequestUpdate,
         RequestType, RequestStatus, Priority,
         AuditAction, AuditLog,
+        JiraFieldMapping,
     )
     RBAC_ENABLED = True
 except ImportError as e:
     print(f"Warning: RBAC modules not loaded: {e}")
     RBAC_ENABLED = False
+
+# Import enterprise storage (may fail if not fully configured)
+ENTERPRISE_STORAGE = False
+try:
+    from storage.jira_integration import get_jira_service, get_job_queue, JiraConfig
+    from storage.notification_service import get_notification_service
+    ENTERPRISE_STORAGE = True
+except ImportError as e:
+    print(f"Note: Enterprise storage not loaded: {e}")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -2045,28 +2057,52 @@ async def delete_role(
 
 
 # =============================================================================
-# Feature Request / Bug Report Endpoints
+# Feature Request / Bug Report Endpoints (Enterprise)
 # =============================================================================
 
 @app.get("/feature-requests")
 async def list_feature_requests(
     type: Optional[str] = None,
     status: Optional[str] = None,
+    priority: Optional[str] = None,
+    component: Optional[str] = None,
+    search: Optional[str] = None,
     limit: int = 100,
+    offset: int = 0,
     current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_FEATURE_REQUESTS)) if RBAC_ENABLED else None
 ):
-    """List feature requests with optional filters."""
+    """
+    List feature requests with optional filters.
+    
+    Enterprise features:
+    - Full-text search
+    - Multi-field filtering
+    - Pagination
+    """
     if not RBAC_ENABLED:
-        return {"requests": [], "count": 0}
+        return {"requests": [], "count": 0, "total": 0}
+    
+    service = await get_feature_service()
     
     type_filter = RequestType(type) if type else None
     status_filter = RequestStatus(status) if status else None
+    priority_filter = Priority(priority) if priority else None
     
-    requests = FeatureRequestService.list_requests(type_filter, status_filter, limit=limit)
+    requests = await service.list_requests(
+        type_filter=type_filter,
+        status_filter=status_filter,
+        priority_filter=priority_filter,
+        component_filter=component,
+        search_term=search,
+        limit=limit,
+        offset=offset,
+    )
     
     return {
         "requests": [r.model_dump() for r in requests],
-        "count": len(requests)
+        "count": len(requests),
+        "offset": offset,
+        "limit": limit,
     }
 
 
@@ -2074,11 +2110,14 @@ async def list_feature_requests(
 async def get_feature_request_stats(
     current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_FEATURE_REQUESTS)) if RBAC_ENABLED else None
 ):
-    """Get feature request statistics."""
+    """Get feature request statistics with breakdown by type, status, priority."""
     if not RBAC_ENABLED:
         return {"stats": {}}
     
-    return {"stats": FeatureRequestService.get_stats()}
+    service = await get_feature_service()
+    stats = await service.get_stats()
+    
+    return {"stats": stats}
 
 
 @app.get("/feature-requests/options")
@@ -2087,8 +2126,9 @@ async def get_feature_request_options():
     return {
         "types": [t.value for t in RequestType],
         "priorities": [p.value for p in Priority],
+        "statuses": [s.value for s in RequestStatus],
         "components": FeatureRequestService.get_available_components(),
-        "labels": FeatureRequestService.get_available_labels()
+        "labels": FeatureRequestService.get_available_labels(),
     }
 
 
@@ -2097,15 +2137,37 @@ async def get_feature_request(
     request_id: str,
     current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_FEATURE_REQUESTS)) if RBAC_ENABLED else None
 ):
-    """Get a specific feature request."""
+    """Get a specific feature request by ID."""
     if not RBAC_ENABLED:
         raise HTTPException(501, "RBAC not enabled")
     
-    feature_request = FeatureRequestService.get_request(request_id)
+    service = await get_feature_service()
+    feature_request = await service.get_request(request_id)
+    
     if not feature_request:
         raise HTTPException(404, f"Feature request not found: {request_id}")
     
     return feature_request.model_dump()
+
+
+@app.get("/feature-requests/{request_id}/audit")
+async def get_feature_request_audit(
+    request_id: str,
+    limit: int = 50,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_FEATURE_REQUESTS)) if RBAC_ENABLED else None
+):
+    """Get audit trail for a feature request."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    service = await get_feature_service()
+    audit_trail = await service.get_audit_trail(request_id, limit)
+    
+    return {
+        "request_id": request_id,
+        "audit_trail": audit_trail,
+        "count": len(audit_trail),
+    }
 
 
 @app.post("/feature-requests")
@@ -2117,12 +2179,18 @@ async def submit_feature_request(
     """
     Submit a new feature request or bug report.
     
-    The request will automatically be converted to a Jira ticket if configured.
+    Enterprise features:
+    - Automatic Jira ticket creation with component assignment
+    - Background job processing for reliability
+    - Slack/webhook notifications
+    - Full audit trail
     """
     if not RBAC_ENABLED:
         raise HTTPException(501, "RBAC not enabled")
     
-    feature_request = await FeatureRequestService.create_request(
+    service = await get_feature_service()
+    
+    feature_request = await service.create_request(
         data,
         current_user.id,
         current_user.email,
@@ -2143,7 +2211,9 @@ async def submit_feature_request(
     return {
         "message": "Feature request submitted successfully",
         "request": feature_request.model_dump(),
-        "jira_created": feature_request.jira_key is not None
+        "jira_created": feature_request.jira_key is not None,
+        "jira_key": feature_request.jira_key,
+        "jira_url": feature_request.jira_url,
     }
 
 
@@ -2154,11 +2224,13 @@ async def update_feature_request(
     data: FeatureRequestUpdate,
     current_user: UserWithPermissions = Depends(RequirePermission(Permission.MANAGE_FEATURE_REQUESTS)) if RBAC_ENABLED else None
 ):
-    """Update a feature request. Requires MANAGE_FEATURE_REQUESTS permission."""
+    """Update a feature request. Status changes sync to Jira."""
     if not RBAC_ENABLED:
         raise HTTPException(501, "RBAC not enabled")
     
-    feature_request = FeatureRequestService.update_request(request_id, data)
+    service = await get_feature_service()
+    feature_request = await service.update_request(request_id, data, current_user.id)
+    
     if not feature_request:
         raise HTTPException(404, f"Feature request not found: {request_id}")
     
@@ -2179,11 +2251,13 @@ async def delete_feature_request(
     request: Request,
     current_user: UserWithPermissions = Depends(RequirePermission(Permission.MANAGE_FEATURE_REQUESTS)) if RBAC_ENABLED else None
 ):
-    """Delete a feature request. Requires MANAGE_FEATURE_REQUESTS permission."""
+    """Delete a feature request (soft delete)."""
     if not RBAC_ENABLED:
         raise HTTPException(501, "RBAC not enabled")
     
-    success = FeatureRequestService.delete_request(request_id)
+    service = await get_feature_service()
+    success = await service.delete_request(request_id, current_user.id)
+    
     if not success:
         raise HTTPException(404, f"Feature request not found: {request_id}")
     
@@ -2196,6 +2270,160 @@ async def delete_feature_request(
     )
     
     return {"message": "Feature request deleted"}
+
+
+# =============================================================================
+# Jira Integration Endpoints (Enterprise)
+# =============================================================================
+
+@app.get("/feature-requests/jira/config")
+async def get_jira_config(
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.EDIT_CONFIG)) if RBAC_ENABLED else None
+):
+    """Get current Jira integration configuration."""
+    if not ENTERPRISE_STORAGE:
+        return {"enabled": False, "message": "Enterprise storage not configured"}
+    
+    jira_service = await get_jira_service()
+    config = jira_service.config
+    
+    return {
+        "enabled": config.enabled,
+        "configured": config.is_configured,
+        "project_key": config.project_key,
+        "dry_run": config.dry_run,
+        "issue_type_mapping": config.issue_type_mapping,
+        "priority_mapping": config.priority_mapping,
+        "component_mapping": config.component_mapping,
+        "label_prefix": config.label_prefix,
+    }
+
+
+@app.put("/feature-requests/jira/config")
+async def update_jira_config(
+    request: Request,
+    config: Dict[str, Any],
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.EDIT_CONFIG)) if RBAC_ENABLED else None
+):
+    """Update Jira integration configuration (runtime only)."""
+    if not ENTERPRISE_STORAGE:
+        raise HTTPException(501, "Enterprise storage not configured")
+    
+    service = await get_feature_service()
+    updated_config = await service.update_jira_config(config)
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.CONFIG_CHANGE,
+        "jira_config", None, config,
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "Jira configuration updated", "config": updated_config.__dict__}
+
+
+@app.post("/feature-requests/{request_id}/sync-jira")
+async def sync_feature_request_with_jira(
+    request_id: str,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.MANAGE_FEATURE_REQUESTS)) if RBAC_ENABLED else None
+):
+    """Sync a feature request status from Jira."""
+    if not ENTERPRISE_STORAGE:
+        raise HTTPException(501, "Enterprise storage not configured")
+    
+    service = await get_feature_service()
+    new_status = await service.sync_with_jira(request_id)
+    
+    if new_status:
+        return {"message": f"Status synced from Jira", "new_status": new_status}
+    
+    return {"message": "No status change from Jira"}
+
+
+@app.post("/feature-requests/jira/webhook")
+async def receive_jira_webhook(
+    request: Request,
+    payload: Dict[str, Any],
+):
+    """
+    Receive webhook from Jira for bidirectional sync.
+    
+    Configure in Jira: Admin → System → WebHooks
+    Events: issue_updated, issue_deleted
+    """
+    if not ENTERPRISE_STORAGE:
+        raise HTTPException(501, "Enterprise storage not configured")
+    
+    service = await get_feature_service()
+    result = await service.process_jira_webhook(payload)
+    
+    return result
+
+
+# =============================================================================
+# Background Job Queue Endpoints (Enterprise)
+# =============================================================================
+
+@app.get("/feature-requests/jobs/stats")
+async def get_job_queue_stats(
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.SYSTEM_ADMIN)) if RBAC_ENABLED else None
+):
+    """Get background job queue statistics."""
+    if not ENTERPRISE_STORAGE:
+        return {"enabled": False}
+    
+    service = await get_feature_service()
+    stats = await service.get_job_queue_stats()
+    
+    return {
+        "enabled": True,
+        "stats": stats,
+    }
+
+
+@app.post("/feature-requests/jobs/retry")
+async def retry_failed_jobs(
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.SYSTEM_ADMIN)) if RBAC_ENABLED else None
+):
+    """Retry all failed Jira creation jobs."""
+    if not ENTERPRISE_STORAGE:
+        raise HTTPException(501, "Enterprise storage not configured")
+    
+    service = await get_feature_service()
+    count = await service.retry_failed_jobs()
+    
+    return {"message": f"Retried {count} failed jobs", "count": count}
+
+
+# =============================================================================
+# Export Endpoints
+# =============================================================================
+
+@app.get("/feature-requests/export")
+async def export_feature_requests(
+    format: str = "json",
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_FEATURE_REQUESTS)) if RBAC_ENABLED else None
+):
+    """Export feature requests to JSON or CSV format."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    service = await get_feature_service()
+    data = await service.export_requests(format)
+    
+    if format == "csv":
+        return Response(
+            content=data,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=feature_requests.csv"}
+        )
+    
+    return Response(
+        content=data,
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=feature_requests.json"}
+    )
 
 
 # =============================================================================
@@ -2237,14 +2465,23 @@ async def get_rbac_stats(
     users = RBACService.list_users()
     active_users = len([u for u in users if u.status == UserStatus.ACTIVE])
     
+    # Get feature request stats
+    feature_stats = {}
+    try:
+        service = await get_feature_service()
+        feature_stats = await service.get_stats()
+    except Exception:
+        pass
+    
     return {
         "rbac_enabled": True,
+        "enterprise_storage": ENTERPRISE_STORAGE,
         "total_users": len(users),
         "active_users": active_users,
         "total_roles": len(rbac_store.roles),
         "system_roles": len([r for r in rbac_store.roles.values() if r.is_system_role]),
         "custom_roles": len([r for r in rbac_store.roles.values() if not r.is_system_role]),
-        "feature_requests": FeatureRequestService.get_stats()
+        "feature_requests": feature_stats,
     }
 
 
