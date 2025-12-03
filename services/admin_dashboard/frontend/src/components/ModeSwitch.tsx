@@ -1,4 +1,4 @@
-import { Power, Zap, FlaskConical } from 'lucide-react'
+import { Zap, FlaskConical } from 'lucide-react'
 
 interface ModeSwitchProps {
   currentMode: string

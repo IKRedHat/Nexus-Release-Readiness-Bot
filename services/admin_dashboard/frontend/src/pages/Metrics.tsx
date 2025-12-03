@@ -13,8 +13,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from 'recharts'
 import {
   Activity,
@@ -77,7 +76,7 @@ export default function MetricsPage() {
     hygieneScore: number
     releaseDecisions: { go: number; nogo: number }
   } | null>(null)
-  const [grafanaUrl, setGrafanaUrl] = useState('http://localhost:3000')
+  const grafanaUrl = 'http://localhost:3000'
 
   useEffect(() => {
     fetchMetrics()
@@ -340,7 +339,7 @@ export default function MetricsPage() {
                   dataKey="tokens"
                   nameKey="model"
                 >
-                  {metrics.llmUsage.map((entry, index) => (
+                  {metrics.llmUsage.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
