@@ -495,6 +495,66 @@ check_prerequisites() {
 # VIRTUAL ENVIRONMENT SETUP
 # ============================================================================
 
+# Find the best Python interpreter (prefer stable over pre-release)
+find_best_python() {
+    local candidates=(
+        "python3.12"
+        "python3.11"
+        "python3.13"
+        "python3.10"
+        "python3"
+    )
+    
+    for cmd in "${candidates[@]}"; do
+        if command -v "$cmd" &>/dev/null; then
+            local version=$($cmd -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)
+            local is_prerelease=$($cmd -c 'import sys; print("yes" if sys.version_info.releaselevel != "final" else "no")' 2>/dev/null)
+            
+            # Skip pre-release versions (alpha, beta, rc)
+            if [ "$is_prerelease" = "yes" ]; then
+                log DEBUG "Skipping $cmd ($version) - pre-release"
+                continue
+            fi
+            
+            # Check version meets minimum
+            if version_gte "$version" "$MIN_PYTHON_VERSION"; then
+                echo "$cmd"
+                return 0
+            fi
+        fi
+    done
+    
+    # Fallback to any python3
+    if command -v python3 &>/dev/null; then
+        echo "python3"
+        return 0
+    fi
+    
+    return 1
+}
+
+verify_venv() {
+    local venv_path="$1"
+    
+    # Check essential files exist
+    if [ ! -f "$venv_path/bin/activate" ]; then
+        return 1
+    fi
+    if [ ! -f "$venv_path/bin/python" ]; then
+        return 1
+    fi
+    if [ ! -f "$venv_path/bin/pip" ]; then
+        return 1
+    fi
+    
+    # Test that pip actually works
+    if ! "$venv_path/bin/pip" --version &>/dev/null; then
+        return 1
+    fi
+    
+    return 0
+}
+
 setup_virtualenv() {
     if [ "$SKIP_VENV" = true ]; then
         log INFO "Skipping virtual environment (--skip-venv)"
@@ -503,46 +563,103 @@ setup_virtualenv() {
     
     if [ "$RESUME_MODE" = true ] && should_skip_stage "virtualenv"; then
         log INFO "Skipping virtualenv setup (already completed)"
-        source "$VENV_DIR/bin/activate" 2>/dev/null || true
+        if [ -f "$VENV_DIR/bin/activate" ]; then
+            source "$VENV_DIR/bin/activate"
+        fi
         return 0
     fi
     
     log STEP "Step 2/8: Setting Up Python Virtual Environment"
     
-    # Clean if requested
+    # Find the best Python
+    log SUBSTEP "Finding best Python interpreter..."
+    PYTHON_CMD=$(find_best_python)
+    
+    if [ -z "$PYTHON_CMD" ]; then
+        log ERROR "No suitable Python found"
+        echo ""
+        echo -e "  ${YELLOW}Install Python 3.11 or 3.12:${NC}"
+        echo -e "    ${CYAN}brew install python@3.12${NC}  # macOS"
+        echo -e "    ${CYAN}sudo apt install python3.12 python3.12-venv${NC}  # Ubuntu"
+        exit 1
+    fi
+    
+    local python_path=$(which "$PYTHON_CMD")
+    local python_version=$($PYTHON_CMD -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    log SUCCESS "Using: $PYTHON_CMD ($python_version) at $python_path"
+    
+    # Clean if requested or if venv is broken
     if [ "$CLEAN_MODE" = true ] && [ -d "$VENV_DIR" ]; then
         log SUBSTEP "Removing existing virtual environment..."
         rm -rf "$VENV_DIR"
         log SUCCESS "Removed old venv"
+    elif [ -d "$VENV_DIR" ] && ! verify_venv "$VENV_DIR"; then
+        log WARNING "Existing venv is broken, recreating..."
+        rm -rf "$VENV_DIR"
     fi
     
     # Create venv
     if [ ! -d "$VENV_DIR" ]; then
         log SUBSTEP "Creating virtual environment..."
-        if python3 -m venv "$VENV_DIR"; then
-            log SUCCESS "Virtual environment created at: $VENV_DIR"
+        
+        if $PYTHON_CMD -m venv "$VENV_DIR" 2>&1 | tee -a "$LOG_FILE"; then
+            # Verify creation was successful
+            if verify_venv "$VENV_DIR"; then
+                log SUCCESS "Virtual environment created at: $VENV_DIR"
+            else
+                log ERROR "Virtual environment created but is incomplete/broken"
+                rm -rf "$VENV_DIR"
+                
+                echo ""
+                echo -e "  ${YELLOW}Troubleshooting:${NC}"
+                echo -e "    1. Try a different Python: ${CYAN}python3.12 -m venv venv${NC}"
+                echo -e "    2. Install venv package: ${CYAN}sudo apt install python3.12-venv${NC}"
+                echo -e "    3. Use virtualenv: ${CYAN}pip install virtualenv && virtualenv venv${NC}"
+                echo ""
+                exit 1
+            fi
         else
             log ERROR "Failed to create virtual environment"
             echo ""
-            echo -e "  ${YELLOW}Try:${NC} ${CYAN}python3 -m pip install --user virtualenv${NC}"
+            echo -e "  ${YELLOW}Try:${NC}"
+            echo -e "    • ${CYAN}$PYTHON_CMD -m pip install --user virtualenv${NC}"
+            echo -e "    • ${CYAN}$PYTHON_CMD -m virtualenv $VENV_DIR${NC}"
             exit 1
         fi
     else
-        log INFO "Virtual environment already exists"
+        if verify_venv "$VENV_DIR"; then
+            log INFO "Virtual environment already exists and is valid"
+        else
+            log ERROR "Existing venv is invalid. Run with --clean to recreate."
+            exit 1
+        fi
     fi
     
     # Activate
     log SUBSTEP "Activating virtual environment..."
-    source "$VENV_DIR/bin/activate"
-    log SUCCESS "Activated: $(which python)"
+    if [ -f "$VENV_DIR/bin/activate" ]; then
+        source "$VENV_DIR/bin/activate"
+        log SUCCESS "Activated: $(which python)"
+    else
+        log ERROR "Cannot activate - activate script not found"
+        exit 1
+    fi
     
-    # Upgrade pip
+    # Upgrade pip (use venv's pip directly)
     log SUBSTEP "Upgrading pip..."
-    run_with_retry "Upgrading pip" "pip install --upgrade pip"
+    if ! "$VENV_DIR/bin/pip" install --upgrade pip >> "$LOG_FILE" 2>&1; then
+        log WARNING "pip upgrade failed (may be fine)"
+    else
+        log SUCCESS "pip upgraded"
+    fi
     
     # Install wheel
     log SUBSTEP "Installing build tools..."
-    run_with_retry "Installing wheel" "pip install wheel setuptools"
+    if ! "$VENV_DIR/bin/pip" install wheel setuptools >> "$LOG_FILE" 2>&1; then
+        log WARNING "wheel/setuptools install failed (may be fine)"
+    else
+        log SUCCESS "Build tools installed"
+    fi
     
     save_checkpoint "virtualenv"
     log SUCCESS "Virtual environment ready!"
@@ -560,22 +677,34 @@ install_shared_lib() {
     
     log STEP "Step 3/8: Installing Shared Library"
     
-    # Activate venv if needed
-    if [ "$SKIP_VENV" = false ]; then
-        source "$VENV_DIR/bin/activate"
+    # Determine pip path
+    local PIP_CMD="pip"
+    if [ "$SKIP_VENV" = false ] && [ -f "$VENV_DIR/bin/pip" ]; then
+        PIP_CMD="$VENV_DIR/bin/pip"
+        source "$VENV_DIR/bin/activate" 2>/dev/null || true
     fi
     
     if [ -f "$PROJECT_ROOT/shared/setup.py" ]; then
         log SUBSTEP "Installing nexus_lib (editable mode)..."
-        if run_with_retry "Installing nexus_lib" "pip install -e '$PROJECT_ROOT/shared/'"; then
+        
+        echo -ne "  ${WHITE}→${NC} Installing nexus_lib... "
+        if $PIP_CMD install -e "$PROJECT_ROOT/shared/" >> "$LOG_FILE" 2>&1; then
+            echo -e "${GREEN}✓${NC}"
+            
             # Verify installation
-            if python3 -c "import nexus_lib; print(f'nexus_lib v{nexus_lib.__version__}')" 2>/dev/null; then
+            local python_cmd="${VENV_DIR}/bin/python"
+            [ ! -f "$python_cmd" ] && python_cmd="python3"
+            
+            if $python_cmd -c "import nexus_lib; print(f'nexus_lib v{nexus_lib.__version__}')" >> "$LOG_FILE" 2>&1; then
                 log SUCCESS "nexus_lib installed and verified ✓"
             else
                 log WARNING "nexus_lib installed but import verification failed"
             fi
         else
+            echo -e "${RED}✗${NC}"
             log ERROR "Failed to install nexus_lib"
+            echo ""
+            echo -e "  ${YELLOW}Check the log:${NC} ${CYAN}tail -50 $LOG_FILE${NC}"
             exit 1
         fi
     else
@@ -593,47 +722,51 @@ install_dependencies() {
     
     log STEP "Step 4/8: Installing Service Dependencies"
     
-    # Activate venv if needed
-    if [ "$SKIP_VENV" = false ]; then
-        source "$VENV_DIR/bin/activate"
+    # Determine pip path
+    local PIP_CMD="pip"
+    if [ "$SKIP_VENV" = false ] && [ -f "$VENV_DIR/bin/pip" ]; then
+        PIP_CMD="$VENV_DIR/bin/pip"
+        source "$VENV_DIR/bin/activate" 2>/dev/null || true
     fi
     
-    # Define services with their paths
-    local -A services=(
-        ["orchestrator"]="services/orchestrator"
-        ["jira_agent"]="services/agents/jira_agent"
-        ["git_ci_agent"]="services/agents/git_ci_agent"
-        ["reporting_agent"]="services/agents/reporting_agent"
-        ["slack_agent"]="services/agents/slack_agent"
-        ["jira_hygiene_agent"]="services/agents/jira_hygiene_agent"
-        ["rca_agent"]="services/agents/rca_agent"
-        ["analytics"]="services/analytics"
-        ["webhooks"]="services/webhooks"
-        ["admin_dashboard"]="services/admin_dashboard/backend"
+    # Define services with their paths (using arrays for bash compatibility)
+    local services=(
+        "orchestrator:services/orchestrator"
+        "jira_agent:services/agents/jira_agent"
+        "git_ci_agent:services/agents/git_ci_agent"
+        "reporting_agent:services/agents/reporting_agent"
+        "slack_agent:services/agents/slack_agent"
+        "jira_hygiene_agent:services/agents/jira_hygiene_agent"
+        "rca_agent:services/agents/rca_agent"
+        "analytics:services/analytics"
+        "webhooks:services/webhooks"
+        "admin_dashboard:services/admin_dashboard/backend"
     )
     
     local total=${#services[@]}
     local current=0
-    local failed=()
+    local failed_services=()
     
     echo ""
     log INFO "Installing dependencies for $total services..."
     echo ""
     
-    for service in "${!services[@]}"; do
+    for service_entry in "${services[@]}"; do
         current=$((current + 1))
-        local path="${services[$service]}"
+        local service="${service_entry%%:*}"
+        local path="${service_entry##*:}"
         local req_file="$PROJECT_ROOT/$path/requirements.txt"
         
         if [ -f "$req_file" ]; then
-            # Show progress
-            local progress_msg="[$current/$total] $service"
+            echo -ne "  ${WHITE}→${NC} [$current/$total] $service... "
             
-            if run_with_retry "$progress_msg" "pip install -r '$req_file'"; then
+            if $PIP_CMD install -r "$req_file" >> "$LOG_FILE" 2>&1; then
+                echo -e "${GREEN}✓${NC}"
                 log_file "SUCCESS: $service dependencies installed"
             else
-                failed+=("$service")
-                log WARNING "Failed to install $service dependencies (will retry later)"
+                echo -e "${RED}✗${NC}"
+                failed_services+=("$service_entry")
+                log_file "FAILED: $service dependencies"
             fi
         else
             log DEBUG "No requirements.txt for $service"
@@ -641,19 +774,24 @@ install_dependencies() {
     done
     
     # Retry failed installations
-    if [ ${#failed[@]} -gt 0 ]; then
+    if [ ${#failed_services[@]} -gt 0 ]; then
         echo ""
-        log WARNING "Retrying ${#failed[@]} failed installations..."
+        log WARNING "Retrying ${#failed_services[@]} failed installations..."
         
-        for service in "${failed[@]}"; do
-            local path="${services[$service]}"
+        for service_entry in "${failed_services[@]}"; do
+            local service="${service_entry%%:*}"
+            local path="${service_entry##*:}"
             local req_file="$PROJECT_ROOT/$path/requirements.txt"
             
-            if ! run_with_retry "Retry: $service" "pip install -r '$req_file'"; then
-                log ERROR "Failed to install $service after retries"
+            echo -ne "  ${YELLOW}↻${NC} Retry: $service... "
+            if $PIP_CMD install -r "$req_file" >> "$LOG_FILE" 2>&1; then
+                echo -e "${GREEN}✓${NC}"
+            else
+                echo -e "${RED}✗${NC}"
+                log ERROR "Failed to install $service after retry"
                 echo ""
                 echo -e "  ${YELLOW}Try manually:${NC}"
-                echo -e "    ${CYAN}pip install -r $path/requirements.txt${NC}"
+                echo -e "    ${CYAN}$PIP_CMD install -r $path/requirements.txt${NC}"
                 echo ""
             fi
         done
@@ -663,8 +801,21 @@ install_dependencies() {
     if [ "$DEV_MODE" = true ]; then
         echo ""
         log SUBSTEP "Installing development tools..."
-        run_with_retry "pytest & testing tools" "pip install pytest pytest-asyncio pytest-cov httpx"
-        run_with_retry "linting tools" "pip install black isort flake8 mypy"
+        
+        echo -ne "  ${WHITE}→${NC} Installing test tools... "
+        if $PIP_CMD install pytest pytest-asyncio pytest-cov httpx >> "$LOG_FILE" 2>&1; then
+            echo -e "${GREEN}✓${NC}"
+        else
+            echo -e "${YELLOW}⚠${NC}"
+        fi
+        
+        echo -ne "  ${WHITE}→${NC} Installing linting tools... "
+        if $PIP_CMD install black isort flake8 mypy >> "$LOG_FILE" 2>&1; then
+            echo -e "${GREEN}✓${NC}"
+        else
+            echo -e "${YELLOW}⚠${NC}"
+        fi
+        
         log SUCCESS "Development tools installed"
     fi
     
