@@ -1,28 +1,122 @@
+# =============================================================================
+# Nexus Release Automation - Enterprise Helm Chart
+# =============================================================================
+# 
+# Production-grade Helm chart for deploying the Nexus multi-agent system
+# with high availability, security hardening, and observability.
+#
+# Features:
+# - Multi-replica deployments with pod anti-affinity
+# - Horizontal Pod Autoscaler (HPA) with custom metrics
+# - Pod Disruption Budgets for safe rolling updates
+# - Network Policies for security isolation
+# - ServiceMonitors for Prometheus Operator
+# - External Secrets support (AWS Secrets Manager, Vault)
+# - Init containers for dependency checks
+# - Graceful shutdown with preStop hooks
+# - Priority Classes for QoS
+# - Topology Spread Constraints
+#
+# =============================================================================
+
 apiVersion: v2
-name: nexus-stack
-description: Nexus Multi-Agent Release Automation System - Helm Chart
+name: nexus
+description: |
+  Nexus Release Automation System - Enterprise Helm Chart
+  
+  An AI-powered multi-agent platform for automated release readiness assessments,
+  using ReAct (Reasoning + Acting) architecture with Google Gemini.
 
 type: application
-version: 1.0.0
-appVersion: "1.0.0"
+version: 2.4.0
+appVersion: "2.4.0"
 
+# Chart icon
+icon: https://raw.githubusercontent.com/IKRedHat/Nexus-Release-Readiness-Bot/main/docs/assets/nexus-logo.png
+
+# Chart home
+home: https://github.com/IKRedHat/Nexus-Release-Readiness-Bot
+
+# Chart sources
+sources:
+  - https://github.com/IKRedHat/Nexus-Release-Readiness-Bot
+
+# Keywords for search
 keywords:
+  - nexus
   - release-automation
   - multi-agent
+  - ai
   - devops
   - jira
   - slack
+  - jenkins
+  - github
+  - llm
+  - gemini
+  - react-architecture
 
+# Maintainers
 maintainers:
   - name: Nexus Team
     email: nexus@example.com
+    url: https://github.com/IKRedHat
 
+# Annotations
+annotations:
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/license: MIT
+  artifacthub.io/operator: "false"
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/signKey: |
+    fingerprint: xxxx
+    url: https://example.com/pgp-key.asc
+  artifacthub.io/containsSecurityUpdates: "true"
+  artifacthub.io/changes: |
+    - kind: added
+      description: Enterprise-grade Helm chart with full observability
+    - kind: added
+      description: Pod Disruption Budgets and Network Policies
+    - kind: added
+      description: External Secrets support
+    - kind: added
+      description: ServiceMonitors for Prometheus Operator
+    - kind: fixed
+      description: Hygiene agent port corrected to 8085
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
+    - url: https://artifacthub.io/packages/helm/bitnami/redis
+    - url: https://artifacthub.io/packages/helm/bitnami/postgresql
+
+# Kubernetes version requirement
+kubeVersion: ">=1.23.0-0"
+
+# Dependencies
 dependencies:
+  # Redis for caching and ConfigManager
   - name: redis
-    version: "18.x.x"
+    version: "18.6.1"
     repository: "https://charts.bitnami.com/bitnami"
     condition: redis.enabled
+    tags:
+      - database
+      - cache
+  
+  # PostgreSQL with pgvector for vector memory
   - name: postgresql
-    version: "13.x.x"
+    version: "13.4.3"
     repository: "https://charts.bitnami.com/bitnami"
     condition: postgresql.enabled
+    tags:
+      - database
+      - vector
+  
+  # Prometheus stack (optional)
+  - name: kube-prometheus-stack
+    version: "55.5.0"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    condition: prometheus.enabled
+    alias: prometheus
+    tags:
+      - monitoring
+      - observability

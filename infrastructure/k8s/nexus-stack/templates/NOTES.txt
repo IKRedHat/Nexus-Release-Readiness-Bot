@@ -1,0 +1,136 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   🚀 NEXUS RELEASE AUTOMATION - DEPLOYMENT COMPLETE!                        ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Thank you for installing {{ .Chart.Name }} v{{ .Chart.Version }}!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 DEPLOYMENT STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Release Name:      {{ .Release.Name }}
+Namespace:         {{ .Release.Namespace }}
+Chart Version:     {{ .Chart.Version }}
+App Version:       {{ .Chart.AppVersion }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 DEPLOYED SERVICES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.orchestrator.enabled }}
+  ✅ Orchestrator      (Port 8080) - ReAct AI Engine
+{{- end }}
+{{- if .Values.jiraAgent.enabled }}
+  ✅ Jira Agent        (Port 8081) - Jira Integration
+{{- end }}
+{{- if .Values.gitCiAgent.enabled }}
+  ✅ Git/CI Agent      (Port 8082) - GitHub & Jenkins
+{{- end }}
+{{- if .Values.reportingAgent.enabled }}
+  ✅ Reporting Agent   (Port 8083) - Confluence Reports
+{{- end }}
+{{- if .Values.slackAgent.enabled }}
+  ✅ Slack Agent       (Port 8084) - Slack Integration
+{{- end }}
+{{- if .Values.jiraHygieneAgent.enabled }}
+  ✅ Hygiene Agent     (Port 8085) - Data Quality
+{{- end }}
+{{- if .Values.rcaAgent.enabled }}
+  ✅ RCA Agent         (Port 8006) - Root Cause Analysis
+{{- end }}
+{{- if .Values.analytics.enabled }}
+  ✅ Analytics         (Port 8086) - DORA Metrics
+{{- end }}
+{{- if .Values.webhooks.enabled }}
+  ✅ Webhooks          (Port 8087) - Event Notifications
+{{- end }}
+{{- if .Values.adminDashboard.enabled }}
+  ✅ Admin Dashboard   (Port 8088) - Web UI
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌐 ACCESS POINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  API Endpoint:        https://{{ .host }}
+{{- end }}
+{{- end }}
+
+{{- if and .Values.adminDashboard.enabled .Values.adminDashboard.ingress.enabled }}
+  Admin Dashboard:     https://{{ .Values.adminDashboard.ingress.host }}
+{{- end }}
+
+For local access (port-forwarding):
+
+  # Orchestrator API
+  kubectl port-forward svc/{{ include "nexus.fullname" . }}-orchestrator 8080:8080 -n {{ .Release.Namespace }}
+
+  # Admin Dashboard
+  kubectl port-forward svc/{{ include "nexus.fullname" . }}-admin-dashboard 8088:8088 -n {{ .Release.Namespace }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 HEALTH CHECK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Check deployment status:
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+Check service health:
+
+  kubectl exec -it deployment/{{ include "nexus.fullname" . }}-orchestrator -n {{ .Release.Namespace }} -- curl -s localhost:8080/health
+
+View logs:
+
+  kubectl logs -f deployment/{{ include "nexus.fullname" . }}-orchestrator -n {{ .Release.Namespace }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📈 METRICS & MONITORING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.serviceMonitor.enabled }}
+ServiceMonitors are enabled. Metrics are available at /metrics on each service.
+
+Prometheus queries:
+  - nexus_query_total             (Total queries processed)
+  - nexus_llm_tokens_total        (LLM token usage)
+  - nexus_tool_calls_total        (Tool invocations)
+  - nexus_hygiene_score           (Jira hygiene scores)
+{{- else }}
+ServiceMonitors are disabled. Enable them for Prometheus integration:
+  --set serviceMonitor.enabled=true
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ IMPORTANT NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Configure secrets for production:
+   - Create Kubernetes secrets or use External Secrets Operator
+   - Never commit secrets to version control
+
+2. DNS & TLS:
+   - Update ingress hosts to your actual domain
+   - Ensure cert-manager is installed for automatic TLS
+
+3. Resource tuning:
+   - Monitor and adjust resource limits based on actual usage
+   - Enable VPA for automatic right-sizing
+
+4. High Availability:
+   - For production, ensure minReplicas >= 2
+   - Consider multi-zone deployment
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  GitHub:     https://github.com/IKRedHat/Nexus-Release-Readiness-Bot
+  Docs:       https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/tree/main/docs
+
+Happy releasing! 🎉
+

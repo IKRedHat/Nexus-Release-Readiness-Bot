@@ -1,0 +1,299 @@
+{{/*
+=============================================================================
+NEXUS SERVICE MONITORS
+=============================================================================
+ServiceMonitor resources for Prometheus Operator.
+Enables automatic service discovery for metrics scraping.
+=============================================================================
+*/}}
+
+{{- if .Values.serviceMonitor.enabled }}
+# =============================================================================
+# ORCHESTRATOR SERVICE MONITOR
+# =============================================================================
+{{- if .Values.orchestrator.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "orchestrator" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "orchestrator" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "orchestrator" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+      honorLabels: {{ .Values.serviceMonitor.honorLabels }}
+      {{- with .Values.serviceMonitor.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.serviceMonitor.relabelings }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+{{- end }}
+
+# =============================================================================
+# JIRA AGENT SERVICE MONITOR
+# =============================================================================
+{{- if .Values.jiraAgent.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "jira-agent" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "jira-agent" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "jira-agent" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+
+# =============================================================================
+# GIT/CI AGENT SERVICE MONITOR
+# =============================================================================
+{{- if .Values.gitCiAgent.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "git-ci-agent" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "git-ci-agent" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "git-ci-agent" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+
+# =============================================================================
+# REPORTING AGENT SERVICE MONITOR
+# =============================================================================
+{{- if .Values.reportingAgent.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "reporting-agent" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "reporting-agent" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "reporting-agent" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+
+# =============================================================================
+# SLACK AGENT SERVICE MONITOR
+# =============================================================================
+{{- if .Values.slackAgent.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "slack-agent" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "slack-agent" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "slack-agent" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+
+# =============================================================================
+# HYGIENE AGENT SERVICE MONITOR
+# =============================================================================
+{{- if .Values.jiraHygieneAgent.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "hygiene-agent" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "hygiene-agent" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "hygiene-agent" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+
+# =============================================================================
+# RCA AGENT SERVICE MONITOR
+# =============================================================================
+{{- if .Values.rcaAgent.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "rca-agent" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "rca-agent" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "rca-agent" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+
+# =============================================================================
+# ANALYTICS SERVICE MONITOR
+# =============================================================================
+{{- if .Values.analytics.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "analytics" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "analytics" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "analytics" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+
+# =============================================================================
+# WEBHOOKS SERVICE MONITOR
+# =============================================================================
+{{- if .Values.webhooks.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "webhooks" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "webhooks" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "webhooks" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+
+# =============================================================================
+# ADMIN DASHBOARD SERVICE MONITOR
+# =============================================================================
+{{- if .Values.adminDashboard.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "admin-dashboard" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "admin-dashboard" "context" .) | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "admin-dashboard" "context" .) | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+{{- end }}
+{{- end }}
+

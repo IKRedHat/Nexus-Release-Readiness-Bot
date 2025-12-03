@@ -1,0 +1,246 @@
+# =============================================================================
+# Nexus Helm Chart - DEVELOPMENT Environment Values
+# =============================================================================
+# 
+# Usage:
+#   helm install nexus-dev ./nexus-stack -f values-dev.yaml -n nexus-dev
+#
+# This configuration:
+#   - Uses minimal resources
+#   - Single replicas
+#   - Mock mode for external services
+#   - Debug logging
+#   - No HA features
+# =============================================================================
+
+global:
+  environment: development
+  imageTag: "dev"
+  imagePullPolicy: Always
+  
+  highAvailability:
+    enabled: false
+
+# Orchestrator - Minimal for dev
+orchestrator:
+  replicas: 1
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  autoscaling:
+    enabled: false
+  
+  pdb:
+    enabled: false
+  
+  env:
+    NEXUS_ENV: development
+    LOG_LEVEL: DEBUG
+    LLM_MOCK_MODE: "true"  # Use mock LLM for cost savings
+
+# Agents - Single replica, mock mode
+jiraAgent:
+  replicas: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  env:
+    JIRA_MOCK_MODE: "true"
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+gitCiAgent:
+  replicas: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  env:
+    GITHUB_MOCK_MODE: "true"
+    JENKINS_MOCK_MODE: "true"
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+reportingAgent:
+  replicas: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  env:
+    CONFLUENCE_MOCK_MODE: "true"
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+slackAgent:
+  replicas: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  env:
+    SLACK_MOCK_MODE: "true"
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+jiraHygieneAgent:
+  replicas: 1
+  env:
+    JIRA_MOCK_MODE: "true"
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+rcaAgent:
+  replicas: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  env:
+    JENKINS_MOCK_MODE: "true"
+    GITHUB_MOCK_MODE: "true"
+    LLM_MOCK_MODE: "true"
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+analytics:
+  replicas: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  env:
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+webhooks:
+  replicas: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  env:
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+adminDashboard:
+  replicas: 1
+  pdb:
+    enabled: false
+  env:
+    LOG_LEVEL: DEBUG
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+# Ingress - Disabled for dev (use port-forward)
+ingress:
+  enabled: false
+
+# Admin Dashboard Ingress - Disabled
+adminDashboard:
+  ingress:
+    enabled: false
+
+# Redis - Minimal
+redis:
+  enabled: true
+  master:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "25m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+  metrics:
+    enabled: false
+
+# PostgreSQL - Minimal
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "250m"
+  metrics:
+    enabled: false
+
+# Observability - Minimal
+serviceMonitor:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+observability:
+  tracing:
+    enabled: false
+

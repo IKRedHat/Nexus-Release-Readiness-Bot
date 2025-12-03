@@ -1,14 +1,25 @@
-{{- if .Values.ingress.enabled -}}
+{{/*
+=============================================================================
+NEXUS INGRESS
+=============================================================================
+Main API ingress with rate limiting and TLS termination.
+=============================================================================
+*/}}
+
+# =============================================================================
+# MAIN API INGRESS
+# =============================================================================
+{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "nexus-stack.fullname" . }}
+  name: {{ include "nexus.fullname" . }}-api
   labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+    {{- include "nexus.labels" . | nindent 4 }}
   annotations:
+    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- end }}
 spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
@@ -33,12 +44,19 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
+                {{- $serviceName := include "nexus.fullname" $ }}
                 {{- if eq .service "orchestrator" }}
-                name: {{ include "nexus-stack.fullname" $ }}-orchestrator
+                name: {{ $serviceName }}-orchestrator
                 {{- else if eq .service "slack-agent" }}
-                name: {{ include "nexus-stack.fullname" $ }}-slack-agent
+                name: {{ $serviceName }}-slack-agent
+                {{- else if eq .service "rca-agent" }}
+                name: {{ $serviceName }}-rca-agent
+                {{- else if eq .service "webhooks" }}
+                name: {{ $serviceName }}-webhooks
+                {{- else if eq .service "analytics" }}
+                name: {{ $serviceName }}-analytics
                 {{- else }}
-                name: {{ include "nexus-stack.fullname" $ }}-{{ .service }}
+                name: {{ $serviceName }}-{{ .service }}
                 {{- end }}
                 port:
                   number: {{ .port }}
@@ -46,3 +64,41 @@ spec:
     {{- end }}
 {{- end }}
 
+# =============================================================================
+# ADMIN DASHBOARD INGRESS
+# =============================================================================
+{{- if and .Values.adminDashboard.enabled .Values.adminDashboard.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "nexus.fullname" . }}-admin
+  labels:
+    {{- include "nexus.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin-dashboard
+  annotations:
+    {{- with .Values.adminDashboard.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.adminDashboard.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.adminDashboard.ingress.host }}
+      secretName: {{ .Values.adminDashboard.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.adminDashboard.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "nexus.fullname" . }}-admin-dashboard
+                port:
+                  number: 8088
+{{- end }}

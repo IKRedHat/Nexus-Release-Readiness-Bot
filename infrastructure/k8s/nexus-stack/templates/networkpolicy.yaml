@@ -1,0 +1,268 @@
+{{/*
+=============================================================================
+NEXUS NETWORK POLICIES
+=============================================================================
+Zero-trust network security with explicit allow rules.
+=============================================================================
+*/}}
+
+{{- if .Values.networkPolicy.enabled }}
+# =============================================================================
+# DEFAULT DENY ALL INGRESS
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nexus.fullname" . }}-default-deny
+  labels:
+    {{- include "nexus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: nexus
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# =============================================================================
+# ORCHESTRATOR NETWORK POLICY
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nexus.fullname" . }}-orchestrator
+  labels:
+    {{- include "nexus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "orchestrator" "context" .) | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from Ingress Controller
+    - from:
+        {{- range .Values.networkPolicy.allowedNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow from Prometheus (for scraping)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow from Admin Dashboard
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: admin-dashboard
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # All Agents
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: nexus
+      ports:
+        - protocol: TCP
+          port: 8081
+        - protocol: TCP
+          port: 8082
+        - protocol: TCP
+          port: 8083
+        - protocol: TCP
+          port: 8084
+        - protocol: TCP
+          port: 8085
+        - protocol: TCP
+          port: 8006
+        - protocol: TCP
+          port: 8086
+        - protocol: TCP
+          port: 8087
+    # External APIs (LLM, etc.)
+    {{- with .Values.networkPolicy.egress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+
+---
+# =============================================================================
+# AGENTS NETWORK POLICY (Common for all agents)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nexus.fullname" . }}-agents
+  labels:
+    {{- include "nexus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: nexus
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values:
+          - jira-agent
+          - git-ci-agent
+          - reporting-agent
+          - slack-agent
+          - hygiene-agent
+          - rca-agent
+          - analytics
+          - webhooks
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # From Orchestrator
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: orchestrator
+    # From Admin Dashboard
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: admin-dashboard
+    # From Prometheus
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Inter-agent communication
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: nexus
+    # External APIs (Jira, GitHub, Jenkins, Slack, etc.)
+    {{- with .Values.networkPolicy.egress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+
+---
+# =============================================================================
+# SLACK AGENT (Needs Ingress from Outside for Webhooks)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nexus.fullname" . }}-slack-ingress
+  labels:
+    {{- include "nexus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "slack-agent" "context" .) | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from Ingress Controller (for Slack webhooks)
+    - from:
+        {{- range .Values.networkPolicy.allowedNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 8084
+
+---
+# =============================================================================
+# ADMIN DASHBOARD
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nexus.fullname" . }}-admin-dashboard
+  labels:
+    {{- include "nexus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "admin-dashboard" "context" .) | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from Ingress Controller
+    - from:
+        {{- range .Values.networkPolicy.allowedNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 8088
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # All Nexus services
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: nexus
+{{- end }}
+

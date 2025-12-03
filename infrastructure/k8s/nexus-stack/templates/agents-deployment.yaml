@@ -1,294 +1,120 @@
 {{/*
-Jira Agent Deployment
+=============================================================================
+NEXUS SPECIALIST AGENTS DEPLOYMENTS
+=============================================================================
+All 9 specialist agents using the reusable agent template.
+=============================================================================
 */}}
+
+# =============================================================================
+# JIRA AGENT
+# =============================================================================
 {{- if .Values.jiraAgent.enabled }}
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ include "nexus-stack.fullname" . }}-jira-agent
-  labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: jira-agent
-spec:
-  replicas: {{ .Values.jiraAgent.replicas }}
-  selector:
-    matchLabels:
-      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: jira-agent
-  template:
-    metadata:
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8081"
-        prometheus.io/path: "/metrics"
-      labels:
-        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: jira-agent
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-      containers:
-        - name: jira-agent
-          image: "{{ .Values.jiraAgent.image.repository }}:{{ .Values.jiraAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          ports:
-            - name: http
-              containerPort: 8081
-          env:
-            {{- range $key, $value := .Values.jiraAgent.env }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-          envFrom:
-            - secretRef:
-                name: {{ include "nexus-stack.fullname" . }}-jira-agent-secrets
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          resources:
-            {{- toYaml .Values.jiraAgent.resources | nindent 12 }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "nexus-stack.fullname" . }}-jira-agent
-  labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: jira-agent
-spec:
-  type: ClusterIP
-  ports:
-    - port: 8081
-      targetPort: http
-      name: http
-  selector:
-    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: jira-agent
+{{ include "nexus.agentDeployment" (dict "name" "jira-agent" "config" .Values.jiraAgent "port" 8081 "context" .) }}
 {{- end }}
----
-{{/*
-Git/CI Agent Deployment
-*/}}
+
+# =============================================================================
+# GIT/CI AGENT
+# =============================================================================
 {{- if .Values.gitCiAgent.enabled }}
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ include "nexus-stack.fullname" . }}-git-ci-agent
-  labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: git-ci-agent
-spec:
-  replicas: {{ .Values.gitCiAgent.replicas }}
-  selector:
-    matchLabels:
-      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: git-ci-agent
-  template:
-    metadata:
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8082"
-        prometheus.io/path: "/metrics"
-      labels:
-        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: git-ci-agent
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-      containers:
-        - name: git-ci-agent
-          image: "{{ .Values.gitCiAgent.image.repository }}:{{ .Values.gitCiAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          ports:
-            - name: http
-              containerPort: 8082
-          env:
-            {{- range $key, $value := .Values.gitCiAgent.env }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-          envFrom:
-            - secretRef:
-                name: {{ include "nexus-stack.fullname" . }}-git-ci-agent-secrets
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: http
-          resources:
-            {{- toYaml .Values.gitCiAgent.resources | nindent 12 }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "nexus-stack.fullname" . }}-git-ci-agent
-  labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: git-ci-agent
-spec:
-  type: ClusterIP
-  ports:
-    - port: 8082
-      targetPort: http
-      name: http
-  selector:
-    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: git-ci-agent
+{{ include "nexus.agentDeployment" (dict "name" "git-ci-agent" "config" .Values.gitCiAgent "port" 8082 "context" .) }}
 {{- end }}
----
-{{/*
-Reporting Agent Deployment
-*/}}
+
+# =============================================================================
+# REPORTING AGENT
+# =============================================================================
 {{- if .Values.reportingAgent.enabled }}
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ include "nexus-stack.fullname" . }}-reporting-agent
-  labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: reporting-agent
-spec:
-  replicas: {{ .Values.reportingAgent.replicas }}
-  selector:
-    matchLabels:
-      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: reporting-agent
-  template:
-    metadata:
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8083"
-        prometheus.io/path: "/metrics"
-      labels:
-        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: reporting-agent
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-      containers:
-        - name: reporting-agent
-          image: "{{ .Values.reportingAgent.image.repository }}:{{ .Values.reportingAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          ports:
-            - name: http
-              containerPort: 8083
-          env:
-            {{- range $key, $value := .Values.reportingAgent.env }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
-            {{- end }}
-          envFrom:
-            - secretRef:
-                name: {{ include "nexus-stack.fullname" . }}-reporting-agent-secrets
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: http
-          resources:
-            {{- toYaml .Values.reportingAgent.resources | nindent 12 }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "nexus-stack.fullname" . }}-reporting-agent
-  labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: reporting-agent
-spec:
-  type: ClusterIP
-  ports:
-    - port: 8083
-      targetPort: http
-      name: http
-  selector:
-    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: reporting-agent
+{{ include "nexus.agentDeployment" (dict "name" "reporting-agent" "config" .Values.reportingAgent "port" 8083 "context" .) }}
 {{- end }}
----
-{{/*
-Slack Agent Deployment
-*/}}
+
+# =============================================================================
+# SLACK AGENT
+# =============================================================================
 {{- if .Values.slackAgent.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "nexus-stack.fullname" . }}-slack-agent
+  name: {{ include "nexus.componentName" (dict "component" "slack-agent" "context" .) }}
   labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: slack-agent
+    {{- include "nexus.componentLabels" (dict "component" "slack-agent" "context" .) | nindent 4 }}
 spec:
+  {{- if not .Values.slackAgent.autoscaling.enabled }}
   replicas: {{ .Values.slackAgent.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
   selector:
     matchLabels:
-      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: slack-agent
+      {{- include "nexus.componentSelectorLabels" (dict "component" "slack-agent" "context" .) | nindent 6 }}
   template:
     metadata:
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8084"
-        prometheus.io/path: "/metrics"
+        {{- with .Values.slackAgent.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
-        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: slack-agent
+        {{- include "nexus.componentSelectorLabels" (dict "component" "slack-agent" "context" .) | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "nexus.serviceAccountName" . }}
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: slack-agent
-          image: "{{ .Values.slackAgent.image.repository }}:{{ .Values.slackAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          image: {{ include "nexus.image" (dict "imageConfig" .Values.slackAgent.image "global" .Values.global "Chart" .Chart) }}
+          imagePullPolicy: {{ include "nexus.imagePullPolicy" (dict "imageConfig" .Values.slackAgent.image "global" .Values.global) }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           ports:
             - name: http
               containerPort: 8084
           env:
+            - name: ORCHESTRATOR_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "orchestrator" "port" 8080 "context" .) }}
+            - name: REDIS_URL
+              value: {{ include "nexus.redisUrl" . }}
+            {{- if .Values.observability.tracing.enabled }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.observability.tracing.endpoint }}
+            {{- end }}
             {{- range $key, $value := .Values.slackAgent.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            - name: ORCHESTRATOR_URL
-              value: "http://{{ include "nexus-stack.fullname" . }}-orchestrator:8080"
           envFrom:
             - secretRef:
-                name: {{ include "nexus-stack.fullname" . }}-slack-agent-secrets
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: http
+                name: {{ include "nexus.componentName" (dict "component" "slack-agent" "context" .) }}-secrets
+          {{- include "nexus.livenessProbe" (dict "port" "http" "path" "/health") | nindent 10 }}
+          {{- include "nexus.readinessProbe" (dict "port" "http" "path" "/health") | nindent 10 }}
           resources:
             {{- toYaml .Values.slackAgent.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.slackAgent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.global.highAvailability.enabled }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "nexus.componentSelectorLabels" (dict "component" "slack-agent" "context" .) | nindent 20 }}
+                topologyKey: kubernetes.io/hostname
+      {{- end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "nexus-stack.fullname" . }}-slack-agent
+  name: {{ include "nexus.componentName" (dict "component" "slack-agent" "context" .) }}
   labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: slack-agent
+    {{- include "nexus.componentLabels" (dict "component" "slack-agent" "context" .) | nindent 4 }}
 spec:
   type: ClusterIP
   ports:
@@ -296,87 +122,250 @@ spec:
       targetPort: http
       name: http
   selector:
-    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: slack-agent
-{{- end }}
+    {{- include "nexus.componentSelectorLabels" (dict "component" "slack-agent" "context" .) | nindent 4 }}
+{{- if .Values.slackAgent.autoscaling.enabled }}
 ---
-{{/*
-Jira Hygiene Agent Deployment
-*/}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "slack-agent" "context" .) }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "nexus.componentName" (dict "component" "slack-agent" "context" .) }}
+  minReplicas: {{ .Values.slackAgent.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.slackAgent.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.slackAgent.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+{{- if .Values.slackAgent.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "slack-agent" "context" .) }}
+spec:
+  minAvailable: {{ .Values.slackAgent.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "slack-agent" "context" .) | nindent 6 }}
+{{- end }}
+{{- end }}
+
+# =============================================================================
+# JIRA HYGIENE AGENT (Port 8085 - FIXED)
+# =============================================================================
 {{- if .Values.jiraHygieneAgent.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "nexus-stack.fullname" . }}-jira-hygiene-agent
+  name: {{ include "nexus.componentName" (dict "component" "hygiene-agent" "context" .) }}
   labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: jira-hygiene-agent
+    {{- include "nexus.componentLabels" (dict "component" "hygiene-agent" "context" .) | nindent 4 }}
 spec:
   replicas: {{ .Values.jiraHygieneAgent.replicas }}
   selector:
     matchLabels:
-      {{- include "nexus-stack.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: jira-hygiene-agent
+      {{- include "nexus.componentSelectorLabels" (dict "component" "hygiene-agent" "context" .) | nindent 6 }}
   template:
     metadata:
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8005"
-        prometheus.io/path: "/metrics"
+        {{- with .Values.jiraHygieneAgent.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
-        {{- include "nexus-stack.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: jira-hygiene-agent
+        {{- include "nexus.componentSelectorLabels" (dict "component" "hygiene-agent" "context" .) | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "nexus.serviceAccountName" . }}
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: jira-hygiene-agent
-          image: "{{ .Values.jiraHygieneAgent.image.repository }}:{{ .Values.jiraHygieneAgent.image.tag | default (include "nexus-stack.imageTag" .) }}"
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        - name: hygiene-agent
+          image: {{ include "nexus.image" (dict "imageConfig" .Values.jiraHygieneAgent.image "global" .Values.global "Chart" .Chart) }}
+          imagePullPolicy: {{ include "nexus.imagePullPolicy" (dict "imageConfig" .Values.jiraHygieneAgent.image "global" .Values.global) }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           ports:
             - name: http
-              containerPort: 8005
+              containerPort: 8085  # FIXED: Was 8005
           env:
+            - name: SLACK_AGENT_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "slack-agent" "port" 8084 "context" .) }}
+            - name: REDIS_URL
+              value: {{ include "nexus.redisUrl" . }}
+            {{- if .Values.observability.tracing.enabled }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.observability.tracing.endpoint }}
+            {{- end }}
             {{- range $key, $value := .Values.jiraHygieneAgent.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            - name: SLACK_AGENT_URL
-              value: "http://{{ include "nexus-stack.fullname" . }}-slack-agent:8084"
           envFrom:
             - secretRef:
-                name: {{ include "nexus-stack.fullname" . }}-jira-hygiene-agent-secrets
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 5
-            periodSeconds: 5
+                name: {{ include "nexus.componentName" (dict "component" "hygiene-agent" "context" .) }}-secrets
+          {{- include "nexus.livenessProbe" (dict "port" "http" "path" "/health") | nindent 10 }}
+          {{- include "nexus.readinessProbe" (dict "port" "http" "path" "/health") | nindent 10 }}
           resources:
             {{- toYaml .Values.jiraHygieneAgent.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "nexus-stack.fullname" . }}-jira-hygiene-agent
+  name: {{ include "nexus.componentName" (dict "component" "hygiene-agent" "context" .) }}
   labels:
-    {{- include "nexus-stack.labels" . | nindent 4 }}
-    app.kubernetes.io/component: jira-hygiene-agent
+    {{- include "nexus.componentLabels" (dict "component" "hygiene-agent" "context" .) | nindent 4 }}
 spec:
   type: ClusterIP
   ports:
-    - port: 8005
+    - port: 8085  # FIXED: Was 8005
       targetPort: http
       name: http
   selector:
-    {{- include "nexus-stack.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: jira-hygiene-agent
+    {{- include "nexus.componentSelectorLabels" (dict "component" "hygiene-agent" "context" .) | nindent 4 }}
 {{- end }}
 
+# =============================================================================
+# RCA AGENT
+# =============================================================================
+{{- if .Values.rcaAgent.enabled }}
+{{ include "nexus.agentDeployment" (dict "name" "rca-agent" "config" .Values.rcaAgent "port" 8006 "context" .) }}
+{{- end }}
+
+# =============================================================================
+# ANALYTICS SERVICE
+# =============================================================================
+{{- if .Values.analytics.enabled }}
+{{ include "nexus.agentDeployment" (dict "name" "analytics" "config" .Values.analytics "port" 8086 "context" .) }}
+{{- end }}
+
+# =============================================================================
+# WEBHOOKS SERVICE
+# =============================================================================
+{{- if .Values.webhooks.enabled }}
+{{ include "nexus.agentDeployment" (dict "name" "webhooks" "config" .Values.webhooks "port" 8087 "context" .) }}
+{{- end }}
+
+# =============================================================================
+# ADMIN DASHBOARD
+# =============================================================================
+{{- if .Values.adminDashboard.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "admin-dashboard" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "admin-dashboard" "context" .) | nindent 4 }}
+spec:
+  replicas: {{ .Values.adminDashboard.replicas }}
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "admin-dashboard" "context" .) | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.adminDashboard.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "nexus.componentSelectorLabels" (dict "component" "admin-dashboard" "context" .) | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "nexus.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: admin-dashboard
+          image: {{ include "nexus.image" (dict "imageConfig" .Values.adminDashboard.image "global" .Values.global "Chart" .Chart) }}
+          imagePullPolicy: {{ include "nexus.imagePullPolicy" (dict "imageConfig" .Values.adminDashboard.image "global" .Values.global) }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8088
+          env:
+            - name: REDIS_URL
+              value: {{ include "nexus.redisUrl" . }}
+            - name: ORCHESTRATOR_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "orchestrator" "port" 8080 "context" .) }}
+            - name: JIRA_AGENT_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "jira-agent" "port" 8081 "context" .) }}
+            - name: GIT_AGENT_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "git-ci-agent" "port" 8082 "context" .) }}
+            - name: REPORTING_AGENT_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "reporting-agent" "port" 8083 "context" .) }}
+            - name: SLACK_AGENT_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "slack-agent" "port" 8084 "context" .) }}
+            - name: HYGIENE_AGENT_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "hygiene-agent" "port" 8085 "context" .) }}
+            - name: RCA_AGENT_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "rca-agent" "port" 8006 "context" .) }}
+            - name: ANALYTICS_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "analytics" "port" 8086 "context" .) }}
+            - name: WEBHOOKS_URL
+              value: {{ include "nexus.serviceUrl" (dict "name" "webhooks" "port" 8087 "context" .) }}
+            {{- range $key, $value := .Values.adminDashboard.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health-check
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health-check
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.adminDashboard.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "admin-dashboard" "context" .) }}
+  labels:
+    {{- include "nexus.componentLabels" (dict "component" "admin-dashboard" "context" .) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8088
+      targetPort: http
+      name: http
+  selector:
+    {{- include "nexus.componentSelectorLabels" (dict "component" "admin-dashboard" "context" .) | nindent 4 }}
+{{- if .Values.adminDashboard.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nexus.componentName" (dict "component" "admin-dashboard" "context" .) }}
+spec:
+  minAvailable: {{ .Values.adminDashboard.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "nexus.componentSelectorLabels" (dict "component" "admin-dashboard" "context" .) | nindent 6 }}
+{{- end }}
+{{- end }}

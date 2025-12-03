@@ -1,0 +1,80 @@
+# Helm ignore patterns
+# ====================
+# Standard patterns for ignoring files during helm package
+
+# VCS
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
+*.code-workspace
+
+# Build artifacts
+*.tgz
+*.tar.gz
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+azure-pipelines.yml
+
+# Testing
+tests/
+test/
+*_test.yaml
+
+# Documentation (not needed in package)
+*.md
+!templates/NOTES.txt
+LICENSE
+OWNERS
+CODEOWNERS
+
+# Development
+Makefile
+Taskfile.yml
+scripts/
+Dockerfile*
+
+# Secrets (never package)
+secrets/
+*.secret
+*.key
+*.pem
+*.crt
+
+# Local development
+values-local.yaml
+.env
+*.local
+
+# Temporary files
+tmp/
+.tmp/
+*.tmp
+*.bak
+*.backup
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Chart dependencies (managed by helm)
+charts/*.tgz
+
+# CI artifacts
+coverage/
+reports/
+

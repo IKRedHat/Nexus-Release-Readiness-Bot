@@ -1,29 +1,114 @@
-# ============================================================================
-# Nexus Stack - Helm Values
-# ============================================================================
+# =============================================================================
+# Nexus Release Automation - Enterprise Helm Values
+# =============================================================================
+#
+# This file contains the default configuration for the Nexus Helm chart.
+# Override these values in your environment-specific values files:
+#   - values-dev.yaml
+#   - values-staging.yaml
+#   - values-prod.yaml
+#
+# Installation:
+#   helm install nexus ./nexus-stack -f values-prod.yaml
+#
+# =============================================================================
 
+# =============================================================================
+# GLOBAL CONFIGURATION
+# =============================================================================
 global:
+  # -- Environment name (dev, staging, prod)
   environment: production
-  imageTag: latest
+  
+  # -- Image registry (e.g., gcr.io/my-project, docker.io)
+  imageRegistry: ""
+  
+  # -- Default image tag for all services
+  imageTag: "2.4.0"
+  
+  # -- Default image pull policy
   imagePullPolicy: IfNotPresent
+  
+  # -- Image pull secrets (list of secret names)
   imagePullSecrets: []
+  # - name: regcred
+  
+  # -- Common labels applied to all resources
+  commonLabels: {}
+  #   team: platform
+  #   cost-center: engineering
+  
+  # -- Common annotations applied to all resources
+  commonAnnotations: {}
+  
+  # -- Pod labels applied to all pods
+  podLabels: {}
+  
+  # -- High availability configuration
+  highAvailability:
+    # -- Enable HA features (pod anti-affinity, topology spread)
+    enabled: true
+    # -- Minimum replicas for critical services
+    minReplicas: 2
 
-# ============================================================================
-# Orchestrator Configuration
-# ============================================================================
+# -- Override chart name
+nameOverride: ""
+
+# -- Override full release name
+fullnameOverride: ""
+
+# =============================================================================
+# SERVICE ACCOUNT
+# =============================================================================
+serviceAccount:
+  # -- Create a service account
+  create: true
+  # -- Service account name (auto-generated if empty)
+  name: ""
+  # -- Annotations for the service account
+  annotations: {}
+  # -- Automount API credentials
+  automountServiceAccountToken: true
+
+# =============================================================================
+# RBAC
+# =============================================================================
+rbac:
+  # -- Create RBAC resources
+  create: true
+  # -- Additional rules for the role
+  rules: []
+
+# =============================================================================
+# ORCHESTRATOR (Central Brain)
+# =============================================================================
 orchestrator:
+  # -- Enable the orchestrator
   enabled: true
+  
+  # -- Number of replicas (overridden by HPA if enabled)
   replicas: 2
   
+  # -- Deployment strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  
+  # -- Image configuration
   image:
     repository: nexus/orchestrator
     tag: ""  # Uses global.imageTag if empty
     pullPolicy: ""
   
+  # -- Service configuration
   service:
     type: ClusterIP
     port: 8080
+    annotations: {}
   
+  # -- Resource requests and limits
   resources:
     requests:
       memory: "512Mi"
@@ -32,40 +117,102 @@ orchestrator:
       memory: "1Gi"
       cpu: "1000m"
   
+  # -- Horizontal Pod Autoscaler
   autoscaling:
     enabled: true
     minReplicas: 2
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
+    # -- Custom metrics (requires metrics-server and custom metrics API)
+    customMetrics: []
+    # - type: Pods
+    #   pods:
+    #     metric:
+    #       name: requests_per_second
+    #     target:
+    #       type: AverageValue
+    #       averageValue: 100
   
+  # -- Vertical Pod Autoscaler
+  vpa:
+    enabled: false
+    updatePolicy:
+      updateMode: "Auto"
+  
+  # -- Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+    # maxUnavailable: 1
+  
+  # -- Environment variables
   env:
     NEXUS_ENV: production
     LLM_PROVIDER: google
+    LLM_MODEL: gemini-2.0-flash
     MEMORY_BACKEND: pgvector
     MAX_REACT_ITERATIONS: "10"
+    LOG_LEVEL: INFO
   
+  # -- Secrets (use existingSecret for external secret management)
   secrets:
-    # These should be provided via external secret management
     NEXUS_JWT_SECRET: ""
     LLM_API_KEY: ""
     POSTGRES_PASSWORD: ""
   
+  # -- Use existing secret instead of creating one
+  existingSecret: ""
+  
+  # -- External Secrets configuration (AWS Secrets Manager, Vault, etc.)
+  externalSecrets:
+    enabled: false
+    secretStoreRef:
+      name: aws-secrets-manager
+      kind: ClusterSecretStore
+    refreshInterval: "1h"
+    data: []
+    # - secretKey: LLM_API_KEY
+    #   remoteRef:
+    #     key: nexus/prod/llm
+    #     property: api_key
+  
+  # -- Pod annotations
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8080"
     prometheus.io/path: "/metrics"
   
+  # -- Node selector
   nodeSelector: {}
+  
+  # -- Tolerations
   tolerations: []
+  
+  # -- Affinity rules (merged with auto-generated anti-affinity)
   affinity: {}
+  
+  # -- Priority class name
+  priorityClassName: ""
+  
+  # -- Init containers
+  initContainers: []
+  
+  # -- Extra volumes
+  extraVolumes: []
+  
+  # -- Extra volume mounts
+  extraVolumeMounts: []
+  
+  # -- Extra containers (sidecars)
+  extraContainers: []
 
-# ============================================================================
-# Jira Agent Configuration
-# ============================================================================
+# =============================================================================
+# JIRA AGENT
+# =============================================================================
 jiraAgent:
   enabled: true
-  replicas: 1
+  replicas: 2
   
   image:
     repository: nexus/jira-agent
@@ -83,20 +230,42 @@ jiraAgent:
       memory: "512Mi"
       cpu: "500m"
   
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
   env:
     JIRA_MOCK_MODE: "false"
+    LOG_LEVEL: INFO
   
   secrets:
     JIRA_URL: ""
-    JIRA_USERNAME: ""
+    JIRA_EMAIL: ""
     JIRA_API_TOKEN: ""
+  
+  existingSecret: ""
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8081"
+    prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# Git/CI Agent Configuration
-# ============================================================================
+# =============================================================================
+# GIT/CI AGENT
+# =============================================================================
 gitCiAgent:
   enabled: true
-  replicas: 1
+  replicas: 2
   
   image:
     repository: nexus/git-ci-agent
@@ -114,22 +283,44 @@ gitCiAgent:
       memory: "512Mi"
       cpu: "500m"
   
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
   env:
     GITHUB_MOCK_MODE: "false"
     JENKINS_MOCK_MODE: "false"
+    LOG_LEVEL: INFO
   
   secrets:
     GITHUB_TOKEN: ""
     JENKINS_URL: ""
     JENKINS_USERNAME: ""
     JENKINS_API_TOKEN: ""
+  
+  existingSecret: ""
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8082"
+    prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# Reporting Agent Configuration
-# ============================================================================
+# =============================================================================
+# REPORTING AGENT
+# =============================================================================
 reportingAgent:
   enabled: true
-  replicas: 1
+  replicas: 2
   
   image:
     repository: nexus/reporting-agent
@@ -147,20 +338,41 @@ reportingAgent:
       memory: "512Mi"
       cpu: "500m"
   
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
   env:
     CONFLUENCE_MOCK_MODE: "false"
+    LOG_LEVEL: INFO
   
   secrets:
     CONFLUENCE_URL: ""
-    CONFLUENCE_USERNAME: ""
+    CONFLUENCE_EMAIL: ""
     CONFLUENCE_API_TOKEN: ""
+  
+  existingSecret: ""
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8083"
+    prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# Slack Agent Configuration
-# ============================================================================
+# =============================================================================
+# SLACK AGENT
+# =============================================================================
 slackAgent:
   enabled: true
-  replicas: 1
+  replicas: 2
   
   image:
     repository: nexus/slack-agent
@@ -178,28 +390,50 @@ slackAgent:
       memory: "512Mi"
       cpu: "500m"
   
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
   env:
     SLACK_MOCK_MODE: "false"
+    LOG_LEVEL: INFO
   
   secrets:
     SLACK_BOT_TOKEN: ""
     SLACK_SIGNING_SECRET: ""
     SLACK_APP_TOKEN: ""
+  
+  existingSecret: ""
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8084"
+    prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# Jira Hygiene Agent Configuration
-# ============================================================================
+# =============================================================================
+# JIRA HYGIENE AGENT
+# =============================================================================
 jiraHygieneAgent:
   enabled: true
-  replicas: 1
+  replicas: 1  # Single instance with scheduler
   
   image:
-    repository: nexus/jira-hygiene-agent
+    repository: nexus/hygiene-agent
     tag: ""
   
   service:
     type: ClusterIP
-    port: 8005
+    port: 8085  # FIXED: Was 8005
   
   resources:
     requests:
@@ -209,27 +443,42 @@ jiraHygieneAgent:
       memory: "512Mi"
       cpu: "500m"
   
+  # No HPA - single scheduler instance
+  autoscaling:
+    enabled: false
+  
+  pdb:
+    enabled: false  # Single instance
+  
   env:
     JIRA_MOCK_MODE: "false"
-    # Hygiene check schedule (weekdays at 9:00 AM)
-    HYGIENE_SCHEDULE_HOUR: "9"
-    HYGIENE_SCHEDULE_MINUTE: "0"
-    HYGIENE_SCHEDULE_DAYS: "mon-fri"
+    HYGIENE_CHECK_SCHEDULE: "0 9 * * 1-5"  # Weekdays 9AM
     HYGIENE_TIMEZONE: "UTC"
-    # Projects to check (comma-separated, empty = all)
-    HYGIENE_PROJECTS: ""
+    HYGIENE_PROJECTS: ""  # Empty = all projects
+    LOG_LEVEL: INFO
   
   secrets:
     JIRA_URL: ""
-    JIRA_USERNAME: ""
+    JIRA_EMAIL: ""
     JIRA_API_TOKEN: ""
+  
+  existingSecret: ""
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8085"
+    prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# RCA Agent Configuration
-# ============================================================================
+# =============================================================================
+# RCA AGENT (Root Cause Analysis)
+# =============================================================================
 rcaAgent:
   enabled: true
-  replicas: 1
+  replicas: 2
   
   image:
     repository: nexus/rca-agent
@@ -247,6 +496,16 @@ rcaAgent:
       memory: "1Gi"
       cpu: "1000m"
   
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
   env:
     JENKINS_MOCK_MODE: "false"
     GITHUB_MOCK_MODE: "false"
@@ -254,22 +513,31 @@ rcaAgent:
     RCA_LLM_MODEL: "gemini-1.5-pro"
     RCA_MAX_LOG_CHARS: "100000"
     RCA_MAX_DIFF_CHARS: "50000"
+    RCA_AUTO_ANALYZE: "true"
+    SLACK_NOTIFY_ON_FAILURE: "true"
+    LOG_LEVEL: INFO
   
   secrets:
     JENKINS_URL: ""
     JENKINS_USERNAME: ""
     JENKINS_API_TOKEN: ""
     GITHUB_TOKEN: ""
-    GEMINI_API_KEY: ""
+    LLM_API_KEY: ""
+  
+  existingSecret: ""
   
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8006"
     prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# Analytics Service Configuration
-# ============================================================================
+# =============================================================================
+# ANALYTICS SERVICE
+# =============================================================================
 analytics:
   enabled: true
   replicas: 2
@@ -296,18 +564,30 @@ analytics:
     maxReplicas: 5
     targetCPUUtilizationPercentage: 70
   
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
   env:
     AGGREGATION_INTERVAL: "60"
     RETENTION_DAYS: "90"
+    LOG_LEVEL: INFO
+  
+  secrets: {}
+  existingSecret: ""
   
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8086"
     prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# Webhook Service Configuration
-# ============================================================================
+# =============================================================================
+# WEBHOOKS SERVICE
+# =============================================================================
 webhooks:
   enabled: true
   replicas: 2
@@ -334,60 +614,38 @@ webhooks:
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
   
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
   env:
     WEBHOOK_MAX_RETRIES: "5"
     WEBHOOK_INITIAL_DELAY: "5"
     WEBHOOK_MAX_DELAY: "3600"
     WEBHOOK_RATE_LIMIT: "60"
     WEBHOOK_TIMEOUT: "30"
+    LOG_LEVEL: INFO
+  
+  secrets:
+    WEBHOOK_SECRET: ""
+  
+  existingSecret: ""
   
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8087"
     prometheus.io/path: "/metrics"
-
-# ============================================================================
-# Ingress Configuration
-# ============================================================================
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
   
-  hosts:
-    - host: nexus.example.com
-      paths:
-        - path: /api
-          pathType: Prefix
-          service: orchestrator
-          port: 8080
-        - path: /slack
-          pathType: Prefix
-          service: slack-agent
-          port: 8084
-        - path: /analytics
-          pathType: Prefix
-          service: analytics
-          port: 8086
-        - path: /webhooks
-          pathType: Prefix
-          service: webhooks
-          port: 8087
-  
-  tls:
-    - secretName: nexus-tls
-      hosts:
-        - nexus.example.com
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# Admin Dashboard Configuration
-# ============================================================================
+# =============================================================================
+# ADMIN DASHBOARD
+# =============================================================================
 adminDashboard:
   enabled: true
-  replicas: 1
+  replicas: 2
   
   image:
     repository: nexus/admin-dashboard
@@ -397,10 +655,6 @@ adminDashboard:
     type: ClusterIP
     port: 8088
   
-  ingress:
-    enabled: true
-    host: admin.nexus.example.com
-  
   resources:
     requests:
       memory: "256Mi"
@@ -409,69 +663,295 @@ adminDashboard:
       memory: "512Mi"
       cpu: "500m"
   
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
   env:
-    REDIS_URL: "redis://redis-master:6379"
+    LOG_LEVEL: INFO
+  
+  secrets: {}
+  existingSecret: ""
+  
+  # Separate ingress for admin dashboard
+  ingress:
+    enabled: true
+    host: admin.nexus.example.com
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: admin-nexus-tls
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8088"
+    prometheus.io/path: "/metrics"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
-# ============================================================================
-# Redis Configuration (using Bitnami chart)
-# ============================================================================
+# =============================================================================
+# INGRESS (Main API)
+# =============================================================================
+ingress:
+  enabled: true
+  
+  # -- Ingress class name
+  className: nginx
+  
+  # -- Ingress annotations
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+  
+  # -- Host configuration
+  hosts:
+    - host: nexus-api.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: orchestrator
+          port: 8080
+        - path: /slack
+          pathType: Prefix
+          service: slack-agent
+          port: 8084
+        - path: /webhooks
+          pathType: Prefix
+          service: webhooks
+          port: 8087
+        - path: /rca
+          pathType: Prefix
+          service: rca-agent
+          port: 8006
+  
+  # -- TLS configuration
+  tls:
+    - secretName: nexus-api-tls
+      hosts:
+        - nexus-api.example.com
+
+# =============================================================================
+# REDIS (Bitnami Subchart)
+# =============================================================================
 redis:
   enabled: true
+  
   architecture: standalone
+  
   auth:
     enabled: true
-    password: ""  # Should be set via secrets
+    password: ""  # Set via --set or external secret
+  
   master:
     persistence:
-      size: 1Gi
+      enabled: true
+      size: 2Gi
+      storageClass: ""
+    
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
 
-# ============================================================================
-# PostgreSQL Configuration (using Bitnami chart with pgvector)
-# ============================================================================
+# External Redis (when redis.enabled=false)
+externalRedis:
+  url: ""
+  password: ""
+  existingSecret: ""
+
+# =============================================================================
+# POSTGRESQL (Bitnami Subchart)
+# =============================================================================
 postgresql:
   enabled: true
+  
   auth:
     database: nexus
     username: nexus
-    password: ""  # Should be set via secrets
+    password: ""  # Set via --set or external secret
+  
   primary:
     persistence:
-      size: 10Gi
+      enabled: true
+      size: 20Gi
+      storageClass: ""
+    
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    
+    # Initialize pgvector extension
     initdb:
       scripts:
         init-pgvector.sql: |
           CREATE EXTENSION IF NOT EXISTS vector;
-
-# ============================================================================
-# Observability
-# ============================================================================
-observability:
-  prometheus:
+          CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  
+  metrics:
     enabled: true
     serviceMonitor:
       enabled: true
-      interval: 15s
+
+# External PostgreSQL (when postgresql.enabled=false)
+externalPostgresql:
+  host: ""
+  port: 5432
+  database: nexus
+  username: nexus
+  password: ""
+  existingSecret: ""
+  sslMode: require
+
+# =============================================================================
+# PROMETHEUS (Optional Subchart)
+# =============================================================================
+prometheus:
+  enabled: false
   
+  # See kube-prometheus-stack values for configuration
+  grafana:
+    enabled: true
+    adminPassword: "nexus-admin"
+  
+  prometheus:
+    prometheusSpec:
+      serviceMonitorSelector: {}
+      podMonitorSelector: {}
+
+# =============================================================================
+# SERVICEMONITOR (For Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  
+  # -- Labels for ServiceMonitor
+  labels: {}
+  
+  # -- Scrape interval
+  interval: 30s
+  
+  # -- Scrape timeout
+  scrapeTimeout: 10s
+  
+  # -- Honor labels
+  honorLabels: true
+  
+  # -- Metric relabelings
+  metricRelabelings: []
+  
+  # -- Relabelings
+  relabelings: []
+
+# =============================================================================
+# NETWORK POLICY
+# =============================================================================
+networkPolicy:
+  enabled: true
+  
+  # -- Allow traffic from these namespaces
+  allowedNamespaces:
+    - ingress-nginx
+    - monitoring
+  
+  # -- Allow traffic from these pod labels
+  allowedPodLabels: {}
+  
+  # -- Egress rules
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow external APIs (Jira, GitHub, etc.)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+
+# =============================================================================
+# POD SECURITY POLICY / POD SECURITY STANDARDS
+# =============================================================================
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+# =============================================================================
+# OBSERVABILITY
+# =============================================================================
+observability:
+  # -- OpenTelemetry tracing
   tracing:
     enabled: true
     endpoint: "http://jaeger-collector:4317"
     insecure: true
+    samplingRatio: 1.0
+  
+  # -- Logging configuration
+  logging:
+    level: INFO
+    format: json
+    includeTrace: true
 
-# ============================================================================
-# Pod Disruption Budgets
-# ============================================================================
-podDisruptionBudget:
-  orchestrator:
-    enabled: true
-    minAvailable: 1
-  agents:
-    enabled: true
-    minAvailable: 0
-
-# ============================================================================
-# Network Policies
-# ============================================================================
-networkPolicy:
-  enabled: false
-  ingress: []
-  egress: []
+# =============================================================================
+# EXTRA RESOURCES
+# =============================================================================
+# -- Extra Kubernetes resources to deploy
+extraDeploy: []
+# - apiVersion: v1
+#   kind: ConfigMap
+#   metadata:
+#     name: extra-config
+#   data:
+#     key: value

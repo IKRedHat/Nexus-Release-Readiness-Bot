@@ -1,0 +1,526 @@
+# =============================================================================
+# Nexus Helm Chart - PRODUCTION Environment Values
+# =============================================================================
+# 
+# Usage:
+#   helm install nexus ./nexus-stack -f values-prod.yaml -n nexus-prod
+#
+# This configuration:
+#   - High availability (multi-replica)
+#   - Production resources
+#   - All security features enabled
+#   - Full observability
+#   - External secrets integration
+# =============================================================================
+
+global:
+  environment: production
+  imageTag: "2.4.0"
+  imagePullPolicy: IfNotPresent
+  
+  # Add your registry credentials
+  imagePullSecrets:
+    - nexus-registry-cred
+  
+  commonLabels:
+    environment: production
+    team: platform
+  
+  highAvailability:
+    enabled: true
+    minReplicas: 2
+
+# =============================================================================
+# ORCHESTRATOR - High Availability
+# =============================================================================
+orchestrator:
+  replicas: 3
+  
+  image:
+    repository: your-registry/nexus/orchestrator
+  
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+  
+  pdb:
+    enabled: true
+    minAvailable: 2
+  
+  env:
+    NEXUS_ENV: production
+    LOG_LEVEL: INFO
+    LLM_PROVIDER: google
+    LLM_MODEL: gemini-2.0-flash
+    MEMORY_BACKEND: pgvector
+    MAX_REACT_ITERATIONS: "10"
+  
+  # Use External Secrets
+  existingSecret: nexus-orchestrator-secrets
+  
+  priorityClassName: high-priority
+  
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                  - compute
+
+# =============================================================================
+# JIRA AGENT - Production
+# =============================================================================
+jiraAgent:
+  replicas: 2
+  
+  image:
+    repository: your-registry/nexus/jira-agent
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
+  env:
+    JIRA_MOCK_MODE: "false"
+    LOG_LEVEL: INFO
+  
+  existingSecret: nexus-jira-secrets
+
+# =============================================================================
+# GIT/CI AGENT - Production
+# =============================================================================
+gitCiAgent:
+  replicas: 2
+  
+  image:
+    repository: your-registry/nexus/git-ci-agent
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
+  env:
+    GITHUB_MOCK_MODE: "false"
+    JENKINS_MOCK_MODE: "false"
+    LOG_LEVEL: INFO
+  
+  existingSecret: nexus-git-ci-secrets
+
+# =============================================================================
+# REPORTING AGENT - Production
+# =============================================================================
+reportingAgent:
+  replicas: 2
+  
+  image:
+    repository: your-registry/nexus/reporting-agent
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
+  env:
+    CONFLUENCE_MOCK_MODE: "false"
+    LOG_LEVEL: INFO
+  
+  existingSecret: nexus-reporting-secrets
+
+# =============================================================================
+# SLACK AGENT - Production (Critical for notifications)
+# =============================================================================
+slackAgent:
+  replicas: 3
+  
+  image:
+    repository: your-registry/nexus/slack-agent
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+  
+  pdb:
+    enabled: true
+    minAvailable: 2
+  
+  env:
+    SLACK_MOCK_MODE: "false"
+    LOG_LEVEL: INFO
+  
+  existingSecret: nexus-slack-secrets
+
+# =============================================================================
+# HYGIENE AGENT - Production
+# =============================================================================
+jiraHygieneAgent:
+  replicas: 1  # Scheduler - single instance
+  
+  image:
+    repository: your-registry/nexus/hygiene-agent
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  
+  env:
+    JIRA_MOCK_MODE: "false"
+    HYGIENE_CHECK_SCHEDULE: "0 9 * * 1-5"
+    HYGIENE_TIMEZONE: "America/New_York"
+    LOG_LEVEL: INFO
+  
+  existingSecret: nexus-hygiene-secrets
+
+# =============================================================================
+# RCA AGENT - Production
+# =============================================================================
+rcaAgent:
+  replicas: 2
+  
+  image:
+    repository: your-registry/nexus/rca-agent
+  
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
+  env:
+    JENKINS_MOCK_MODE: "false"
+    GITHUB_MOCK_MODE: "false"
+    LLM_MOCK_MODE: "false"
+    RCA_AUTO_ANALYZE: "true"
+    SLACK_NOTIFY_ON_FAILURE: "true"
+    LOG_LEVEL: INFO
+  
+  existingSecret: nexus-rca-secrets
+
+# =============================================================================
+# ANALYTICS - Production
+# =============================================================================
+analytics:
+  replicas: 2
+  
+  image:
+    repository: your-registry/nexus/analytics
+  
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
+  env:
+    AGGREGATION_INTERVAL: "60"
+    RETENTION_DAYS: "365"
+    LOG_LEVEL: INFO
+
+# =============================================================================
+# WEBHOOKS - Production
+# =============================================================================
+webhooks:
+  replicas: 3
+  
+  image:
+    repository: your-registry/nexus/webhooks
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+  
+  pdb:
+    enabled: true
+    minAvailable: 2
+  
+  env:
+    WEBHOOK_MAX_RETRIES: "5"
+    WEBHOOK_RATE_LIMIT: "100"
+    LOG_LEVEL: INFO
+
+# =============================================================================
+# ADMIN DASHBOARD - Production
+# =============================================================================
+adminDashboard:
+  replicas: 2
+  
+  image:
+    repository: your-registry/nexus/admin-dashboard
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
+  ingress:
+    enabled: true
+    host: admin.nexus.yourcompany.com
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: admin-basic-auth
+      nginx.ingress.kubernetes.io/auth-realm: "Nexus Admin"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: admin-nexus-tls
+
+# =============================================================================
+# INGRESS - Production
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  
+  hosts:
+    - host: nexus-api.yourcompany.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: orchestrator
+          port: 8080
+        - path: /slack
+          pathType: Prefix
+          service: slack-agent
+          port: 8084
+        - path: /webhooks
+          pathType: Prefix
+          service: webhooks
+          port: 8087
+  
+  tls:
+    - secretName: nexus-api-tls
+      hosts:
+        - nexus-api.yourcompany.com
+
+# =============================================================================
+# REDIS - Production HA
+# =============================================================================
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    enabled: true
+    existingSecret: redis-password
+    existingSecretPasswordKey: password
+  
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ssd
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+  
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ssd
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+  
+  sentinel:
+    enabled: true
+    quorum: 2
+  
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# =============================================================================
+# POSTGRESQL - Production HA
+# =============================================================================
+postgresql:
+  enabled: true
+  
+  auth:
+    database: nexus
+    username: nexus
+    existingSecret: postgres-password
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: ssd
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+    initdb:
+      scripts:
+        init-pgvector.sql: |
+          CREATE EXTENSION IF NOT EXISTS vector;
+          CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  
+  readReplicas:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: ssd
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+  
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# =============================================================================
+# OBSERVABILITY - Full Production
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  scrapeTimeout: 10s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - ingress-nginx
+    - monitoring
+    - cert-manager
+
+observability:
+  tracing:
+    enabled: true
+    endpoint: "http://jaeger-collector.observability:4317"
+    samplingRatio: 0.1  # 10% sampling in prod
+  
+  logging:
+    level: INFO
+    format: json
+    includeTrace: true
+
