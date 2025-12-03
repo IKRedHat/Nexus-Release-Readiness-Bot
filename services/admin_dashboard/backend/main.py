@@ -7,24 +7,27 @@ FastAPI backend for the Admin Dashboard providing:
 - Agent health monitoring
 - Mode switching (Mock/Live)
 - Secure credential management
+- SSO/RBAC authentication and authorization
+- Feature request and bug report management
 
 Author: Nexus Team
-Version: 2.3.0
+Version: 2.4.0
 """
 
 import asyncio
 import logging
 import os
 import random
+import secrets
 import sys
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request, Response as FastAPIResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, RedirectResponse
 from pydantic import BaseModel, Field
 from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
@@ -39,6 +42,28 @@ try:
 except ImportError:
     # Fallback for standalone operation
     ConfigManager = None
+
+# Import RBAC and Feature Request modules
+try:
+    from auth import (
+        RBACService, AuthConfig, SSOHandler,
+        get_current_user, RequirePermission,
+        create_access_token, create_refresh_token, verify_local_auth,
+        rbac_store, LocalAuthRequest,
+    )
+    from feature_requests import FeatureRequestService, JiraIntegration
+    from nexus_lib.schemas.rbac import (
+        User, UserCreate, UserUpdate, UserWithPermissions,
+        Role, RoleCreate, RoleUpdate,
+        Permission, SSOProvider, UserStatus,
+        FeatureRequest, FeatureRequestCreate, FeatureRequestUpdate,
+        RequestType, RequestStatus, Priority,
+        AuditAction, AuditLog,
+    )
+    RBAC_ENABLED = True
+except ImportError as e:
+    print(f"Warning: RBAC modules not loaded: {e}")
+    RBAC_ENABLED = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -66,6 +91,22 @@ MODE_SWITCHES = Counter(
 ACTIVE_MODE = Gauge(
     "nexus_admin_active_mode",
     "Current system mode (0=mock, 1=live)"
+)
+
+# RBAC Metrics
+AUTH_ATTEMPTS = Counter(
+    "nexus_admin_auth_attempts_total",
+    "Total authentication attempts",
+    ["provider", "status"]
+)
+ACTIVE_USERS = Gauge(
+    "nexus_admin_active_users",
+    "Number of active users"
+)
+FEATURE_REQUESTS_SUBMITTED = Counter(
+    "nexus_admin_feature_requests_total",
+    "Total feature requests submitted",
+    ["type", "priority"]
 )
 
 # =============================================================================
@@ -157,8 +198,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Nexus Admin Dashboard API",
-    description="Backend API for managing Nexus system configuration and monitoring",
-    version="2.3.0",
+    description="Backend API for managing Nexus system configuration, monitoring, authentication, and feature requests",
+    version="2.4.0",
     lifespan=lifespan
 )
 
@@ -1500,6 +1541,711 @@ async def get_release_templates():
 # Need to import additional modules
 from datetime import timedelta
 import uuid
+
+
+# =============================================================================
+# SSO / Authentication Endpoints
+# =============================================================================
+
+# Store for SSO state tokens
+sso_states: Dict[str, dict] = {}
+
+
+@app.get("/auth/providers")
+async def get_auth_providers():
+    """Get available authentication providers."""
+    providers = ["local"]  # Always available for development
+    
+    if AuthConfig.OKTA_CLIENT_ID:
+        providers.append("okta")
+    if AuthConfig.AZURE_CLIENT_ID:
+        providers.append("azure_ad")
+    if AuthConfig.GOOGLE_CLIENT_ID:
+        providers.append("google")
+    if AuthConfig.GITHUB_CLIENT_ID:
+        providers.append("github")
+    
+    return {
+        "providers": providers,
+        "default": AuthConfig.SSO_PROVIDER,
+        "rbac_enabled": RBAC_ENABLED
+    }
+
+
+@app.post("/auth/login")
+async def login_local(request: Request, credentials: LocalAuthRequest):
+    """
+    Local authentication for development/testing.
+    
+    In production, use SSO providers.
+    """
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    user = verify_local_auth(credentials.email, credentials.password)
+    
+    if not user:
+        AUTH_ATTEMPTS.labels(provider="local", status="failed").inc()
+        raise HTTPException(401, "Invalid credentials")
+    
+    # Get user's roles
+    roles = [rbac_store.roles[r] for r in user.roles if r in rbac_store.roles]
+    
+    # Create tokens
+    access_token = create_access_token(user, roles)
+    refresh_token = create_refresh_token(user.id)
+    
+    # Update last login
+    user.last_login = datetime.utcnow()
+    rbac_store.users[user.id] = user
+    
+    # Audit log
+    RBACService.log_action(
+        user.id, user.email, AuditAction.LOGIN,
+        "session", None, {"provider": "local"},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    AUTH_ATTEMPTS.labels(provider="local", status="success").inc()
+    
+    user_with_permissions = RBACService.get_user_with_permissions(user)
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "expires_in": AuthConfig.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        "user": user_with_permissions.model_dump()
+    }
+
+
+@app.get("/auth/sso/{provider}")
+async def initiate_sso(provider: str):
+    """
+    Initiate SSO login flow.
+    
+    Returns a URL to redirect the user to for authentication.
+    """
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    try:
+        sso_provider = SSOProvider(provider)
+    except ValueError:
+        raise HTTPException(400, f"Invalid SSO provider: {provider}")
+    
+    # Generate state token
+    state = secrets.token_urlsafe(32)
+    sso_states[state] = {
+        "provider": provider,
+        "created_at": datetime.utcnow()
+    }
+    
+    # Get authorization URL
+    auth_url = await SSOHandler.get_authorization_url(sso_provider, state)
+    
+    return {"authorization_url": auth_url, "state": state}
+
+
+@app.get("/auth/callback/{provider}")
+async def sso_callback(provider: str, code: str, state: str, request: Request):
+    """
+    Handle SSO callback after user authentication.
+    """
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    # Verify state
+    if state not in sso_states:
+        raise HTTPException(400, "Invalid or expired state token")
+    
+    del sso_states[state]  # One-time use
+    
+    try:
+        sso_provider = SSOProvider(provider)
+        
+        # Exchange code for tokens
+        token_response = await SSOHandler.exchange_code(sso_provider, code)
+        access_token_sso = token_response.get("access_token")
+        
+        if not access_token_sso:
+            raise HTTPException(400, "Failed to obtain access token from SSO provider")
+        
+        # Get user info
+        user_info = await SSOHandler.get_user_info(sso_provider, access_token_sso)
+        
+        # Find or create user
+        email = user_info.get("email")
+        if not email:
+            raise HTTPException(400, "Email not provided by SSO provider")
+        
+        user = RBACService.get_user_by_email(email)
+        
+        if not user:
+            # Create new user
+            name = user_info.get("name") or user_info.get("login") or email.split("@")[0]
+            user = RBACService.create_user(UserCreate(
+                email=email,
+                name=name,
+                roles=["viewer"],  # Default role for SSO users
+                sso_provider=sso_provider,
+            ))
+        
+        # Update SSO ID
+        user.sso_id = user_info.get("sub") or user_info.get("id")
+        user.sso_provider = sso_provider
+        user.last_login = datetime.utcnow()
+        user.avatar_url = user_info.get("picture") or user_info.get("avatar_url")
+        rbac_store.users[user.id] = user
+        
+        # Create our tokens
+        roles = [rbac_store.roles[r] for r in user.roles if r in rbac_store.roles]
+        access_token = create_access_token(user, roles)
+        refresh_token = create_refresh_token(user.id)
+        
+        # Audit log
+        RBACService.log_action(
+            user.id, user.email, AuditAction.LOGIN,
+            "session", None, {"provider": provider},
+            request.client.host if request.client else None,
+            request.headers.get("user-agent")
+        )
+        
+        AUTH_ATTEMPTS.labels(provider=provider, status="success").inc()
+        
+        # Redirect to frontend with tokens
+        frontend_url = AuthConfig.FRONTEND_URL
+        return RedirectResponse(
+            f"{frontend_url}/auth/callback?access_token={access_token}&refresh_token={refresh_token}"
+        )
+        
+    except Exception as e:
+        AUTH_ATTEMPTS.labels(provider=provider, status="failed").inc()
+        logger.error(f"SSO callback error: {e}")
+        raise HTTPException(400, f"SSO authentication failed: {str(e)}")
+
+
+@app.post("/auth/logout")
+async def logout(request: Request, current_user: UserWithPermissions = Depends(get_current_user) if RBAC_ENABLED else None):
+    """Log out the current user."""
+    if not RBAC_ENABLED or not current_user:
+        return {"message": "Logged out"}
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.LOGOUT,
+        "session", None, {},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "Logged out successfully"}
+
+
+@app.get("/auth/me")
+async def get_current_user_info(current_user: UserWithPermissions = Depends(get_current_user) if RBAC_ENABLED else None):
+    """Get current authenticated user information."""
+    if not RBAC_ENABLED:
+        return {
+            "id": "anonymous",
+            "email": "anonymous@nexus.local",
+            "name": "Anonymous",
+            "roles": ["admin"],
+            "permissions": list(Permission),
+            "is_admin": True
+        }
+    
+    return current_user.model_dump()
+
+
+# =============================================================================
+# User Management Endpoints
+# =============================================================================
+
+@app.get("/users")
+async def list_users(
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_USERS)) if RBAC_ENABLED else None
+):
+    """List all users. Requires VIEW_USERS permission."""
+    if not RBAC_ENABLED:
+        return {"users": [], "count": 0}
+    
+    users = RBACService.list_users()
+    return {
+        "users": [u.model_dump() for u in users],
+        "count": len(users)
+    }
+
+
+@app.get("/users/{user_id}")
+async def get_user(
+    user_id: str,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_USERS)) if RBAC_ENABLED else None
+):
+    """Get a specific user by ID."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    user = RBACService.get_user(user_id)
+    if not user:
+        raise HTTPException(404, f"User not found: {user_id}")
+    
+    return RBACService.get_user_with_permissions(user).model_dump()
+
+
+@app.post("/users")
+async def create_user(
+    request: Request,
+    user_data: UserCreate,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.CREATE_USER)) if RBAC_ENABLED else None
+):
+    """Create a new user. Requires CREATE_USER permission."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    # Check if email already exists
+    existing = RBACService.get_user_by_email(user_data.email)
+    if existing:
+        raise HTTPException(400, f"User with email {user_data.email} already exists")
+    
+    user = RBACService.create_user(user_data, current_user.id)
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.CREATE,
+        "user", user.id, {"email": user.email},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "User created", "user": user.model_dump()}
+
+
+@app.put("/users/{user_id}")
+async def update_user(
+    user_id: str,
+    request: Request,
+    user_data: UserUpdate,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.EDIT_USER)) if RBAC_ENABLED else None
+):
+    """Update a user. Requires EDIT_USER permission."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    user = RBACService.update_user(user_id, user_data)
+    if not user:
+        raise HTTPException(404, f"User not found: {user_id}")
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.UPDATE,
+        "user", user_id, user_data.model_dump(exclude_unset=True),
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "User updated", "user": user.model_dump()}
+
+
+@app.delete("/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    request: Request,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.DELETE_USER)) if RBAC_ENABLED else None
+):
+    """Delete a user. Requires DELETE_USER permission."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    # Prevent self-deletion
+    if user_id == current_user.id:
+        raise HTTPException(400, "Cannot delete your own account")
+    
+    success = RBACService.delete_user(user_id)
+    if not success:
+        raise HTTPException(404, f"User not found: {user_id}")
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.DELETE,
+        "user", user_id, {},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "User deleted"}
+
+
+@app.post("/users/{user_id}/roles")
+async def assign_roles(
+    user_id: str,
+    request: Request,
+    roles: List[str],
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.ASSIGN_ROLES)) if RBAC_ENABLED else None
+):
+    """Assign roles to a user. Requires ASSIGN_ROLES permission."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    # Validate roles exist
+    for role_id in roles:
+        if role_id not in rbac_store.roles:
+            raise HTTPException(400, f"Invalid role: {role_id}")
+    
+    user = RBACService.update_user(user_id, UserUpdate(roles=roles))
+    if not user:
+        raise HTTPException(404, f"User not found: {user_id}")
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.ROLE_ASSIGN,
+        "user", user_id, {"roles": roles},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "Roles assigned", "user": RBACService.get_user_with_permissions(user).model_dump()}
+
+
+# =============================================================================
+# Role Management Endpoints
+# =============================================================================
+
+@app.get("/roles")
+async def list_roles(
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_ROLES)) if RBAC_ENABLED else None
+):
+    """List all roles."""
+    if not RBAC_ENABLED:
+        return {"roles": [], "count": 0}
+    
+    roles = RBACService.list_roles()
+    return {
+        "roles": [r.model_dump() for r in roles],
+        "count": len(roles)
+    }
+
+
+@app.get("/roles/permissions")
+async def list_all_permissions():
+    """List all available permissions."""
+    permissions = [
+        {
+            "id": p.value,
+            "name": p.name.replace("_", " ").title(),
+            "category": p.value.split(":")[0]
+        }
+        for p in Permission
+    ]
+    
+    # Group by category
+    categories = {}
+    for p in permissions:
+        cat = p["category"]
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(p)
+    
+    return {
+        "permissions": permissions,
+        "categories": categories,
+        "count": len(permissions)
+    }
+
+
+@app.get("/roles/{role_id}")
+async def get_role(
+    role_id: str,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_ROLES)) if RBAC_ENABLED else None
+):
+    """Get a specific role by ID."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    role = RBACService.get_role(role_id)
+    if not role:
+        raise HTTPException(404, f"Role not found: {role_id}")
+    
+    return role.model_dump()
+
+
+@app.post("/roles")
+async def create_role(
+    request: Request,
+    role_data: RoleCreate,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.CREATE_ROLE)) if RBAC_ENABLED else None
+):
+    """Create a new role. Requires CREATE_ROLE permission."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    role = RBACService.create_role(role_data, current_user.id)
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.CREATE,
+        "role", role.id, {"name": role.name},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "Role created", "role": role.model_dump()}
+
+
+@app.put("/roles/{role_id}")
+async def update_role(
+    role_id: str,
+    request: Request,
+    role_data: RoleUpdate,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.EDIT_ROLE)) if RBAC_ENABLED else None
+):
+    """Update a role. Requires EDIT_ROLE permission."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    role = RBACService.update_role(role_id, role_data)
+    if not role:
+        raise HTTPException(404, f"Role not found: {role_id}")
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.UPDATE,
+        "role", role_id, role_data.model_dump(exclude_unset=True),
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "Role updated", "role": role.model_dump()}
+
+
+@app.delete("/roles/{role_id}")
+async def delete_role(
+    role_id: str,
+    request: Request,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.DELETE_ROLE)) if RBAC_ENABLED else None
+):
+    """Delete a role. Requires DELETE_ROLE permission. Cannot delete system roles."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    success = RBACService.delete_role(role_id)
+    if not success:
+        raise HTTPException(404, f"Role not found: {role_id}")
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.DELETE,
+        "role", role_id, {},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "Role deleted"}
+
+
+# =============================================================================
+# Feature Request / Bug Report Endpoints
+# =============================================================================
+
+@app.get("/feature-requests")
+async def list_feature_requests(
+    type: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_FEATURE_REQUESTS)) if RBAC_ENABLED else None
+):
+    """List feature requests with optional filters."""
+    if not RBAC_ENABLED:
+        return {"requests": [], "count": 0}
+    
+    type_filter = RequestType(type) if type else None
+    status_filter = RequestStatus(status) if status else None
+    
+    requests = FeatureRequestService.list_requests(type_filter, status_filter, limit=limit)
+    
+    return {
+        "requests": [r.model_dump() for r in requests],
+        "count": len(requests)
+    }
+
+
+@app.get("/feature-requests/stats")
+async def get_feature_request_stats(
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_FEATURE_REQUESTS)) if RBAC_ENABLED else None
+):
+    """Get feature request statistics."""
+    if not RBAC_ENABLED:
+        return {"stats": {}}
+    
+    return {"stats": FeatureRequestService.get_stats()}
+
+
+@app.get("/feature-requests/options")
+async def get_feature_request_options():
+    """Get available options for feature request form."""
+    return {
+        "types": [t.value for t in RequestType],
+        "priorities": [p.value for p in Priority],
+        "components": FeatureRequestService.get_available_components(),
+        "labels": FeatureRequestService.get_available_labels()
+    }
+
+
+@app.get("/feature-requests/{request_id}")
+async def get_feature_request(
+    request_id: str,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.VIEW_FEATURE_REQUESTS)) if RBAC_ENABLED else None
+):
+    """Get a specific feature request."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    feature_request = FeatureRequestService.get_request(request_id)
+    if not feature_request:
+        raise HTTPException(404, f"Feature request not found: {request_id}")
+    
+    return feature_request.model_dump()
+
+
+@app.post("/feature-requests")
+async def submit_feature_request(
+    request: Request,
+    data: FeatureRequestCreate,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.SUBMIT_FEATURE_REQUEST)) if RBAC_ENABLED else None
+):
+    """
+    Submit a new feature request or bug report.
+    
+    The request will automatically be converted to a Jira ticket if configured.
+    """
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    feature_request = await FeatureRequestService.create_request(
+        data,
+        current_user.id,
+        current_user.email,
+        current_user.name
+    )
+    
+    # Track metric
+    FEATURE_REQUESTS_SUBMITTED.labels(type=data.type, priority=data.priority).inc()
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.FEATURE_SUBMIT,
+        "feature_request", feature_request.id, {"type": data.type, "title": data.title},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {
+        "message": "Feature request submitted successfully",
+        "request": feature_request.model_dump(),
+        "jira_created": feature_request.jira_key is not None
+    }
+
+
+@app.put("/feature-requests/{request_id}")
+async def update_feature_request(
+    request_id: str,
+    request: Request,
+    data: FeatureRequestUpdate,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.MANAGE_FEATURE_REQUESTS)) if RBAC_ENABLED else None
+):
+    """Update a feature request. Requires MANAGE_FEATURE_REQUESTS permission."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    feature_request = FeatureRequestService.update_request(request_id, data)
+    if not feature_request:
+        raise HTTPException(404, f"Feature request not found: {request_id}")
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.UPDATE,
+        "feature_request", request_id, data.model_dump(exclude_unset=True),
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "Feature request updated", "request": feature_request.model_dump()}
+
+
+@app.delete("/feature-requests/{request_id}")
+async def delete_feature_request(
+    request_id: str,
+    request: Request,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.MANAGE_FEATURE_REQUESTS)) if RBAC_ENABLED else None
+):
+    """Delete a feature request. Requires MANAGE_FEATURE_REQUESTS permission."""
+    if not RBAC_ENABLED:
+        raise HTTPException(501, "RBAC not enabled")
+    
+    success = FeatureRequestService.delete_request(request_id)
+    if not success:
+        raise HTTPException(404, f"Feature request not found: {request_id}")
+    
+    # Audit log
+    RBACService.log_action(
+        current_user.id, current_user.email, AuditAction.DELETE,
+        "feature_request", request_id, {},
+        request.client.host if request.client else None,
+        request.headers.get("user-agent")
+    )
+    
+    return {"message": "Feature request deleted"}
+
+
+# =============================================================================
+# Audit Log Endpoints
+# =============================================================================
+
+@app.get("/audit-logs")
+async def get_audit_logs(
+    user_id: Optional[str] = None,
+    action: Optional[str] = None,
+    limit: int = 100,
+    current_user: UserWithPermissions = Depends(RequirePermission(Permission.AUDIT_LOGS)) if RBAC_ENABLED else None
+):
+    """Get audit logs. Requires AUDIT_LOGS permission."""
+    if not RBAC_ENABLED:
+        return {"logs": [], "count": 0}
+    
+    action_filter = AuditAction(action) if action else None
+    logs = RBACService.get_audit_logs(user_id, action_filter, limit)
+    
+    return {
+        "logs": [l.model_dump() for l in logs],
+        "count": len(logs)
+    }
+
+
+# =============================================================================
+# RBAC Statistics
+# =============================================================================
+
+@app.get("/rbac/stats")
+async def get_rbac_stats(
+    current_user: UserWithPermissions = Depends(get_current_user) if RBAC_ENABLED else None
+):
+    """Get RBAC system statistics."""
+    if not RBAC_ENABLED:
+        return {"rbac_enabled": False}
+    
+    users = RBACService.list_users()
+    active_users = len([u for u in users if u.status == UserStatus.ACTIVE])
+    
+    return {
+        "rbac_enabled": True,
+        "total_users": len(users),
+        "active_users": active_users,
+        "total_roles": len(rbac_store.roles),
+        "system_roles": len([r for r in rbac_store.roles.values() if r.is_system_role]),
+        "custom_roles": len([r for r in rbac_store.roles.values() if not r.is_system_role]),
+        "feature_requests": FeatureRequestService.get_stats()
+    }
 
 
 # =============================================================================
