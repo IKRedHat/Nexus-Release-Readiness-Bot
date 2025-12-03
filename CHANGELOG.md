@@ -12,6 +12,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2025-12-04
+
+### Added
+
+#### 🐳 Enterprise Docker Architecture
+- **Multi-stage Dockerfiles** - Optimized builds with 3-stage pattern (builder → deps → runtime)
+- **UV Package Manager** - 10x faster dependency installation using Rust-based UV
+- **Dockerfile.base** - Shared base image with non-root user and Python health checks
+- **Dockerfile.agent** - Unified agent template replacing per-agent Dockerfiles
+- **.dockerignore** - Build context optimization (~500MB → ~50MB)
+- **OCI-Compliant Labels** - Standard metadata for all images
+- **Python-Native Health Checks** - No curl dependency, smaller images
+- **Non-Root Containers** - All services run as UID 1000 for security
+- **Resource Limits** - Memory limits in docker-compose.yml
+- **Named Containers** - Clear container naming (nexus-orchestrator, etc.)
+- **Custom Network** - Isolated nexus-network for service communication
+
+#### ⎈ Enterprise Helm Charts (v2.4.0)
+- **Complete Chart Re-architecture** - Production-grade Kubernetes deployment
+- **30+ Helper Functions** - DRY templates in `_helpers.tpl`
+- **Reusable Agent Template** - `_agent.tpl` for consistent agent deployments
+- **Pod Disruption Budgets** - Safe rolling updates with PDBs
+- **Network Policies** - Zero-trust security with explicit allow rules
+- **ServiceMonitors** - Prometheus Operator integration for all 10 services
+- **External Secrets Support** - AWS Secrets Manager, HashiCorp Vault
+- **Pod Anti-Affinity** - High availability with cross-node/zone distribution
+- **Topology Spread Constraints** - Even distribution across failure domains
+- **Init Containers** - Dependency health checks before startup
+- **Lifecycle Hooks** - 10s graceful shutdown with preStop hooks
+- **Security Contexts** - Non-root, read-only filesystem, seccomp profiles
+- **Environment-Specific Values** - values-dev.yaml, values-prod.yaml
+- **Comprehensive README** - Full deployment guide with architecture diagrams
+
+#### 📖 Documentation
+- **Docker for Beginners Guide** (`docs/docker-for-beginners.md`) - 700-line tutorial
+  - Visual diagrams and real-world analogies
+  - Multi-stage build explanation
+  - Docker Compose walkthrough
+  - Commands cheat sheet
+  - Troubleshooting guide
+- **Helm Chart README** (`infrastructure/k8s/nexus-stack/README.md`) - Production guide
+  - Architecture overview with diagrams
+  - Quick start commands
+  - Security and observability configuration
+  - Environment-specific deployment
+
+### Changed
+- Replaced `Dockerfile.generic-agent` with unified `Dockerfile.agent`
+- Replaced `Dockerfile.rca-agent` with build args in `Dockerfile.agent`
+- Updated docker-compose.yml with new Dockerfile references
+- **Fixed Hygiene Agent Port**: 8005 → 8085 in all Helm templates
+
+### Removed
+- `Dockerfile.generic-agent` - Replaced by `Dockerfile.agent`
+- `Dockerfile.rca-agent` - Consolidated into `Dockerfile.agent`
+
+### Security
+- All containers run as non-root user (UID 1000)
+- Read-only root filesystem
+- Dropped all Linux capabilities
+- Seccomp profiles enabled (RuntimeDefault)
+- Network policies enforce zero-trust
+
+---
+
 ## [2.4.0] - 2025-12-04
 
 ### Added

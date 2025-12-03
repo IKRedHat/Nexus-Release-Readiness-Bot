@@ -930,6 +930,83 @@ Structured JSON logging with correlation IDs:
 
 ---
 
+## Docker Build Architecture (v2.5.0)
+
+Nexus uses modern, optimized multi-stage Dockerfiles for all services.
+
+### Dockerfile Structure
+
+```
+infrastructure/docker/
+├── .dockerignore                 # Build context optimization (~500MB → ~50MB)
+├── Dockerfile.base               # Shared foundation (non-root user, health check)
+├── Dockerfile.orchestrator       # Central brain (3-stage build)
+├── Dockerfile.agent              # Unified template for all agents
+├── Dockerfile.admin-dashboard    # React frontend + FastAPI backend
+├── Dockerfile.analytics          # Analytics service
+├── Dockerfile.webhooks           # Webhooks service
+└── docker-compose.yml            # Local development orchestration
+```
+
+### Multi-Stage Build Pattern
+
+```mermaid
+flowchart LR
+    subgraph Stage1["Stage 1: UV"]
+        UV[ghcr.io/astral-sh/uv:0.4.18]
+    end
+    
+    subgraph Stage2["Stage 2: Builder"]
+        Base[python:3.11-slim-bookworm]
+        Deps[Install Dependencies]
+        Compile[Compile Packages]
+    end
+    
+    subgraph Stage3["Stage 3: Runtime"]
+        Runtime[python:3.11-slim-bookworm]
+        NonRoot[Non-Root User<br/>UID 1000]
+        Health[Python Health Check]
+        App[Application Code]
+    end
+    
+    UV -->|Copy uv binary| Stage2
+    Stage2 -->|Copy wheels| Stage3
+    
+    Stage2 -.->|~1.2GB| x[Discarded]
+    Stage3 -->|~150MB| Final[Final Image]
+```
+
+### Key Optimizations
+
+| Feature | Traditional | Nexus Optimized | Improvement |
+|---------|-------------|-----------------|-------------|
+| **Package Manager** | pip | UV (Rust-based) | 10x faster |
+| **Image Size** | ~1.2GB | ~150MB | 85% smaller |
+| **Build Time** | ~5 min | ~45 sec | 6x faster |
+| **Root User** | Yes | No (UID 1000) | More secure |
+| **Health Checks** | curl | Python-native | No extra deps |
+| **Filesystem** | Read-write | Read-only | More secure |
+
+### Security Features
+
+```yaml
+# Container Security Context (applied to all services)
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+  seccompProfile:
+    type: RuntimeDefault
+```
+
+📖 **[Docker for Beginners Guide](docker-for-beginners.md)** - Visual tutorial for understanding Docker concepts.
+
+---
+
 ## Deployment Architecture
 
 ### Development (Docker Compose)

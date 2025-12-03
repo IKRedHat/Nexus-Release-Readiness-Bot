@@ -76,6 +76,7 @@ nav:
   - Deployment:
     - Backend Deployment: runbooks/deployment.md
     - Frontend Deployment: frontend-deployment-guide.md
+    - Docker Guide: docker-for-beginners.md
     - GitHub Setup: GITHUB_SETUP.md
   - Operations:
     - Monitoring: runbooks/monitoring.md

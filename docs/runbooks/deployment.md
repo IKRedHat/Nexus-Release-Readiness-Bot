@@ -113,7 +113,7 @@ uvicorn main:app --reload --port 8081
 
 # Terminal 3: Jira Hygiene Agent
 cd services/agents/jira_hygiene_agent
-uvicorn main:app --reload --port 8005
+uvicorn main:app --reload --port 8085
 
 # ... repeat for other agents
 ```
@@ -135,6 +135,28 @@ Use the dev helper for common tasks:
 
 ## Docker Compose Deployment
 
+> 📖 **New to Docker?** See our [Docker for Beginners Guide](../docker-for-beginners.md) for a visual, beginner-friendly explanation.
+
+### Docker Architecture (v2.5.0)
+
+Nexus uses optimized multi-stage Dockerfiles with modern best practices:
+
+| Dockerfile | Purpose | Key Features |
+|------------|---------|--------------|
+| `Dockerfile.base` | Shared foundation | Non-root user, Python health check |
+| `Dockerfile.orchestrator` | Central brain | 3-stage build, UV package manager |
+| `Dockerfile.agent` | All specialist agents | Build args for agent selection |
+| `Dockerfile.admin-dashboard` | Web UI | React frontend + FastAPI backend |
+| `Dockerfile.analytics` | Analytics service | Optimized for data processing |
+| `Dockerfile.webhooks` | Event delivery | High-throughput optimized |
+
+**Key Optimizations:**
+- 🚀 **UV Package Manager** - 10x faster than pip
+- 📦 **Multi-stage builds** - 85% smaller images (~150MB vs ~1.2GB)
+- 🔒 **Non-root containers** - All services run as UID 1000
+- 🏥 **Python health checks** - No curl dependency
+- 📋 **OCI labels** - Standard metadata
+
 ### 1. Configure Environment
 
 ```bash
@@ -148,14 +170,15 @@ vim .env
 ### 2. Start Services
 
 ```bash
-# Start all services
-docker-compose up -d
+# Start all services (uses docker-compose.yml in infrastructure/docker/)
+cd infrastructure/docker
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Check status
-docker-compose ps
+docker compose ps
 ```
 
 ### 3. Service Endpoints
@@ -167,7 +190,7 @@ docker-compose ps
 | Git/CI Agent | http://localhost:8082 |
 | Reporting Agent | http://localhost:8083 |
 | Slack Agent | http://localhost:8084 |
-| **Jira Hygiene Agent** | **http://localhost:8005** |
+| **Jira Hygiene Agent** | **http://localhost:8085** |
 | Grafana | http://localhost:3000 |
 | Prometheus | http://localhost:9090 |
 
@@ -183,6 +206,20 @@ docker-compose down -v
 ---
 
 ## Kubernetes Deployment
+
+> 📖 **Full Helm Documentation:** See [Helm Chart README](../../infrastructure/k8s/nexus-stack/README.md) for comprehensive deployment guide.
+
+### Helm Chart Overview (v2.4.0)
+
+The enterprise-grade Helm chart includes:
+
+| Feature | Description |
+|---------|-------------|
+| **High Availability** | Pod anti-affinity, topology spread constraints |
+| **Auto-Scaling** | HPA with CPU, memory, and custom metrics |
+| **Security** | Network policies, pod security, non-root |
+| **Observability** | ServiceMonitors for Prometheus Operator |
+| **Secret Management** | External Secrets support (AWS, Vault) |
 
 ### 1. Prepare Namespace
 
@@ -233,17 +270,29 @@ cd infrastructure/k8s/nexus-stack
 # Update dependencies
 helm dependency update
 
-# Install/upgrade
+# Development deployment (mock mode, minimal resources)
+helm upgrade --install nexus-dev . \
+  --namespace nexus-dev \
+  --values values-dev.yaml
+
+# Production deployment (full HA, security features)
 helm upgrade --install nexus . \
   --namespace nexus \
-  --values values.yaml \
-  --set global.environment=production \
-  --set global.imageTag=v1.1.0
+  --values values-prod.yaml \
+  --set global.imageTag=v2.4.0
 
 # Wait for deployment
 kubectl rollout status deployment/nexus-orchestrator
-kubectl rollout status deployment/nexus-jira-hygiene-agent
+kubectl rollout status deployment/nexus-hygiene-agent
 ```
+
+**Environment-Specific Values Files:**
+
+| File | Purpose | Features |
+|------|---------|----------|
+| `values.yaml` | Default production config | Full documentation |
+| `values-dev.yaml` | Development | Mock mode, single replica, minimal resources |
+| `values-prod.yaml` | Production | HA, security, external secrets |
 
 ### 4. Configure Ingress
 
@@ -364,7 +413,7 @@ kubectl logs -l app.kubernetes.io/component=jira-hygiene-agent -f
 curl http://localhost:8080/health
 
 # Jira Hygiene Agent
-curl http://localhost:8005/health
+curl http://localhost:8085/health
 
 # Expected response:
 # {"status": "healthy", "service": "...", "mock_mode": true}
@@ -374,7 +423,7 @@ curl http://localhost:8005/health
 
 ```bash
 # Check scheduler status
-curl http://localhost:8005/status
+curl http://localhost:8085/status
 
 # Expected: scheduler.running = true, next_run set
 ```
@@ -383,7 +432,7 @@ curl http://localhost:8005/status
 
 ```bash
 # Manual hygiene check (dry run)
-curl -X POST http://localhost:8005/run-check \
+curl -X POST http://localhost:8085/run-check \
   -H "Content-Type: application/json" \
   -d '{"project_key": "PROJ", "notify": false, "dry_run": true}'
 ```

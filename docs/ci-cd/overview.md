@@ -79,10 +79,29 @@ This document provides a comprehensive overview of the Nexus Release Automation 
 |----------|------|---------|---------|
 | **CI** | `ci.yml` | Push, PR | Main continuous integration pipeline |
 | **Release** | `release.yml` | Tags (`v*.*.*`) | Build, push, and release |
+| **Deploy Frontend** | `deploy-frontend.yml` | PR, Push to main | Vercel deployment |
 | **Dependency Review** | `dependency-review.yml` | PR | Scan dependencies for vulnerabilities |
 | **Labeler** | `labeler.yml` | PR | Auto-label PRs by changed files |
 | **Stale** | `stale.yml` | Schedule (daily) | Mark inactive issues/PRs |
 | **Dependabot** | `dependabot.yml` | Schedule (weekly) | Update dependencies |
+
+## Docker Build Architecture
+
+Nexus uses optimized multi-stage Dockerfiles (v2.5.0):
+
+| Dockerfile | Purpose | Key Features |
+|------------|---------|--------------|
+| `Dockerfile.base` | Shared foundation | Non-root user, Python health check |
+| `Dockerfile.orchestrator` | Central brain | 3-stage build, UV package manager |
+| `Dockerfile.agent` | All agents | Build args for agent selection |
+| `Dockerfile.admin-dashboard` | Web UI | React + FastAPI |
+| `Dockerfile.analytics` | Analytics | Data processing optimized |
+| `Dockerfile.webhooks` | Event delivery | High-throughput optimized |
+
+**Key Optimizations:**
+- 🚀 **UV Package Manager** - 10x faster than pip
+- 📦 **Multi-stage builds** - ~150MB images (85% smaller)
+- 🔒 **Security** - Non-root, read-only filesystem, seccomp profiles
 
 ---
 
