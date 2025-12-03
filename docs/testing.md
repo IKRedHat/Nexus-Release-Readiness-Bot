@@ -506,13 +506,15 @@ pytest -n auto
 
 ### Test Count Summary
 
-| Category | Files | Estimated Tests |
-|----------|-------|-----------------|
-| Unit | 9 | ~200 |
-| E2E | 7 | ~100 |
-| Integration | 1 | ~30 |
-| Smoke | 1 | ~40 |
-| **Total** | **18** | **~370** |
+| Category | Files | Tests |
+|----------|-------|-------|
+| Unit | 9 | ~180 |
+| E2E | 7 | ~90 |
+| Integration | 1 | ~20 |
+| Smoke | 1 | ~34 |
+| **Total** | **18** | **~324** |
+
+> **Note:** As of v2.4.0, we have **324 passing tests** after comprehensive test suite fixes.
 
 ---
 

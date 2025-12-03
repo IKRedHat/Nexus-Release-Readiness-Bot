@@ -1,7 +1,7 @@
 # Nexus Release Automation System
 
 <div style="text-align: center; margin-bottom: 2em;">
-  <img src="https://img.shields.io/badge/version-2.3.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.4.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.10+-green" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
 </div>
@@ -252,13 +252,19 @@ Natural Slack interface with:
 | Git/CI Agent | 8082 | GitHub + Jenkins |
 | Reporting Agent | 8083 | Reports |
 | Slack Agent | 8084 | Slack interface + App Home |
-| **Jira Hygiene Agent** | **8005** | **Proactive quality checks** |
+| **Jira Hygiene Agent** | **8085** | **Proactive quality checks** |
 | **RCA Agent** | **8006** | **Root cause analysis** |
 | **Analytics** | **8086** | **Advanced analytics** |
 | **Webhooks** | **8087** | **Webhook integrations** |
 | **Admin Dashboard** | **8088** | **System management UI** |
 
 ## 🆕 What's New
+
+### v2.4 - Frontend Deployment & Testing
+- ✅ **Vercel Deployment** - Deploy Admin Dashboard to Vercel cloud
+- ✅ **Python Deploy Script** - Automated deployment with health checks
+- ✅ **GitHub Actions** - CI/CD for frontend with preview deploys
+- ✅ **324 Passing Tests** - Comprehensive test suite fixes
 
 ### v2.3 - Admin Dashboard
 - ✅ **Admin Dashboard** - Web UI for system management

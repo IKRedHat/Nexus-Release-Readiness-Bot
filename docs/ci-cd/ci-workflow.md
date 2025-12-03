@@ -405,8 +405,44 @@ Add to README:
 
 ---
 
+---
+
+### 8. Frontend Deployment (`deploy-frontend`)
+
+**Purpose:** Deploy Admin Dashboard frontend to Vercel.
+
+**Location:** `.github/workflows/deploy-frontend.yml`
+
+**Triggers:**
+- Push to `main` with changes in `services/admin_dashboard/frontend/**`
+- Pull requests with frontend changes (preview deployment)
+- Manual trigger via `workflow_dispatch`
+
+**Jobs:**
+
+| Job | Purpose |
+|-----|---------|
+| `build` | Build frontend with Vite |
+| `deploy-preview` | Deploy to Vercel preview (PRs) |
+| `deploy-production` | Deploy to Vercel production (main) |
+| `deploy-manual` | Manual deployment with environment selection |
+
+**Features:**
+- Automatic preview deployments on PRs with PR comment
+- Production deployment on main branch push
+- Health check verification after deployment
+- Build artifact caching
+
+**How to Trigger Manually:**
+1. Go to Actions → Deploy Frontend to Vercel
+2. Click "Run workflow"
+3. Select environment (preview/production)
+
+---
+
 ## Next Steps
 
 - [Release Workflow](./release-workflow.md)
+- [Frontend Deployment Guide](../frontend-deployment-guide.md)
 - [Troubleshooting](./troubleshooting.md)
 

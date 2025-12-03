@@ -7,6 +7,7 @@
 ### **Intelligent Multi-Agent System for Automated Release Readiness Assessments**
 
 [![Version](https://img.shields.io/badge/version-2.4.0-blue?style=for-the-badge)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-324%20passing-brightgreen?style=for-the-badge)](docs/testing.md)
 [![Python](https://img.shields.io/badge/python-3.10+-green?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/actions)
@@ -364,14 +365,14 @@ Import `infrastructure/grafana/dashboard.json` for comprehensive observability:
 
 ## 🧪 Testing
 
-Nexus has a comprehensive test suite with **~370 tests** across 4 categories:
+Nexus has a comprehensive test suite with **324+ tests** across 4 categories:
 
 | Category | Count | Purpose |
 |----------|-------|---------|
-| **Unit** | ~200 | Individual component testing |
-| **E2E** | ~100 | Service endpoint testing |
-| **Integration** | ~30 | Inter-service communication |
-| **Smoke** | ~40 | Quick health verification |
+| **Unit** | ~180 | Individual component testing |
+| **E2E** | ~90 | Service endpoint testing |
+| **Integration** | ~20 | Inter-service communication |
+| **Smoke** | ~34 | Quick health verification |
 
 ### Running Tests
 
@@ -499,13 +500,36 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-📖 See [Deployment Runbook](docs/runbooks/deployment.md) for complete production setup.
+### Frontend (Vercel)
+
+Deploy the Admin Dashboard to Vercel for production frontend hosting:
+
+```bash
+# Using Python deployment script
+python scripts/deploy_frontend.py --env production --api-url https://your-api.com
+
+# Or manually with Vercel CLI
+cd services/admin_dashboard/frontend
+npm install --legacy-peer-deps
+npm run build:prod
+vercel deploy --prod
+```
+
+📖 See [Frontend Deployment Guide](docs/frontend-deployment-guide.md) for complete setup.
+
+📖 See [Deployment Runbook](docs/runbooks/deployment.md) for backend production setup.
 
 ---
 
 ## 🆕 Version History
 
-### v2.4.0 - Release Management
+### v2.4.0 - Frontend Deployment & Testing
+- 🚀 **Vercel Deployment** - Deploy Admin Dashboard to Vercel cloud
+- 🐍 **Python Deploy Script** - Comprehensive automation with rollback support
+- 🔄 **GitHub Actions** - CI/CD workflow for frontend with preview deploys
+- 🧪 **324 Passing Tests** - Comprehensive test suite fixes (116% improvement)
+
+### v2.3.1 - Release Management
 - 📅 **Release Management** - Track versions and target dates from Smartsheet/CSV/webhooks
 - 🎛️ **Enhanced Admin Dashboard** - New Releases page with metrics
 - 📊 **Updated Mockups** - All dashboards now show 5 navigation items
@@ -612,11 +636,13 @@ We welcome contributions! Every contribution matters, whether it's code, documen
 | [API Reference](docs/api-specs/overview.md) | REST API documentation |
 | [Admin Dashboard](docs/admin-dashboard.md) | Dashboard features and API |
 | [Admin Tutorial](docs/admin-dashboard-tutorial.md) | Step-by-step dashboard guide |
+| [Frontend Deployment](docs/frontend-deployment-guide.md) | Vercel deployment guide |
 | [Testing Guide](docs/testing.md) | Test strategy and execution |
-| [Deployment](docs/runbooks/deployment.md) | Production deployment guide |
+| [Backend Deployment](docs/runbooks/deployment.md) | Production deployment guide |
 | [RCA Documentation](docs/rca.md) | Root Cause Analysis feature |
 | [Analytics](docs/analytics.md) | Analytics dashboard features |
 | [Webhooks](docs/webhooks.md) | Webhook integrations |
+| [API Testing](docs/api-testing-guide.md) | API endpoint testing guide |
 
 ---
 

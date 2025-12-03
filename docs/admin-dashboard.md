@@ -33,6 +33,33 @@ open http://localhost:8088
 3. Go to **Settings** to configure your integrations
 4. Switch to **Live Mode** when ready to connect to real services
 
+### Deployment Options
+
+The Admin Dashboard can be deployed in several ways:
+
+| Method | Best For | URL |
+|--------|----------|-----|
+| **Docker Compose** | Local development | `http://localhost:8088` |
+| **Kubernetes** | Production backend | `https://your-cluster/dashboard` |
+| **Vercel** | Production frontend | `https://your-app.vercel.app` |
+
+#### Deploy to Vercel
+
+For production frontend hosting with global CDN:
+
+```bash
+# Using automated script
+python scripts/deploy_frontend.py --env production --api-url https://your-api.com
+
+# Or manually
+cd services/admin_dashboard/frontend
+npm install --legacy-peer-deps
+npm run build:prod
+vercel deploy --prod
+```
+
+📖 See [Frontend Deployment Guide](frontend-deployment-guide.md) for detailed instructions.
+
 ## Features
 
 ### 🔄 Mode Switching

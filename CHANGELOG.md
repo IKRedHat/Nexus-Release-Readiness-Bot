@@ -12,6 +12,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2025-12-04
+
+### Added
+
+#### 🚀 Frontend Deployment with Vercel
+- **Vercel Configuration** (`vercel.json`) - Optimized settings for Vite/React SPA
+- **Python Deployment Script** (`scripts/deploy_frontend.py`) - 700+ line comprehensive automation
+  - Multi-environment support (preview, staging, production)
+  - Prerequisite validation (Node.js, npm, Vercel CLI, Git)
+  - Automated build with verification
+  - Environment variable management
+  - Deployment health checks with retries
+  - Rollback support
+  - Detailed logging with colored output
+  - Deployment reports saved to `reports/`
+- **GitHub Actions Workflow** (`.github/workflows/deploy-frontend.yml`)
+  - Automatic preview deployments on PRs
+  - Production deployment on main branch push
+  - Manual deployment trigger with environment selection
+  - Build artifact caching
+  - Health check verification
+- **Frontend Deployment Guide** (`docs/frontend-deployment-guide.md`)
+  - Step-by-step manual deployment instructions
+  - Architecture diagrams and visual references
+  - Environment variable configuration guide
+  - Post-deployment verification checklist
+  - Troubleshooting section
+  - Security best practices
+
+#### 🧪 Comprehensive Test Suite Improvements
+- Fixed 324 tests (from 150 - 116% improvement!)
+- E2E test fixes for Slack, Reporting, Jira, Git/CI, Hygiene, RCA agents
+- Smoke test fixes for all 10 services
+- Unit test fixes for config manager, analytics, webhooks, hygiene, RCA
+- Added code coverage reporting to CI/CD with Codecov integration
+
+### Changed
+- Updated `vite.config.ts` with production optimizations
+  - Path aliases (@components, @pages, @assets)
+  - Code splitting (react-vendor, chart-vendor, utils-vendor)
+  - Terser minification for production
+- Updated `package.json` with Vercel scripts
+- Added `terser` as dev dependency for minification
+- Updated mkdocs.yml with new Deployment section
+
+### Fixed
+- Fixed E2E tests to use correct `AgentTaskRequest` schema (action/payload)
+- Fixed smoke tests to use correct health endpoints
+- Fixed unit test imports and assertions
+
+---
+
 ## [2.3.1] - 2025-12-01
 
 ### Changed
