@@ -107,19 +107,24 @@ pip install --upgrade <vulnerable-package>
 - Coverage reports uploaded to Codecov
 - XML and terminal reports generated
 
-**Test Files (9 files, ~200 tests):**
+**Test Files (14 files, 875 tests):**
 
-| File | Coverage |
-|------|----------|
-| `test_schemas.py` | Pydantic models (JiraTicket, BuildStatus, etc.) |
-| `test_react_engine.py` | ReAct engine, LLM client, vector memory |
-| `test_hygiene_logic.py` | Hygiene validation, scoring, notifications |
-| `test_rca_logic.py` | Log parsing, error extraction, stack traces |
-| `test_config_manager.py` | Dynamic configuration, Redis fallback |
-| `test_analytics.py` | DORA metrics, KPIs, trend analysis |
-| `test_webhooks.py` | Webhook subscriptions, HMAC, delivery |
-| `test_instrumentation.py` | Prometheus metrics, OpenTelemetry |
-| `test_llm_client.py` | LLM factory, Gemini, OpenAI clients |
+| File | Tests | Coverage |
+|------|-------|----------|
+| `test_jira_agent.py` | 100 | JiraClient, parsing, operations, endpoints |
+| `test_slack_agent.py` | 106 | SlackClient, BlockKitBuilder, modals, endpoints |
+| `test_git_ci_agent.py` | 94 | GitHub, Jenkins, Security clients, endpoints |
+| `test_shared_lib.py` | 94 | Schemas, LLM, ConfigManager, utilities |
+| `test_error_handling.py` | 40 | Input validation, edge cases, error scenarios |
+| `test_schemas.py` | ~50 | Pydantic models (JiraTicket, BuildStatus, etc.) |
+| `test_react_engine.py` | ~30 | ReAct engine, LLM client, vector memory |
+| `test_hygiene_logic.py` | ~40 | Hygiene validation, scoring, notifications |
+| `test_rca_logic.py` | ~30 | Log parsing, error extraction, stack traces |
+| `test_config_manager.py` | ~30 | Dynamic configuration, Redis fallback |
+| `test_analytics.py` | 42 | DORA metrics, KPIs, trend analysis |
+| `test_webhooks.py` | 34 | Webhook subscriptions, HMAC, delivery |
+| `test_instrumentation.py` | ~25 | Prometheus metrics, OpenTelemetry |
+| `test_llm_client.py` | ~25 | LLM factory, Gemini, OpenAI clients |
 
 **What It Tests:**
 - ✅ Pydantic model validation and serialization

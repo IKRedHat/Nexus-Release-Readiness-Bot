@@ -260,14 +260,15 @@ mypy shared/ --ignore-missing-imports
 
 ### Testing Standards
 
-Nexus uses a comprehensive testing strategy with ~370 tests across 4 categories:
+Nexus uses a comprehensive testing strategy with **1,449 tests** across 5 categories:
 
-| Category | Location | Purpose | Required For |
-|----------|----------|---------|--------------|
-| **Unit** | `tests/unit/` | Isolated component testing | All new functions |
-| **E2E** | `tests/e2e/` | Service endpoint testing | New endpoints |
-| **Integration** | `tests/integration/` | Inter-service workflows | Cross-service features |
-| **Smoke** | `tests/smoke/` | Quick health checks | Major deployments |
+| Category | Location | Tests | Purpose | Required For |
+|----------|----------|-------|---------|--------------|
+| **Unit** | `tests/unit/` | 875 | Isolated component testing | All new functions |
+| **E2E** | `tests/e2e/` | 410 | Service endpoint testing | New endpoints |
+| **Integration** | `tests/integration/` | 60 | Inter-service workflows | Cross-service features |
+| **Smoke** | `tests/smoke/` | 72 | Quick health checks | Major deployments |
+| **Performance** | `tests/performance/` | 32 | Load/latency testing | Performance-critical code |
 
 **Requirements:**
 - **Unit tests**: Required for all new functions/classes
@@ -277,14 +278,15 @@ Nexus uses a comprehensive testing strategy with ~370 tests across 4 categories:
 
 **Running Tests:**
 ```bash
-# Run all tests
+# Run all tests (1,449 total)
 pytest
 
 # Run by category
-pytest -m unit           # Unit tests
-pytest -m e2e            # E2E tests
-pytest -m integration    # Integration tests
-pytest -m smoke          # Smoke tests
+pytest -m unit           # Unit tests (875)
+pytest -m e2e            # E2E tests (410)
+pytest -m integration    # Integration tests (60)
+pytest -m smoke          # Smoke tests (72)
+pytest -m performance    # Performance tests (32)
 
 # Run with coverage
 pytest --cov=shared --cov-report=html

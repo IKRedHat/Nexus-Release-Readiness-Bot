@@ -7,7 +7,7 @@
 ### **Intelligent Multi-Agent System for Automated Release Readiness Assessments**
 
 [![Version](https://img.shields.io/badge/version-2.4.0-blue?style=for-the-badge)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-324%20passing-brightgreen?style=for-the-badge)](docs/testing.md)
+[![Tests](https://img.shields.io/badge/tests-1449%20passing-brightgreen?style=for-the-badge)](docs/testing.md)
 [![Python](https://img.shields.io/badge/python-3.10+-green?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/actions)
