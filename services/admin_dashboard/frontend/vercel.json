@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "name": "nexus-admin-dashboard",
   "version": 2,
   "framework": "vite",
   "buildCommand": "npm run build",
@@ -44,30 +43,9 @@
   ],
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "${VITE_API_URL}/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
-  "env": {
-    "VITE_API_URL": "@vite_api_url",
-    "VITE_APP_NAME": "Nexus Admin Dashboard",
-    "VITE_APP_VERSION": "2.3.0"
-  },
-  "build": {
-    "env": {
-      "VITE_API_URL": "@vite_api_url"
-    }
-  },
-  "regions": ["iad1"],
-  "functions": {
-    "api/**/*.ts": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  }
+  "regions": ["iad1"]
 }
-
