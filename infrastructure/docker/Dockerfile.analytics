@@ -1,73 +1,142 @@
-# ============================================================================
-# Nexus Analytics Service - Multi-stage Dockerfile
-# ============================================================================
+# syntax=docker/dockerfile:1.7
+# =============================================================================
+# Nexus Analytics Service - Production-Optimized Multi-Stage Dockerfile
+# =============================================================================
+#
+# Advanced analytics service providing:
+# - DORA Metrics (Deployment Frequency, Lead Time, MTTR, Change Failure Rate)
+# - Predictive Analytics & ML-powered insights
+# - Anomaly Detection
+# - Team Performance Metrics
+# - KPI Dashboards
+#
+# Build:
+#   docker build -t nexus-analytics:latest -f Dockerfile.analytics ../..
+#
+# Run:
+#   docker run -p 8086:8086 \
+#     -e REDIS_URL=redis://redis:6379 \
+#     -e PROMETHEUS_URL=http://prometheus:9090 \
+#     nexus-analytics:latest
+#
+# =============================================================================
 
-# Stage 1: Build dependencies
-FROM python:3.11-slim as builder
+# -----------------------------------------------------------------------------
+# Build Arguments
+# -----------------------------------------------------------------------------
+ARG PYTHON_VERSION=3.11
+ARG UV_VERSION=0.4.18
+
+# =============================================================================
+# Stage 1: UV Package Manager
+# =============================================================================
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+# =============================================================================
+# Stage 2: Dependency Builder
+# =============================================================================
+FROM python:${PYTHON_VERSION}-slim-bookworm AS builder
+
+COPY --from=uv /uv /usr/local/bin/uv
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        gcc \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Build shared library
+COPY shared/setup.py shared/pyproject.toml* ./shared/
+COPY shared/nexus_lib ./shared/nexus_lib
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip wheel --wheel-dir /wheels ./shared/
 
-# Copy and install shared library
-COPY shared/ /build/shared/
-RUN pip install --no-cache-dir /build/shared/
+# Build service dependencies
+COPY services/analytics/requirements.txt ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip wheel --wheel-dir /wheels -r requirements.txt
 
-# Copy and install service dependencies
-COPY services/analytics/requirements.txt /build/
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+# =============================================================================
+# Stage 3: Production Runtime
+# =============================================================================
+FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
 
-# Stage 2: Production image
-FROM python:3.11-slim
+# -----------------------------------------------------------------------------
+# OCI Image Labels
+# -----------------------------------------------------------------------------
+LABEL org.opencontainers.image.title="Nexus Analytics" \
+      org.opencontainers.image.description="DORA metrics, predictive analytics, and insights service" \
+      org.opencontainers.image.version="2.4.0" \
+      org.opencontainers.image.vendor="Nexus Team" \
+      org.opencontainers.image.authors="nexus@example.com" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/IKRedHat/Nexus-Release-Readiness-Bot"
 
-# Labels
-LABEL maintainer="Nexus Team"
-LABEL service="analytics"
-LABEL version="2.0.0"
+# -----------------------------------------------------------------------------
+# Environment Configuration
+# -----------------------------------------------------------------------------
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONPATH=/app:/app/shared \
+    SERVICE_NAME=analytics \
+    SERVICE_PORT=8086
 
-# Create non-root user
-RUN useradd --create-home --shell /bin/bash nexus
+# -----------------------------------------------------------------------------
+# System Setup
+# -----------------------------------------------------------------------------
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        libpq5 \
+        ca-certificates \
+        tzdata \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 1000 nexus \
+    && useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home nexus \
+    && mkdir -p /app/shared \
+    && chown -R nexus:nexus /app
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# -----------------------------------------------------------------------------
+# Install Dependencies
+# -----------------------------------------------------------------------------
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
-# Copy installed packages from builder
-COPY --from=builder /install /usr/local
-COPY --from=builder /build/shared /app/shared
+# -----------------------------------------------------------------------------
+# Copy Application Code
+# -----------------------------------------------------------------------------
+COPY --chown=nexus:nexus shared/nexus_lib /app/shared/nexus_lib
+COPY --chown=nexus:nexus services/analytics/ /app/
 
-# Install shared library in production
-RUN pip install --no-cache-dir /app/shared/
+# -----------------------------------------------------------------------------
+# Health Check
+# -----------------------------------------------------------------------------
+COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck
+#!/usr/bin/env python3
+import sys, urllib.request, urllib.error
+try:
+    with urllib.request.urlopen("http://localhost:8086/health", timeout=5) as r:
+        sys.exit(0 if r.status == 200 else 1)
+except: sys.exit(1)
+EOF
 
-# Copy service code
-COPY services/analytics/ /app/
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD ["/usr/local/bin/healthcheck"]
 
-# Set ownership
-RUN chown -R nexus:nexus /app
-
-# Switch to non-root user
+# -----------------------------------------------------------------------------
+# Runtime Configuration
+# -----------------------------------------------------------------------------
 USER nexus
-
-# Environment
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8086
-
-# Expose port
 EXPOSE 8086
+STOPSIGNAL SIGTERM
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8086/health || exit 1
-
-# Run the service
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8086"]
-
+CMD ["python", "-m", "uvicorn", "main:app", \
+     "--host", "0.0.0.0", "--port", "8086", \
+     "--workers", "1", "--loop", "uvloop", "--http", "httptools"]

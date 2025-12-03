@@ -1,35 +1,27 @@
 # syntax=docker/dockerfile:1.7
 # =============================================================================
-# Nexus Central Orchestrator - Production-Optimized Multi-Stage Dockerfile
+# Nexus Base Image - Shared Foundation for All Python Services
 # =============================================================================
+# This base image provides:
+# - Optimized Python runtime with security hardening
+# - Shared nexus_lib library pre-installed
+# - Common system dependencies
+# - Non-root user configuration
+# - Health check utilities
 #
-# The Orchestrator is the "brain" of Nexus - coordinating all specialist agents
-# using the ReAct (Reasoning + Acting) architecture powered by LLMs.
-#
-# Features:
-# - 3-stage build for minimal image size (~150MB)
-# - BuildKit cache mounts for fast rebuilds
-# - Non-root user with read-only filesystem capability
-# - Python-native health checks (no curl)
-# - Graceful shutdown handling
-# - OpenTelemetry instrumentation ready
-#
-# Build:
-#   docker build -t nexus-orchestrator:latest -f Dockerfile.orchestrator ../..
-#
-# Run:
-#   docker run -p 8080:8080 -e LLM_PROVIDER=mock nexus-orchestrator:latest
-#
+# Usage: FROM nexus-base:latest
+# Build: docker build -t nexus-base:latest -f Dockerfile.base ../..
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Build Arguments
+# Build Arguments (Configurable at build time)
 # -----------------------------------------------------------------------------
 ARG PYTHON_VERSION=3.11
+ARG ALPINE_VERSION=3.19
 ARG UV_VERSION=0.4.18
 
 # =============================================================================
-# Stage 1: UV Package Manager
+# Stage 1: UV Installer (Fetch UV package manager)
 # =============================================================================
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
@@ -38,52 +30,47 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 # =============================================================================
 FROM python:${PYTHON_VERSION}-slim-bookworm AS builder
 
-# Copy UV binary
+# Inherit UV from previous stage
 COPY --from=uv /uv /usr/local/bin/uv
 
-# Install build dependencies
+# Install build dependencies with cleanup in same layer
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         gcc \
+        g++ \
         libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+        libffi-dev \
+        && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# -----------------------------------------------------------------------------
-# Install Dependencies with UV (10x faster than pip)
-# -----------------------------------------------------------------------------
-# Copy requirements first for optimal layer caching
-COPY services/orchestrator/requirements.txt ./requirements.txt
-
-# Build dependency wheels
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip wheel --wheel-dir /wheels -r requirements.txt
-
-# Build shared library wheel
+# Copy shared library for building
 COPY shared/setup.py shared/pyproject.toml* ./shared/
 COPY shared/nexus_lib ./shared/nexus_lib
+
+# Build shared library wheel using UV (10x faster than pip)
 RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip compile shared/setup.py -o shared-requirements.txt && \
     uv pip wheel --wheel-dir /wheels ./shared/
 
 # =============================================================================
-# Stage 3: Production Runtime
+# Stage 3: Production Runtime Base
 # =============================================================================
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
 
 # -----------------------------------------------------------------------------
-# OCI Image Labels
+# OCI Image Labels (Standards-compliant metadata)
 # -----------------------------------------------------------------------------
-LABEL org.opencontainers.image.title="Nexus Orchestrator" \
-      org.opencontainers.image.description="Central coordination service with ReAct AI engine" \
+LABEL org.opencontainers.image.title="Nexus Base Image" \
+      org.opencontainers.image.description="Shared foundation for Nexus Release Automation services" \
       org.opencontainers.image.version="2.4.0" \
       org.opencontainers.image.vendor="Nexus Team" \
       org.opencontainers.image.authors="nexus@example.com" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.source="https://github.com/IKRedHat/Nexus-Release-Readiness-Bot" \
-      org.opencontainers.image.documentation="https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/blob/main/docs/architecture.md"
+      org.opencontainers.image.base.name="python:${PYTHON_VERSION}-slim-bookworm"
 
 # -----------------------------------------------------------------------------
 # Environment Configuration
@@ -92,91 +79,103 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
-    # Application paths
-    PYTHONPATH=/app:/app/shared:/app/services/orchestrator \
-    # Uvicorn configuration
-    UVICORN_HOST=0.0.0.0 \
-    UVICORN_PORT=8080 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=100 \
+    # Uvicorn settings
     UVICORN_WORKERS=2 \
     UVICORN_LOOP=uvloop \
     UVICORN_HTTP=httptools \
-    UVICORN_ACCESS_LOG=true \
-    # Service configuration
-    SERVICE_NAME=orchestrator \
-    SERVICE_PORT=8080 \
-    # Default to mock mode for safety
-    LLM_PROVIDER=mock \
-    MEMORY_BACKEND=local
+    # Application settings
+    NEXUS_ENV=production \
+    PYTHONPATH=/app:/app/shared
 
 # -----------------------------------------------------------------------------
 # System Setup
 # -----------------------------------------------------------------------------
+# Install runtime dependencies only (minimal footprint)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
-        # PostgreSQL client library
+        # PostgreSQL client library (required by psycopg2)
         libpq5 \
-        # TLS/SSL certificates
+        # TLS/SSL support
         ca-certificates \
-        # Timezone support
+        # Timezone data
         tzdata \
     && rm -rf /var/lib/apt/lists/* \
-    # Create non-root user
+    # Create non-root user with specific UID for K8s compatibility
     && groupadd --gid 1000 nexus \
     && useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home nexus \
-    && mkdir -p /app /app/shared /app/services/orchestrator \
+    # Create app directory with proper permissions
+    && mkdir -p /app /app/shared \
     && chown -R nexus:nexus /app
 
 WORKDIR /app
 
 # -----------------------------------------------------------------------------
-# Install Python Dependencies
+# Install Shared Library
 # -----------------------------------------------------------------------------
+# Copy pre-built wheel from builder
 COPY --from=builder /wheels /wheels
+
+# Install using pip (UV not needed at runtime)
 RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
-# -----------------------------------------------------------------------------
-# Copy Application Code
-# -----------------------------------------------------------------------------
-# Copy shared library
+# Copy shared library source (for PYTHONPATH)
 COPY --chown=nexus:nexus shared/nexus_lib /app/shared/nexus_lib
 
-# Copy orchestrator service
-COPY --chown=nexus:nexus services/orchestrator /app/services/orchestrator
-
 # -----------------------------------------------------------------------------
-# Health Check (Python-native, no curl)
+# Health Check Script (No curl dependency!)
 # -----------------------------------------------------------------------------
 COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck
 #!/usr/bin/env python3
-import sys, urllib.request, urllib.error
-try:
-    with urllib.request.urlopen("http://localhost:8080/health", timeout=5) as r:
-        sys.exit(0 if r.status == 200 else 1)
-except: sys.exit(1)
+"""
+Lightweight health check without external dependencies.
+Usage: healthcheck http://localhost:8080/health
+"""
+import sys
+import urllib.request
+import urllib.error
+
+def check_health(url: str, timeout: int = 5) -> int:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            return 0 if response.status == 200 else 1
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
+        return 1
+
+if __name__ == "__main__":
+    url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8080/health"
+    sys.exit(check_health(url))
 EOF
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD ["/usr/local/bin/healthcheck"]
+# -----------------------------------------------------------------------------
+# Graceful Shutdown Handler
+# -----------------------------------------------------------------------------
+COPY --chmod=755 <<'EOF' /usr/local/bin/entrypoint
+#!/bin/bash
+set -e
+
+# Handle SIGTERM for graceful shutdown
+trap 'kill -TERM $PID; wait $PID' SIGTERM
+
+# Execute the main command
+exec "$@" &
+PID=$!
+wait $PID
+EOF
 
 # -----------------------------------------------------------------------------
-# Runtime Configuration
+# Security Hardening
 # -----------------------------------------------------------------------------
+# Switch to non-root user
 USER nexus
-EXPOSE 8080
 
-# Graceful shutdown with proper signal handling
-STOPSIGNAL SIGTERM
+# Set secure umask
+RUN umask 027
 
-# -----------------------------------------------------------------------------
-# Start Command
-# -----------------------------------------------------------------------------
-CMD ["python", "-m", "uvicorn", \
-     "services.orchestrator.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8080", \
-     "--workers", "2", \
-     "--loop", "uvloop", \
-     "--http", "httptools", \
-     "--proxy-headers", \
-     "--forwarded-allow-ips", "*"]
+# Default command (overridden by child images)
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
+CMD ["python", "--version"]
+

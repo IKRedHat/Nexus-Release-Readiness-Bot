@@ -1,75 +1,192 @@
+# syntax=docker/dockerfile:1.7
 # =============================================================================
-# Nexus Admin Dashboard - Multi-stage Dockerfile
+# Nexus Admin Dashboard - Production-Optimized Multi-Stage Dockerfile
 # =============================================================================
-# Stage 1: Build React frontend
-# Stage 2: Python backend with built frontend
+#
+# The Admin Dashboard provides a web-based management interface for Nexus:
+# - React frontend (Vite + Tailwind)
+# - FastAPI backend
+# - Real-time agent health monitoring
+# - Configuration management
+# - Release tracking
+#
+# Architecture:
+#   Stage 1: Node.js - Build React frontend
+#   Stage 2: Python Builder - Compile dependencies
+#   Stage 3: Production - Minimal runtime image
+#
+# Build:
+#   docker build -t nexus-admin-dashboard:latest -f Dockerfile.admin-dashboard ../..
+#
+# Run:
+#   docker run -p 8088:8088 nexus-admin-dashboard:latest
+#
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Stage 1: Build Frontend
+# Build Arguments
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS frontend-builder
+ARG NODE_VERSION=20
+ARG PYTHON_VERSION=3.11
+ARG UV_VERSION=0.4.18
+
+# =============================================================================
+# Stage 1: Frontend Builder (React + Vite)
+# =============================================================================
+FROM node:${NODE_VERSION}-alpine AS frontend-builder
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app/frontend
 
-# Copy package files
+# -----------------------------------------------------------------------------
+# Install Dependencies (Optimized caching)
+# -----------------------------------------------------------------------------
+# Copy package files first for layer caching
 COPY services/admin_dashboard/frontend/package*.json ./
 
-# Install dependencies (use npm install for flexibility, npm ci for strict CI)
-RUN npm install --legacy-peer-deps
+# Use npm ci for reproducible builds (falls back to npm install if no lock file)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
 
-# Copy frontend source
+# -----------------------------------------------------------------------------
+# Build Frontend
+# -----------------------------------------------------------------------------
 COPY services/admin_dashboard/frontend/ ./
 
-# Build the frontend
+# Build with production optimizations
+ENV NODE_ENV=production
 RUN npm run build
 
-# -----------------------------------------------------------------------------
-# Stage 2: Python Backend
-# -----------------------------------------------------------------------------
-FROM python:3.11-slim AS backend
+# Verify build output
+RUN ls -la dist/ && test -f dist/index.html
 
-# Set environment variables
+# =============================================================================
+# Stage 2: Python Dependency Builder
+# =============================================================================
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+FROM python:${PYTHON_VERSION}-slim-bookworm AS python-builder
+
+COPY --from=uv /uv /usr/local/bin/uv
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        gcc \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Build shared library
+COPY shared/setup.py shared/pyproject.toml* ./shared/
+COPY shared/nexus_lib ./shared/nexus_lib
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip wheel --wheel-dir /wheels ./shared/
+
+# Build backend dependencies
+COPY services/admin_dashboard/backend/requirements.txt ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip wheel --wheel-dir /wheels -r requirements.txt
+
+# =============================================================================
+# Stage 3: Production Runtime
+# =============================================================================
+FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
+
+# -----------------------------------------------------------------------------
+# OCI Image Labels
+# -----------------------------------------------------------------------------
+LABEL org.opencontainers.image.title="Nexus Admin Dashboard" \
+      org.opencontainers.image.description="Web-based management interface for Nexus Release Automation" \
+      org.opencontainers.image.version="2.4.0" \
+      org.opencontainers.image.vendor="Nexus Team" \
+      org.opencontainers.image.authors="nexus@example.com" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/IKRedHat/Nexus-Release-Readiness-Bot" \
+      org.opencontainers.image.documentation="https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/blob/main/docs/admin-dashboard.md"
+
+# -----------------------------------------------------------------------------
+# Environment Configuration
+# -----------------------------------------------------------------------------
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PYTHONFAULTHANDLER=1 \
+    PYTHONPATH=/app:/app/shared \
+    # Service configuration
+    SERVICE_NAME=admin-dashboard \
+    SERVICE_PORT=8088 \
+    # Serve static files from /static
+    STATIC_DIR=/app/static
+
+# -----------------------------------------------------------------------------
+# System Setup
+# -----------------------------------------------------------------------------
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        libpq5 \
+        ca-certificates \
+        tzdata \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 1000 nexus \
+    && useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home nexus \
+    && mkdir -p /app/shared /app/static \
+    && chown -R nexus:nexus /app
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# -----------------------------------------------------------------------------
+# Install Python Dependencies
+# -----------------------------------------------------------------------------
+COPY --from=python-builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
-# Copy and install Python dependencies
-COPY services/admin_dashboard/backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# -----------------------------------------------------------------------------
+# Copy Application Code
+# -----------------------------------------------------------------------------
+# Shared library
+COPY --chown=nexus:nexus shared/nexus_lib /app/shared/nexus_lib
 
-# Copy shared library
-COPY shared/nexus_lib /app/shared/nexus_lib
-COPY shared/setup.py /app/shared/
-RUN pip install -e /app/shared
+# Backend application
+COPY --chown=nexus:nexus services/admin_dashboard/backend/ /app/
 
-# Copy backend code
-COPY services/admin_dashboard/backend/ ./
+# Frontend build artifacts
+COPY --from=frontend-builder --chown=nexus:nexus /app/frontend/dist /app/static
 
-# Copy built frontend from Stage 1
-COPY --from=frontend-builder /app/frontend/dist ./static
+# -----------------------------------------------------------------------------
+# Health Check
+# -----------------------------------------------------------------------------
+COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck
+#!/usr/bin/env python3
+import sys, urllib.request, urllib.error
+try:
+    with urllib.request.urlopen("http://localhost:8088/health-check", timeout=5) as r:
+        sys.exit(0 if r.status == 200 else 1)
+except: sys.exit(1)
+EOF
 
-# Create non-root user
-RUN useradd --create-home --shell /bin/bash nexus && \
-    chown -R nexus:nexus /app
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD ["/usr/local/bin/healthcheck"]
 
+# -----------------------------------------------------------------------------
+# Runtime Configuration
+# -----------------------------------------------------------------------------
 USER nexus
-
-# Expose ports
 EXPOSE 8088
+STOPSIGNAL SIGTERM
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8088/health || exit 1
-
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8088"]
-
+# -----------------------------------------------------------------------------
+# Start Command
+# -----------------------------------------------------------------------------
+CMD ["python", "-m", "uvicorn", \
+     "main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8088", \
+     "--workers", "1", \
+     "--loop", "uvloop", \
+     "--http", "httptools", \
+     "--proxy-headers"]

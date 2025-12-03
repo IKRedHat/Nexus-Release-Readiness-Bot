@@ -1,24 +1,26 @@
 # syntax=docker/dockerfile:1.7
 # =============================================================================
-# Nexus Central Orchestrator - Production-Optimized Multi-Stage Dockerfile
+# Nexus Unified Agent - Production-Optimized Multi-Stage Dockerfile
 # =============================================================================
 #
-# The Orchestrator is the "brain" of Nexus - coordinating all specialist agents
-# using the ReAct (Reasoning + Acting) architecture powered by LLMs.
+# Universal Dockerfile for all Nexus specialist agents:
+# - jira_agent (Port 8081) - Jira integration
+# - git_ci_agent (Port 8082) - GitHub + Jenkins
+# - reporting_agent (Port 8083) - Report generation
+# - slack_agent (Port 8084) - Slack integration
+# - jira_hygiene_agent (Port 8085) - Data quality checks
+# - rca_agent (Port 8006) - Root cause analysis
 #
-# Features:
-# - 3-stage build for minimal image size (~150MB)
-# - BuildKit cache mounts for fast rebuilds
-# - Non-root user with read-only filesystem capability
-# - Python-native health checks (no curl)
-# - Graceful shutdown handling
-# - OpenTelemetry instrumentation ready
+# Build Args:
+#   AGENT_NAME: Name of the agent (e.g., jira_agent)
+#   AGENT_PORT: Port to expose (e.g., 8081)
 #
-# Build:
-#   docker build -t nexus-orchestrator:latest -f Dockerfile.orchestrator ../..
-#
-# Run:
-#   docker run -p 8080:8080 -e LLM_PROVIDER=mock nexus-orchestrator:latest
+# Build Example:
+#   docker build \
+#     --build-arg AGENT_NAME=jira_agent \
+#     --build-arg AGENT_PORT=8081 \
+#     -t nexus-jira-agent:latest \
+#     -f Dockerfile.agent ../..
 #
 # =============================================================================
 
@@ -27,6 +29,8 @@
 # -----------------------------------------------------------------------------
 ARG PYTHON_VERSION=3.11
 ARG UV_VERSION=0.4.18
+ARG AGENT_NAME=jira_agent
+ARG AGENT_PORT=8081
 
 # =============================================================================
 # Stage 1: UV Package Manager
@@ -38,6 +42,8 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 # =============================================================================
 FROM python:${PYTHON_VERSION}-slim-bookworm AS builder
 
+ARG AGENT_NAME
+
 # Copy UV binary
 COPY --from=uv /uv /usr/local/bin/uv
 
@@ -48,42 +54,47 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         build-essential \
         gcc \
         libpq-dev \
+        libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
 # -----------------------------------------------------------------------------
-# Install Dependencies with UV (10x faster than pip)
+# Build Shared Library
 # -----------------------------------------------------------------------------
-# Copy requirements first for optimal layer caching
-COPY services/orchestrator/requirements.txt ./requirements.txt
-
-# Build dependency wheels
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip wheel --wheel-dir /wheels -r requirements.txt
-
-# Build shared library wheel
 COPY shared/setup.py shared/pyproject.toml* ./shared/
 COPY shared/nexus_lib ./shared/nexus_lib
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip wheel --wheel-dir /wheels ./shared/
+
+# -----------------------------------------------------------------------------
+# Build Agent Dependencies
+# -----------------------------------------------------------------------------
+COPY services/agents/${AGENT_NAME}/requirements.txt ./requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip wheel --wheel-dir /wheels -r requirements.txt
 
 # =============================================================================
 # Stage 3: Production Runtime
 # =============================================================================
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
 
+# Re-declare ARGs for this stage
+ARG AGENT_NAME
+ARG AGENT_PORT
+
 # -----------------------------------------------------------------------------
-# OCI Image Labels
+# OCI Image Labels (Dynamic based on agent)
 # -----------------------------------------------------------------------------
-LABEL org.opencontainers.image.title="Nexus Orchestrator" \
-      org.opencontainers.image.description="Central coordination service with ReAct AI engine" \
+LABEL org.opencontainers.image.title="Nexus ${AGENT_NAME}" \
+      org.opencontainers.image.description="Nexus specialized agent: ${AGENT_NAME}" \
       org.opencontainers.image.version="2.4.0" \
       org.opencontainers.image.vendor="Nexus Team" \
       org.opencontainers.image.authors="nexus@example.com" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.source="https://github.com/IKRedHat/Nexus-Release-Readiness-Bot" \
-      org.opencontainers.image.documentation="https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/blob/main/docs/architecture.md"
+      org.opencontainers.image.source="https://github.com/IKRedHat/Nexus-Release-Readiness-Bot"
 
 # -----------------------------------------------------------------------------
 # Environment Configuration
@@ -93,20 +104,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
     # Application paths
-    PYTHONPATH=/app:/app/shared:/app/services/orchestrator \
-    # Uvicorn configuration
-    UVICORN_HOST=0.0.0.0 \
-    UVICORN_PORT=8080 \
-    UVICORN_WORKERS=2 \
-    UVICORN_LOOP=uvloop \
-    UVICORN_HTTP=httptools \
-    UVICORN_ACCESS_LOG=true \
-    # Service configuration
-    SERVICE_NAME=orchestrator \
-    SERVICE_PORT=8080 \
-    # Default to mock mode for safety
-    LLM_PROVIDER=mock \
-    MEMORY_BACKEND=local
+    PYTHONPATH=/app:/app/shared:/app/services/agents/${AGENT_NAME} \
+    # Agent configuration
+    AGENT_NAME=${AGENT_NAME} \
+    AGENT_PORT=${AGENT_PORT} \
+    SERVICE_NAME=${AGENT_NAME} \
+    SERVICE_PORT=${AGENT_PORT} \
+    # Default mock mode for safety
+    JIRA_MOCK_MODE=true \
+    GITHUB_MOCK_MODE=true \
+    JENKINS_MOCK_MODE=true \
+    SLACK_MOCK_MODE=true \
+    CONFLUENCE_MOCK_MODE=true
 
 # -----------------------------------------------------------------------------
 # System Setup
@@ -114,23 +123,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
-        # PostgreSQL client library
         libpq5 \
-        # TLS/SSL certificates
         ca-certificates \
-        # Timezone support
         tzdata \
     && rm -rf /var/lib/apt/lists/* \
-    # Create non-root user
     && groupadd --gid 1000 nexus \
     && useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home nexus \
-    && mkdir -p /app /app/shared /app/services/orchestrator \
+    && mkdir -p /app/shared /app/services/agents \
     && chown -R nexus:nexus /app
 
 WORKDIR /app
 
 # -----------------------------------------------------------------------------
-# Install Python Dependencies
+# Install Dependencies
 # -----------------------------------------------------------------------------
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
@@ -138,20 +143,18 @@ RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 # -----------------------------------------------------------------------------
 # Copy Application Code
 # -----------------------------------------------------------------------------
-# Copy shared library
 COPY --chown=nexus:nexus shared/nexus_lib /app/shared/nexus_lib
-
-# Copy orchestrator service
-COPY --chown=nexus:nexus services/orchestrator /app/services/orchestrator
+COPY --chown=nexus:nexus services/agents/${AGENT_NAME} /app/services/agents/${AGENT_NAME}
 
 # -----------------------------------------------------------------------------
-# Health Check (Python-native, no curl)
+# Health Check Script
 # -----------------------------------------------------------------------------
-COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck
+COPY --chmod=755 <<EOF /usr/local/bin/healthcheck
 #!/usr/bin/env python3
-import sys, urllib.request, urllib.error
+import sys, urllib.request, urllib.error, os
+port = os.environ.get('AGENT_PORT', '8080')
 try:
-    with urllib.request.urlopen("http://localhost:8080/health", timeout=5) as r:
+    with urllib.request.urlopen(f"http://localhost:{port}/health", timeout=5) as r:
         sys.exit(0 if r.status == 200 else 1)
 except: sys.exit(1)
 EOF
@@ -163,20 +166,18 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 # Runtime Configuration
 # -----------------------------------------------------------------------------
 USER nexus
-EXPOSE 8080
-
-# Graceful shutdown with proper signal handling
+EXPOSE ${AGENT_PORT}
 STOPSIGNAL SIGTERM
 
 # -----------------------------------------------------------------------------
-# Start Command
+# Start Command (Uses shell form for variable expansion)
 # -----------------------------------------------------------------------------
-CMD ["python", "-m", "uvicorn", \
-     "services.orchestrator.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8080", \
-     "--workers", "2", \
-     "--loop", "uvloop", \
-     "--http", "httptools", \
-     "--proxy-headers", \
-     "--forwarded-allow-ips", "*"]
+CMD python -m uvicorn \
+    "services.agents.${AGENT_NAME}.main:app" \
+    --host 0.0.0.0 \
+    --port ${AGENT_PORT} \
+    --workers 1 \
+    --loop uvloop \
+    --http httptools \
+    --proxy-headers
+

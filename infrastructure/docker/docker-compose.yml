@@ -1,7 +1,27 @@
-# ============================================================================
-# Nexus Multi-Agent System - Docker Compose Development Stack
-# ============================================================================
-version: '3.8'
+# =============================================================================
+# Nexus Multi-Agent System - Docker Compose Production Stack
+# =============================================================================
+# 
+# This compose file orchestrates the complete Nexus ecosystem:
+# - 10 Microservices (Orchestrator + 9 Specialist Agents)
+# - Observability Stack (Prometheus, Grafana, Jaeger)
+# - Data Layer (PostgreSQL, Redis)
+#
+# Quick Start:
+#   docker compose up -d
+#
+# With Build:
+#   docker compose up -d --build
+#
+# View Logs:
+#   docker compose logs -f orchestrator
+#
+# Shutdown:
+#   docker compose down -v
+#
+# =============================================================================
+
+name: nexus
 
 services:
   # ===========================================================================
@@ -10,22 +30,31 @@ services:
   
   redis:
     image: redis:7-alpine
+    container_name: nexus-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 5s
+    networks:
+      - nexus-internal
 
   postgres:
     image: pgvector/pgvector:pg16
+    container_name: nexus-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: nexus
       POSTGRES_USER: nexus
       POSTGRES_PASSWORD: nexus_secret
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     volumes:
@@ -34,14 +63,19 @@ services:
       test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 10s
+    networks:
+      - nexus-internal
 
   # ===========================================================================
   # Observability Stack
   # ===========================================================================
   
   prometheus:
-    image: prom/prometheus:v2.47.0
+    image: prom/prometheus:v2.48.0
+    container_name: nexus-prometheus
+    restart: unless-stopped
     ports:
       - "9090:9090"
     volumes:
@@ -50,54 +84,95 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
       - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - nexus-internal
 
   grafana:
-    image: grafana/grafana:10.2.0
+    image: grafana/grafana:10.2.2
+    container_name: nexus-grafana
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: nexus_admin
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-piechart-panel
     volumes:
       - grafana_data:/var/lib/grafana
       - ../grafana:/etc/grafana/provisioning/dashboards:ro
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - nexus-internal
 
   jaeger:
-    image: jaegertracing/all-in-one:1.51
+    image: jaegertracing/all-in-one:1.52
+    container_name: nexus-jaeger
+    restart: unless-stopped
     ports:
       - "16686:16686"  # UI
       - "4317:4317"    # OTLP gRPC
       - "4318:4318"    # OTLP HTTP
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: memory
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:16686/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - nexus-internal
 
   # ===========================================================================
-  # Nexus Services
+  # Nexus Core Services
   # ===========================================================================
   
   orchestrator:
     build:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile.orchestrator
+      cache_from:
+        - type=registry,ref=nexus-orchestrator:cache
+    image: nexus-orchestrator:latest
+    container_name: nexus-orchestrator
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
       - NEXUS_ENV=development
-      - NEXUS_JWT_SECRET=dev-secret-key
+      - NEXUS_JWT_SECRET=dev-secret-key-change-in-production
       - MEMORY_BACKEND=pgvector
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=nexus
       - POSTGRES_USER=nexus
       - POSTGRES_PASSWORD=nexus_secret
+      - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      # Agent URLs (Kubernetes DNS in prod)
       - JIRA_AGENT_URL=http://jira-agent:8081
       - GIT_CI_AGENT_URL=http://git-ci-agent:8082
       - REPORTING_AGENT_URL=http://reporting-agent:8083
       - SLACK_AGENT_URL=http://slack-agent:8084
+      - HYGIENE_AGENT_URL=http://jira-hygiene-agent:8085
+      - RCA_AGENT_URL=http://rca-agent:8006
+      - ANALYTICS_URL=http://analytics:8086
+      - WEBHOOKS_URL=http://webhooks:8087
       - LLM_PROVIDER=mock
     depends_on:
       postgres:
@@ -105,98 +180,166 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - nexus-internal
+
+  # ===========================================================================
+  # Specialist Agents
+  # ===========================================================================
 
   jira-agent:
     build:
       context: ../..
-      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      dockerfile: infrastructure/docker/Dockerfile.agent
       args:
         AGENT_NAME: jira_agent
-        AGENT_PORT: 8081
+        AGENT_PORT: "8081"
+    image: nexus-jira-agent:latest
+    container_name: nexus-jira-agent
+    restart: unless-stopped
     ports:
       - "8081:8081"
     environment:
       - NEXUS_ENV=development
       - JIRA_MOCK_MODE=true
+      - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - nexus-internal
 
   git-ci-agent:
     build:
       context: ../..
-      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      dockerfile: infrastructure/docker/Dockerfile.agent
       args:
         AGENT_NAME: git_ci_agent
-        AGENT_PORT: 8082
+        AGENT_PORT: "8082"
+    image: nexus-git-ci-agent:latest
+    container_name: nexus-git-ci-agent
+    restart: unless-stopped
     ports:
       - "8082:8082"
     environment:
       - NEXUS_ENV=development
       - GITHUB_MOCK_MODE=true
       - JENKINS_MOCK_MODE=true
+      - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - nexus-internal
 
   reporting-agent:
     build:
       context: ../..
-      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      dockerfile: infrastructure/docker/Dockerfile.agent
       args:
         AGENT_NAME: reporting_agent
-        AGENT_PORT: 8083
+        AGENT_PORT: "8083"
+    image: nexus-reporting-agent:latest
+    container_name: nexus-reporting-agent
+    restart: unless-stopped
     ports:
       - "8083:8083"
     environment:
       - NEXUS_ENV=development
       - CONFLUENCE_MOCK_MODE=true
+      - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - nexus-internal
 
   slack-agent:
     build:
       context: ../..
-      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      dockerfile: infrastructure/docker/Dockerfile.agent
       args:
         AGENT_NAME: slack_agent
-        AGENT_PORT: 8084
+        AGENT_PORT: "8084"
+    image: nexus-slack-agent:latest
+    container_name: nexus-slack-agent
+    restart: unless-stopped
     ports:
       - "8084:8084"
     environment:
       - NEXUS_ENV=development
       - SLACK_MOCK_MODE=true
       - ORCHESTRATOR_URL=http://orchestrator:8080
+      - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
-      - orchestrator
+      orchestrator:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8084/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - nexus-internal
 
   jira-hygiene-agent:
     build:
       context: ../..
-      dockerfile: infrastructure/docker/Dockerfile.generic-agent
+      dockerfile: infrastructure/docker/Dockerfile.agent
       args:
         AGENT_NAME: jira_hygiene_agent
-        AGENT_PORT: 8085
+        AGENT_PORT: "8085"
+    image: nexus-hygiene-agent:latest
+    container_name: nexus-hygiene-agent
+    restart: unless-stopped
     ports:
       - "8085:8085"
     environment:
@@ -204,19 +347,35 @@ services:
       - JIRA_MOCK_MODE=true
       - SLACK_AGENT_URL=http://slack-agent:8084
       - HYGIENE_CHECK_SCHEDULE=0 9 * * 1-5
+      - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
-      - slack-agent
+      slack-agent:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8085/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - nexus-internal
 
   rca-agent:
     build:
       context: ../..
-      dockerfile: infrastructure/docker/Dockerfile.rca-agent
+      dockerfile: infrastructure/docker/Dockerfile.agent
+      args:
+        AGENT_NAME: rca_agent
+        AGENT_PORT: "8006"
+    image: nexus-rca-agent:latest
+    container_name: nexus-rca-agent
+    restart: unless-stopped
     ports:
       - "8006:8006"
     environment:
@@ -228,19 +387,28 @@ services:
       - RCA_LLM_MODEL=gemini-1.5-pro
       - RCA_MAX_LOG_CHARS=100000
       - RCA_MAX_DIFF_CHARS=50000
-      # Auto-trigger and notification settings
       - RCA_AUTO_ANALYZE=true
       - SLACK_AGENT_URL=http://slack-agent:8084
       - SLACK_RELEASE_CHANNEL=#release-notifications
       - SLACK_NOTIFY_ON_FAILURE=true
+      - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
-      - slack-agent
+      slack-agent:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - nexus-internal
 
   # ===========================================================================
   # Advanced Services
@@ -250,6 +418,9 @@ services:
     build:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile.analytics
+    image: nexus-analytics:latest
+    container_name: nexus-analytics
+    restart: unless-stopped
     ports:
       - "8086:8086"
     environment:
@@ -268,17 +439,26 @@ services:
       redis:
         condition: service_healthy
       prometheus:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8086/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - nexus-internal
 
   webhooks:
     build:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile.webhooks
+    image: nexus-webhooks:latest
+    container_name: nexus-webhooks
+    restart: unless-stopped
     ports:
       - "8087:8087"
     environment:
@@ -295,10 +475,16 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8087/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - nexus-internal
 
   # ===========================================================================
   # Admin Dashboard
@@ -308,6 +494,9 @@ services:
     build:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile.admin-dashboard
+    image: nexus-admin-dashboard:latest
+    container_name: nexus-admin-dashboard
+    restart: unless-stopped
     ports:
       - "8088:8088"
     environment:
@@ -315,29 +504,52 @@ services:
       - REDIS_URL=redis://redis:6379
       - ORCHESTRATOR_URL=http://orchestrator:8080
       - JIRA_AGENT_URL=http://jira-agent:8081
-      - GIT_AGENT_URL=http://git-agent:8082
+      - GIT_AGENT_URL=http://git-ci-agent:8082
       - REPORTING_AGENT_URL=http://reporting-agent:8083
       - SLACK_AGENT_URL=http://slack-agent:8084
       - HYGIENE_AGENT_URL=http://jira-hygiene-agent:8085
       - RCA_AGENT_URL=http://rca-agent:8006
       - ANALYTICS_URL=http://analytics:8086
       - WEBHOOKS_URL=http://webhooks:8087
+      - PROMETHEUS_URL=http://prometheus:9090
+      - GRAFANA_URL=http://grafana:3000
     depends_on:
       redis:
         condition: service_healthy
+      orchestrator:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/health-check', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - nexus-internal
 
+# =============================================================================
+# Volumes (Persistent Storage)
+# =============================================================================
 volumes:
   redis_data:
+    driver: local
   postgres_data:
+    driver: local
   prometheus_data:
+    driver: local
   grafana_data:
+    driver: local
 
+# =============================================================================
+# Networks
+# =============================================================================
 networks:
-  default:
+  nexus-internal:
     name: nexus-network
-
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
