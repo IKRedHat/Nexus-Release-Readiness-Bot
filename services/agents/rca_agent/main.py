@@ -156,7 +156,7 @@ RCA_CONFIDENCE = Histogram(
     buckets=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 )
 LLM_TOKENS_RCA = Counter(
-    "nexus_llm_tokens_total",
+    "nexus_rca_llm_tokens_total",
     "LLM tokens used for RCA",
     ["model", "task_type"]
 )
