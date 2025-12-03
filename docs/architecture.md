@@ -2,6 +2,22 @@
 
 This document describes the architecture of the Nexus Release Automation System, including its core components, communication patterns, and design decisions.
 
+## 🎨 Workflow Visualization
+
+### High-Level Architecture Diagram
+
+The following animated diagram shows the complete Nexus architecture with all components, data flows, and the ReAct reasoning loop:
+
+![Nexus Workflow Architecture](assets/nexus-workflow-animated.svg)
+
+### Detailed Sequence Diagram
+
+This sequence diagram illustrates the step-by-step flow from user query to intelligent response:
+
+![Nexus Workflow Sequence](assets/nexus-workflow-sequence.svg)
+
+---
+
 ## System Overview
 
 Nexus is a multi-agent system that uses a ReAct (Reasoning + Acting) architecture to orchestrate specialized agents for release readiness assessments and proactive quality management.

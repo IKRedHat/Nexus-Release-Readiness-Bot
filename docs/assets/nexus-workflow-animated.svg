@@ -1,0 +1,633 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" width="1400" height="900">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0e27"/>
+      <stop offset="50%" style="stop-color:#0d1330"/>
+      <stop offset="100%" style="stop-color:#0a0e27"/>
+    </linearGradient>
+    
+    <linearGradient id="orchestratorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    
+    <linearGradient id="agentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="100%" style="stop-color:#0891b2"/>
+    </linearGradient>
+    
+    <linearGradient id="slackGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e11d48"/>
+      <stop offset="100%" style="stop-color:#be123c"/>
+    </linearGradient>
+    
+    <linearGradient id="externalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    
+    <linearGradient id="adminGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    
+    <linearGradient id="dataGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899"/>
+      <stop offset="100%" style="stop-color:#db2777"/>
+    </linearGradient>
+    
+    <!-- Glow filters -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Animated dash pattern -->
+    <pattern id="flowPattern" patternUnits="userSpaceOnUse" width="20" height="1">
+      <rect width="10" height="1" fill="#6366f1">
+        <animate attributeName="x" from="0" to="20" dur="0.5s" repeatCount="indefinite"/>
+      </rect>
+    </pattern>
+    
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6366f1"/>
+    </marker>
+    
+    <marker id="arrowheadCyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#06b6d4"/>
+    </marker>
+    
+    <!-- Pulse animation circle -->
+    <circle id="pulse" r="5" fill="#6366f1">
+      <animate attributeName="r" values="3;8;3" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+  </defs>
+  
+  <style>
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+    }
+    @keyframes flowRight {
+      0% { stroke-dashoffset: 20; }
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes flowLeft {
+      0% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: 20; }
+    }
+    @keyframes orbit {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+    @keyframes reactLoop {
+      0% { stroke-dashoffset: 200; }
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes dataFlow {
+      0% { offset-distance: 0%; opacity: 1; }
+      100% { offset-distance: 100%; opacity: 0.3; }
+    }
+    @keyframes typewriter {
+      0% { width: 0; }
+      100% { width: 100%; }
+    }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    @keyframes scaleIn {
+      0% { transform: scale(0.9); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .component { animation: pulse 3s ease-in-out infinite; }
+    .flow-line { stroke-dasharray: 10 5; animation: flowRight 1s linear infinite; }
+    .flow-line-reverse { stroke-dasharray: 10 5; animation: flowLeft 1s linear infinite; }
+    .react-ring { animation: orbit 8s linear infinite; transform-origin: 700px 340px; }
+    .data-dot { animation: dataFlow 2s ease-in-out infinite; }
+    .status-blink { animation: blink 1s ease-in-out infinite; }
+    .fade-pulse { animation: fadeInOut 2s ease-in-out infinite; }
+  </style>
+  
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)"/>
+  
+  <!-- Grid pattern -->
+  <g opacity="0.1">
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#6366f1" stroke-width="0.5"/>
+    </pattern>
+    <rect width="100%" height="100%" fill="url(#grid)"/>
+  </g>
+  
+  <!-- Title -->
+  <g filter="url(#strongGlow)">
+    <text x="700" y="50" font-family="'Segoe UI', Arial, sans-serif" font-size="32" font-weight="bold" fill="#fff" text-anchor="middle">
+      🚀 NEXUS RELEASE AUTOMATION
+    </text>
+    <text x="700" y="80" font-family="'Segoe UI', Arial, sans-serif" font-size="16" fill="#94a3b8" text-anchor="middle">
+      AI-Powered Multi-Agent Workflow Architecture
+    </text>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- USER LAYER -->
+  <!-- ============================================ -->
+  <g id="userLayer">
+    <text x="100" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#94a3b8">USER LAYER</text>
+    
+    <!-- Slack User -->
+    <g transform="translate(80, 150)" class="component">
+      <rect x="0" y="0" width="120" height="70" rx="10" fill="url(#slackGrad)" filter="url(#glow)"/>
+      <text x="60" y="30" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">👤 User</text>
+      <text x="60" y="50" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fecaca" text-anchor="middle">/nexus status v2.0</text>
+    </g>
+    
+    <!-- Admin User -->
+    <g transform="translate(80, 240)" class="component">
+      <rect x="0" y="0" width="120" height="70" rx="10" fill="url(#adminGrad)" filter="url(#glow)"/>
+      <text x="60" y="30" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">🔧 Admin</text>
+      <text x="60" y="50" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#d1fae5" text-anchor="middle">Dashboard UI</text>
+    </g>
+    
+    <!-- API Client -->
+    <g transform="translate(80, 330)" class="component">
+      <rect x="0" y="0" width="120" height="70" rx="10" fill="#374151" stroke="#6b7280" stroke-width="2" filter="url(#glow)"/>
+      <text x="60" y="30" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">📡 API Client</text>
+      <text x="60" y="50" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">REST/GraphQL</text>
+    </g>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- GATEWAY LAYER -->
+  <!-- ============================================ -->
+  <g id="gatewayLayer">
+    <text x="280" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#94a3b8">GATEWAY</text>
+    
+    <!-- Slack Agent -->
+    <g transform="translate(260, 150)" class="component">
+      <rect x="0" y="0" width="140" height="80" rx="10" fill="url(#slackGrad)" filter="url(#glow)"/>
+      <text x="70" y="25" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">Slack Agent</text>
+      <text x="70" y="45" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fecaca" text-anchor="middle">Port 8084</text>
+      <text x="70" y="65" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fecdd3" text-anchor="middle">Commands • Modals</text>
+      <!-- Status indicator -->
+      <circle cx="125" cy="15" r="6" fill="#22c55e" class="status-blink"/>
+    </g>
+    
+    <!-- Admin Dashboard -->
+    <g transform="translate(260, 250)" class="component">
+      <rect x="0" y="0" width="140" height="80" rx="10" fill="url(#adminGrad)" filter="url(#glow)"/>
+      <text x="70" y="25" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">Admin Dashboard</text>
+      <text x="70" y="45" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#d1fae5" text-anchor="middle">Port 8088</text>
+      <text x="70" y="65" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#d1fae5" text-anchor="middle">Config • Releases</text>
+      <circle cx="125" cy="15" r="6" fill="#22c55e" class="status-blink"/>
+    </g>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- CORE LAYER - ORCHESTRATOR -->
+  <!-- ============================================ -->
+  <g id="coreLayer">
+    <text x="510" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#94a3b8">CORE - ORCHESTRATOR</text>
+    
+    <!-- Orchestrator Main Box -->
+    <g transform="translate(470, 150)">
+      <rect x="0" y="0" width="460" height="300" rx="15" fill="#1e1b4b" stroke="url(#orchestratorGrad)" stroke-width="3" filter="url(#glow)"/>
+      
+      <!-- Inner glow effect -->
+      <rect x="5" y="5" width="450" height="290" rx="12" fill="none" stroke="#6366f1" stroke-width="1" opacity="0.3"/>
+      
+      <!-- Title -->
+      <text x="230" y="35" font-family="'Segoe UI', Arial, sans-serif" font-size="16" fill="#fff" text-anchor="middle" font-weight="bold">🧠 Central Orchestrator</text>
+      <text x="230" y="55" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#a5b4fc" text-anchor="middle">Port 8080 • ReAct Architecture</text>
+      
+      <!-- ReAct Engine Circle -->
+      <g transform="translate(230, 170)">
+        <!-- Outer rotating ring -->
+        <circle cx="0" cy="0" r="90" fill="none" stroke="url(#orchestratorGrad)" stroke-width="2" stroke-dasharray="15 10" class="react-ring"/>
+        
+        <!-- Inner circle -->
+        <circle cx="0" cy="0" r="70" fill="#312e81" stroke="#6366f1" stroke-width="2"/>
+        
+        <!-- ReAct Loop Visualization -->
+        <g font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#c7d2fe">
+          <!-- Thought -->
+          <g transform="translate(0, -50)">
+            <circle r="25" fill="#4f46e5" filter="url(#glow)"/>
+            <text y="4" text-anchor="middle" fill="#fff" font-weight="bold">💭</text>
+            <text y="40" text-anchor="middle" fill="#a5b4fc" font-size="9">Thought</text>
+          </g>
+          
+          <!-- Action -->
+          <g transform="translate(45, 25)">
+            <circle r="25" fill="#7c3aed" filter="url(#glow)"/>
+            <text y="4" text-anchor="middle" fill="#fff" font-weight="bold">⚡</text>
+            <text y="40" text-anchor="middle" fill="#a5b4fc" font-size="9">Action</text>
+          </g>
+          
+          <!-- Observation -->
+          <g transform="translate(-45, 25)">
+            <circle r="25" fill="#8b5cf6" filter="url(#glow)"/>
+            <text y="4" text-anchor="middle" fill="#fff" font-weight="bold">👁️</text>
+            <text y="40" text-anchor="middle" fill="#a5b4fc" font-size="9">Observe</text>
+          </g>
+          
+          <!-- Animated arrows between states -->
+          <path d="M 15,-40 Q 40,-20 40,10" fill="none" stroke="#a5b4fc" stroke-width="2" marker-end="url(#arrowhead)" class="flow-line"/>
+          <path d="M 35,40 Q 0,60 -35,40" fill="none" stroke="#a5b4fc" stroke-width="2" marker-end="url(#arrowhead)" class="flow-line"/>
+          <path d="M -40,10 Q -40,-20 -15,-40" fill="none" stroke="#a5b4fc" stroke-width="2" marker-end="url(#arrowhead)" class="flow-line"/>
+        </g>
+        
+        <!-- Center text -->
+        <text y="0" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#e0e7ff" font-weight="bold">ReAct</text>
+        <text y="14" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#a5b4fc">Engine</text>
+      </g>
+      
+      <!-- LLM Provider -->
+      <g transform="translate(350, 90)">
+        <rect x="0" y="0" width="90" height="50" rx="8" fill="#4f46e5" filter="url(#glow)"/>
+        <text x="45" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🤖 LLM</text>
+        <text x="45" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#c7d2fe" text-anchor="middle">Gemini 2.0</text>
+      </g>
+      
+      <!-- Memory -->
+      <g transform="translate(350, 155)">
+        <rect x="0" y="0" width="90" height="50" rx="8" fill="#7c3aed" filter="url(#glow)"/>
+        <text x="45" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🧠 Memory</text>
+        <text x="45" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#ddd6fe" text-anchor="middle">pgvector</text>
+      </g>
+      
+      <!-- Tool Registry -->
+      <g transform="translate(350, 220)">
+        <rect x="0" y="0" width="90" height="50" rx="8" fill="#8b5cf6" filter="url(#glow)"/>
+        <text x="45" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🔧 Tools</text>
+        <text x="45" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#e9d5ff" text-anchor="middle">50+ Functions</text>
+      </g>
+      
+      <!-- Specialist Registry -->
+      <g transform="translate(20, 220)">
+        <rect x="0" y="0" width="90" height="50" rx="8" fill="#6366f1" filter="url(#glow)"/>
+        <text x="45" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">📋 Registry</text>
+        <text x="45" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#c7d2fe" text-anchor="middle">9 Specialists</text>
+      </g>
+      
+      <!-- Status indicator -->
+      <circle cx="440" cy="20" r="8" fill="#22c55e" class="status-blink"/>
+    </g>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- SPECIALIST AGENTS LAYER -->
+  <!-- ============================================ -->
+  <g id="agentsLayer">
+    <text x="1000" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#94a3b8">SPECIALIST AGENTS</text>
+    
+    <!-- Agent boxes -->
+    <!-- Jira Agent -->
+    <g transform="translate(970, 150)" class="component">
+      <rect x="0" y="0" width="110" height="55" rx="8" fill="url(#agentGrad)" filter="url(#glow)"/>
+      <text x="55" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">📋 Jira</text>
+      <text x="55" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#cffafe" text-anchor="middle">:8081</text>
+      <circle cx="95" cy="12" r="5" fill="#22c55e" class="status-blink"/>
+    </g>
+    
+    <!-- Git/CI Agent -->
+    <g transform="translate(1100, 150)" class="component">
+      <rect x="0" y="0" width="110" height="55" rx="8" fill="url(#agentGrad)" filter="url(#glow)"/>
+      <text x="55" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🔧 Git/CI</text>
+      <text x="55" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#cffafe" text-anchor="middle">:8082</text>
+      <circle cx="95" cy="12" r="5" fill="#22c55e" class="status-blink"/>
+    </g>
+    
+    <!-- Reporting Agent -->
+    <g transform="translate(1230, 150)" class="component">
+      <rect x="0" y="0" width="110" height="55" rx="8" fill="url(#agentGrad)" filter="url(#glow)"/>
+      <text x="55" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">📝 Reports</text>
+      <text x="55" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#cffafe" text-anchor="middle">:8083</text>
+      <circle cx="95" cy="12" r="5" fill="#22c55e" class="status-blink"/>
+    </g>
+    
+    <!-- Hygiene Agent -->
+    <g transform="translate(970, 220)" class="component">
+      <rect x="0" y="0" width="110" height="55" rx="8" fill="url(#agentGrad)" filter="url(#glow)"/>
+      <text x="55" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🧹 Hygiene</text>
+      <text x="55" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#cffafe" text-anchor="middle">:8085</text>
+      <circle cx="95" cy="12" r="5" fill="#22c55e" class="status-blink"/>
+    </g>
+    
+    <!-- RCA Agent -->
+    <g transform="translate(1100, 220)" class="component">
+      <rect x="0" y="0" width="110" height="55" rx="8" fill="url(#agentGrad)" filter="url(#glow)"/>
+      <text x="55" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🔍 RCA</text>
+      <text x="55" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#cffafe" text-anchor="middle">:8006</text>
+      <circle cx="95" cy="12" r="5" fill="#22c55e" class="status-blink"/>
+    </g>
+    
+    <!-- Analytics -->
+    <g transform="translate(1230, 220)" class="component">
+      <rect x="0" y="0" width="110" height="55" rx="8" fill="url(#agentGrad)" filter="url(#glow)"/>
+      <text x="55" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">📊 Analytics</text>
+      <text x="55" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#cffafe" text-anchor="middle">:8086</text>
+      <circle cx="95" cy="12" r="5" fill="#22c55e" class="status-blink"/>
+    </g>
+    
+    <!-- Webhooks -->
+    <g transform="translate(1035, 290)" class="component">
+      <rect x="0" y="0" width="110" height="55" rx="8" fill="url(#agentGrad)" filter="url(#glow)"/>
+      <text x="55" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🔔 Webhooks</text>
+      <text x="55" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#cffafe" text-anchor="middle">:8087</text>
+      <circle cx="95" cy="12" r="5" fill="#22c55e" class="status-blink"/>
+    </g>
+    
+    <!-- Scheduling -->
+    <g transform="translate(1165, 290)" class="component">
+      <rect x="0" y="0" width="110" height="55" rx="8" fill="url(#agentGrad)" filter="url(#glow)"/>
+      <text x="55" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">⏰ Scheduler</text>
+      <text x="55" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#cffafe" text-anchor="middle">APScheduler</text>
+      <circle cx="95" cy="12" r="5" fill="#22c55e" class="status-blink"/>
+    </g>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- EXTERNAL SYSTEMS LAYER -->
+  <!-- ============================================ -->
+  <g id="externalLayer">
+    <text x="1000" y="380" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#94a3b8">EXTERNAL SYSTEMS</text>
+    
+    <!-- Jira Cloud -->
+    <g transform="translate(970, 400)" class="component">
+      <rect x="0" y="0" width="100" height="50" rx="8" fill="url(#externalGrad)" filter="url(#glow)"/>
+      <text x="50" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🎫 Jira</text>
+      <text x="50" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fef3c7" text-anchor="middle">Cloud/Server</text>
+    </g>
+    
+    <!-- GitHub -->
+    <g transform="translate(1090, 400)" class="component">
+      <rect x="0" y="0" width="100" height="50" rx="8" fill="url(#externalGrad)" filter="url(#glow)"/>
+      <text x="50" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🐙 GitHub</text>
+      <text x="50" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fef3c7" text-anchor="middle">PRs • Commits</text>
+    </g>
+    
+    <!-- Jenkins -->
+    <g transform="translate(1210, 400)" class="component">
+      <rect x="0" y="0" width="100" height="50" rx="8" fill="url(#externalGrad)" filter="url(#glow)"/>
+      <text x="50" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🔧 Jenkins</text>
+      <text x="50" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fef3c7" text-anchor="middle">CI/CD</text>
+    </g>
+    
+    <!-- Confluence -->
+    <g transform="translate(1030, 465)" class="component">
+      <rect x="0" y="0" width="100" height="50" rx="8" fill="url(#externalGrad)" filter="url(#glow)"/>
+      <text x="50" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">📚 Confluence</text>
+      <text x="50" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fef3c7" text-anchor="middle">Reports</text>
+    </g>
+    
+    <!-- Smartsheet -->
+    <g transform="translate(1150, 465)" class="component">
+      <rect x="0" y="0" width="100" height="50" rx="8" fill="url(#externalGrad)" filter="url(#glow)"/>
+      <text x="50" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">📊 Smartsheet</text>
+      <text x="50" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fef3c7" text-anchor="middle">Releases</text>
+    </g>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- DATA LAYER -->
+  <!-- ============================================ -->
+  <g id="dataLayer">
+    <text x="470" y="490" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#94a3b8">DATA LAYER</text>
+    
+    <!-- PostgreSQL -->
+    <g transform="translate(470, 510)" class="component">
+      <rect x="0" y="0" width="130" height="60" rx="10" fill="url(#dataGrad)" filter="url(#glow)"/>
+      <text x="65" y="25" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" text-anchor="middle" font-weight="bold">🐘 PostgreSQL</text>
+      <text x="65" y="45" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fbcfe8" text-anchor="middle">pgvector • :5432</text>
+    </g>
+    
+    <!-- Redis -->
+    <g transform="translate(620, 510)" class="component">
+      <rect x="0" y="0" width="130" height="60" rx="10" fill="url(#dataGrad)" filter="url(#glow)"/>
+      <text x="65" y="25" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" text-anchor="middle" font-weight="bold">🔴 Redis</text>
+      <text x="65" y="45" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fbcfe8" text-anchor="middle">Config • :6379</text>
+    </g>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- OBSERVABILITY LAYER -->
+  <!-- ============================================ -->
+  <g id="observabilityLayer">
+    <text x="470" y="610" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#94a3b8">OBSERVABILITY</text>
+    
+    <!-- Prometheus -->
+    <g transform="translate(470, 630)" class="component">
+      <rect x="0" y="0" width="100" height="50" rx="8" fill="#f97316" filter="url(#glow)"/>
+      <text x="50" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">📈 Prometheus</text>
+      <text x="50" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fed7aa" text-anchor="middle">:9090</text>
+    </g>
+    
+    <!-- Grafana -->
+    <g transform="translate(590, 630)" class="component">
+      <rect x="0" y="0" width="100" height="50" rx="8" fill="#f97316" filter="url(#glow)"/>
+      <text x="50" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">📊 Grafana</text>
+      <text x="50" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fed7aa" text-anchor="middle">:3000</text>
+    </g>
+    
+    <!-- Jaeger -->
+    <g transform="translate(710, 630)" class="component">
+      <rect x="0" y="0" width="100" height="50" rx="8" fill="#f97316" filter="url(#glow)"/>
+      <text x="50" y="22" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">🔍 Jaeger</text>
+      <text x="50" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#fed7aa" text-anchor="middle">:16686</text>
+    </g>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- ANIMATED FLOW LINES -->
+  <!-- ============================================ -->
+  <g id="flowLines">
+    <!-- User to Gateway -->
+    <path d="M 200 185 L 255 185" stroke="#e11d48" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    <path d="M 200 275 L 255 275" stroke="#10b981" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    <path d="M 200 365 L 255 275" stroke="#6b7280" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    
+    <!-- Gateway to Orchestrator -->
+    <path d="M 400 190 L 465 250" stroke="#6366f1" stroke-width="3" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    <path d="M 400 290 L 465 290" stroke="#6366f1" stroke-width="3" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    
+    <!-- Orchestrator to Agents -->
+    <path d="M 930 250 L 965 180" stroke="#06b6d4" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowheadCyan)"/>
+    <path d="M 930 280 L 965 250" stroke="#06b6d4" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowheadCyan)"/>
+    <path d="M 930 310 L 1030 315" stroke="#06b6d4" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowheadCyan)"/>
+    
+    <!-- Agents to External -->
+    <path d="M 1025 205 L 1020 395" stroke="#f59e0b" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    <path d="M 1155 205 L 1140 395" stroke="#f59e0b" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    <path d="M 1285 205 L 1260 395" stroke="#f59e0b" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    
+    <!-- Orchestrator to Data Layer -->
+    <path d="M 700 450 L 700 505" stroke="#ec4899" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+    
+    <!-- Data to Observability -->
+    <path d="M 620 570 L 520 625" stroke="#f97316" stroke-width="2" fill="none" class="flow-line" marker-end="url(#arrowhead)"/>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- ANIMATED DATA PACKETS -->
+  <!-- ============================================ -->
+  <g id="dataPackets">
+    <!-- Packet 1: User to Slack Agent -->
+    <circle r="5" fill="#e11d48" filter="url(#glow)">
+      <animateMotion dur="2s" repeatCount="indefinite">
+        <mpath href="#path1"/>
+      </animateMotion>
+    </circle>
+    <path id="path1" d="M 200 185 L 255 185" fill="none" stroke="none"/>
+    
+    <!-- Packet 2: Slack to Orchestrator -->
+    <circle r="6" fill="#6366f1" filter="url(#glow)">
+      <animateMotion dur="2s" repeatCount="indefinite" begin="0.5s">
+        <mpath href="#path2"/>
+      </animateMotion>
+    </circle>
+    <path id="path2" d="M 400 190 L 465 250" fill="none" stroke="none"/>
+    
+    <!-- Packet 3: Orchestrator to Agent -->
+    <circle r="5" fill="#06b6d4" filter="url(#glow)">
+      <animateMotion dur="1.5s" repeatCount="indefinite" begin="1s">
+        <mpath href="#path3"/>
+      </animateMotion>
+    </circle>
+    <path id="path3" d="M 930 250 L 965 180" fill="none" stroke="none"/>
+    
+    <!-- Packet 4: Agent to External -->
+    <circle r="4" fill="#f59e0b" filter="url(#glow)">
+      <animateMotion dur="2s" repeatCount="indefinite" begin="1.5s">
+        <mpath href="#path4"/>
+      </animateMotion>
+    </circle>
+    <path id="path4" d="M 1025 205 L 1020 395" fill="none" stroke="none"/>
+  </g>
+  
+  <!-- ============================================ -->
+  <!-- WORKFLOW STEPS LEGEND -->
+  <!-- ============================================ -->
+  <g id="legend" transform="translate(50, 700)">
+    <rect x="0" y="0" width="1300" height="170" rx="15" fill="#1e1b4b" stroke="#6366f1" stroke-width="2" opacity="0.9"/>
+    
+    <text x="650" y="30" font-family="'Segoe UI', Arial, sans-serif" font-size="16" fill="#fff" text-anchor="middle" font-weight="bold">📋 WORKFLOW STEPS</text>
+    
+    <!-- Step 1 -->
+    <g transform="translate(30, 50)">
+      <circle r="18" cx="18" cy="18" fill="#e11d48" filter="url(#glow)"/>
+      <text x="18" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">1</text>
+      <text x="50" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" font-weight="bold">User Query</text>
+      <text x="50" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8">/nexus status v2.0</text>
+    </g>
+    
+    <!-- Step 2 -->
+    <g transform="translate(200, 50)">
+      <circle r="18" cx="18" cy="18" fill="#6366f1" filter="url(#glow)"/>
+      <text x="18" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">2</text>
+      <text x="50" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" font-weight="bold">Orchestrator</text>
+      <text x="50" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8">ReAct reasoning loop</text>
+    </g>
+    
+    <!-- Step 3 -->
+    <g transform="translate(380, 50)">
+      <circle r="18" cx="18" cy="18" fill="#7c3aed" filter="url(#glow)"/>
+      <text x="18" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">3</text>
+      <text x="50" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" font-weight="bold">Tool Selection</text>
+      <text x="50" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8">LLM chooses action</text>
+    </g>
+    
+    <!-- Step 4 -->
+    <g transform="translate(560, 50)">
+      <circle r="18" cx="18" cy="18" fill="#06b6d4" filter="url(#glow)"/>
+      <text x="18" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">4</text>
+      <text x="50" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" font-weight="bold">Agent Execution</text>
+      <text x="50" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8">Specialist handles task</text>
+    </g>
+    
+    <!-- Step 5 -->
+    <g transform="translate(760, 50)">
+      <circle r="18" cx="18" cy="18" fill="#f59e0b" filter="url(#glow)"/>
+      <text x="18" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">5</text>
+      <text x="50" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" font-weight="bold">External Fetch</text>
+      <text x="50" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8">Data from Jira/GitHub</text>
+    </g>
+    
+    <!-- Step 6 -->
+    <g transform="translate(940, 50)">
+      <circle r="18" cx="18" cy="18" fill="#8b5cf6" filter="url(#glow)"/>
+      <text x="18" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">6</text>
+      <text x="50" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" font-weight="bold">Observation</text>
+      <text x="50" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8">LLM analyzes results</text>
+    </g>
+    
+    <!-- Step 7 -->
+    <g transform="translate(1120, 50)">
+      <circle r="18" cx="18" cy="18" fill="#22c55e" filter="url(#glow)"/>
+      <text x="18" y="23" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="bold">7</text>
+      <text x="50" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#fff" font-weight="bold">Response</text>
+      <text x="50" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#94a3b8">GO/NO-GO decision</text>
+    </g>
+    
+    <!-- Color Legend -->
+    <g transform="translate(30, 100)">
+      <text x="0" y="15" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#fff" font-weight="bold">COLOR LEGEND:</text>
+      
+      <rect x="140" y="0" width="15" height="15" rx="3" fill="#e11d48"/>
+      <text x="160" y="12" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Slack/User</text>
+      
+      <rect x="250" y="0" width="15" height="15" rx="3" fill="#6366f1"/>
+      <text x="270" y="12" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Orchestrator</text>
+      
+      <rect x="370" y="0" width="15" height="15" rx="3" fill="#06b6d4"/>
+      <text x="390" y="12" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Agents</text>
+      
+      <rect x="460" y="0" width="15" height="15" rx="3" fill="#f59e0b"/>
+      <text x="480" y="12" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">External</text>
+      
+      <rect x="550" y="0" width="15" height="15" rx="3" fill="#10b981"/>
+      <text x="570" y="12" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Admin</text>
+      
+      <rect x="640" y="0" width="15" height="15" rx="3" fill="#ec4899"/>
+      <text x="660" y="12" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Data</text>
+      
+      <rect x="720" y="0" width="15" height="15" rx="3" fill="#f97316"/>
+      <text x="740" y="12" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">Observability</text>
+      
+      <!-- Animation indicator -->
+      <g transform="translate(900, -5)">
+        <circle r="6" fill="#22c55e" class="status-blink"/>
+        <text x="15" y="5" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">= Live/Healthy</text>
+      </g>
+      
+      <g transform="translate(1050, -5)">
+        <path d="M 0 0 L 30 0" stroke="#6366f1" stroke-width="2" stroke-dasharray="5 3" class="flow-line"/>
+        <text x="40" y="5" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#94a3b8">= Data Flow</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Version watermark -->
+  <text x="1380" y="885" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#4b5563" text-anchor="end">Nexus v2.5.0 • 10 Services • 50+ Tools</text>
+</svg>
+
