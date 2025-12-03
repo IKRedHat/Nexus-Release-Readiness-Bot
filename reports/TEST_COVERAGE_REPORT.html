@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Test Coverage Report</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #141b2d;
+            --text-primary: #e0e6ed;
+            --text-secondary: #8892a0;
+            --accent: #00d4ff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        
+        h1, h2, h3 {
+            color: var(--accent);
+            border-bottom: 1px solid var(--bg-secondary);
+            padding-bottom: 0.5rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--bg-primary);
+        }
+        
+        th {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--accent);
+        }
+        
+        tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+        
+        code, pre {
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+        }
+        
+        pre {
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        
+        .success { color: var(--success); }
+        .warning { color: var(--warning); }
+        .danger { color: var(--danger); }
+        
+        ul {
+            list-style-type: none;
+            padding-left: 1rem;
+        }
+        
+        ul li::before {
+            content: "→";
+            color: var(--accent);
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<h1>📊 Nexus Test Coverage Report</h1>
+<p>**Generated:** 2025-12-04 01:03:15</p>
+<p>**Total Tests:** 741</p>
+<h2>📋 Executive Summary</h2>
+<table>
+<tr><td>Metric</td><td>Value</td></tr>
+<tr><td>Total Tests</td><td>**741**</td></tr>
+<tr><td>Unit Tests</td><td>407</td></tr>
+<tr><td>E2E Tests</td><td>288</td></tr>
+<tr><td>Integration Tests</td><td>24</td></tr>
+<tr><td>Smoke Tests</td><td>22</td></tr>
+<tr><td>Components Covered</td><td>6/11</td></tr>
+<tr><td>Overall Health</td><td class="warning">🟡 43%</td></tr>
+</table>
+<h2>📈 Test Distribution by Category</h2>
+<pre>
+unit         |████████████████████████████████████████| 407
+e2e          |████████████████████████████░░░░░░░░░░░░| 288
+integration  |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  24
+smoke        |██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  22
+</pre>
+<h2>🧩 Component Coverage</h2>
+<table>
+<tr><td>Component</td><td>Description</td><td>Tests</td><td>Unit</td><td>E2E</td><td>Int</td><td>Smoke</td><td>Coverage</td></tr>
+<tr><td>admin_dashboard ⭐</td><td>Web UI, Configuration, Release Managemen...</td><td>110</td><td>0</td><td>110</td><td>0</td><td>0</td><td class="success">🟢 100%</td></tr>
+<tr><td>analytics</td><td>DORA Metrics, Predictions, Anomaly Detec...</td><td>42</td><td>42</td><td>0</td><td>0</td><td>0</td><td class="success">🟢 84%</td></tr>
+<tr><td>jira_agent ⭐</td><td>Jira Integration (Tickets, Sprints, Hier...</td><td>26</td><td>0</td><td>26</td><td>0</td><td>0</td><td class="success">🟢 78%</td></tr>
+<tr><td>git_ci_agent ⭐</td><td>GitHub & Jenkins Integration...</td><td>24</td><td>0</td><td>24</td><td>0</td><td>0</td><td class="success">🟢 72%</td></tr>
+<tr><td>rca_agent</td><td>Root Cause Analysis for Build Failures...</td><td>24</td><td>0</td><td>24</td><td>0</td><td>0</td><td class="success">🟢 72%</td></tr>
+<tr><td>webhooks</td><td>Webhook Integrations & Event Delivery...</td><td>34</td><td>34</td><td>0</td><td>0</td><td>0</td><td class="success">🟢 68%</td></tr>
+<tr><td>orchestrator ⭐</td><td>Central ReAct Engine & Query Processing...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
+<tr><td>reporting_agent</td><td>Report Generation & Confluence Publishin...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
+<tr><td>slack_agent ⭐</td><td>Slack Bot & App Home...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
+<tr><td>jira_hygiene_agent</td><td>Jira Data Quality & Hygiene Checks...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
+<tr><td>shared_lib ⭐</td><td>Shared Library (Schemas, LLM, Config, Ut...</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>⚫ 0%</td></tr>
+</table>
+<p>*⭐ = Critical component*</p>
+<h2>🔌 API Endpoint Coverage</h2>
+<table>
+<tr><td>Service</td><td>Endpoints</td><td>Tested</td><td>Untested</td><td>Coverage</td></tr>
+<tr><td>slack_agent</td><td>6</td><td>4</td><td>2</td><td class="warning">⚠️ 66%</td></tr>
+<tr><td>admin_dashboard</td><td>14</td><td>9</td><td>5</td><td class="warning">⚠️ 64%</td></tr>
+<tr><td>hygiene_agent</td><td>4</td><td>2</td><td>2</td><td class="warning">⚠️ 50%</td></tr>
+<tr><td>rca_agent</td><td>4</td><td>2</td><td>2</td><td class="warning">⚠️ 50%</td></tr>
+<tr><td>orchestrator</td><td>8</td><td>3</td><td>5</td><td class="danger">❌ 37%</td></tr>
+<tr><td>git_ci_agent</td><td>3</td><td>1</td><td>2</td><td class="danger">❌ 33%</td></tr>
+<tr><td>reporting_agent</td><td>3</td><td>1</td><td>2</td><td class="danger">❌ 33%</td></tr>
+<tr><td>webhooks</td><td>6</td><td>2</td><td>4</td><td class="danger">❌ 33%</td></tr>
+<tr><td>jira_agent</td><td>4</td><td>1</td><td>3</td><td class="danger">❌ 25%</td></tr>
+<tr><td>analytics</td><td>7</td><td>1</td><td>6</td><td class="danger">❌ 14%</td></tr>
+</table>
+<h3>⚠️ Untested Endpoints</h3>
+<p>**orchestrator:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`GET /livez`</li>
+<li>`GET /readyz`</li>
+<li>`POST /query`</li>
+<li>`GET /specialists`</li>
+</ul>
+<p>**jira_agent:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`POST /execute`</li>
+<li>`POST /search`</li>
+</ul>
+<p>**git_ci_agent:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`POST /execute`</li>
+</ul>
+<p>**reporting_agent:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`POST /execute`</li>
+</ul>
+<p>**slack_agent:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`POST /execute`</li>
+</ul>
+<p>**hygiene_agent:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`POST /execute`</li>
+</ul>
+<p>**rca_agent:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`POST /analyze`</li>
+</ul>
+<p>**analytics:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`GET /api/v1/kpis`</li>
+<li>`GET /api/v1/trends`</li>
+<li>`GET /api/v1/insights`</li>
+<li>`GET /api/v1/teams`</li>
+<li>`GET /api/v1/anomalies`</li>
+</ul>
+<p>**webhooks:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`GET /api/v1/event-types`</li>
+<li>`GET /api/v1/subscriptions`</li>
+<li>`GET /api/v1/deliveries`</li>
+</ul>
+<p>**admin_dashboard:**</p>
+<ul>
+<li>`GET /health`</li>
+<li>`POST /mode`</li>
+<li>`GET /health-check`</li>
+<li>`GET /releases`</li>
+<li>`POST /releases`</li>
+</ul>
+<h2>🔍 Identified Coverage Gaps</h2>
+<ul>
+<li>⚠️ **orchestrator** (Critical): Only 0% coverage</li>
+<li>⚠️ **slack_agent** (Critical): Only 0% coverage</li>
+<li>⚠️ **shared_lib** (Critical): Only 0% coverage</li>
+<li>📋 **jira_agent**: Missing unit tests</li>
+<li>📋 **git_ci_agent**: Missing unit tests</li>
+<li>📋 **rca_agent**: Missing unit tests</li>
+<li>📋 **analytics**: Missing E2E tests</li>
+<li>📋 **webhooks**: Missing E2E tests</li>
+<li>❌ **orchestrator**: No test coverage</li>
+<li>❌ **reporting_agent**: No test coverage</li>
+<li>❌ **slack_agent**: No test coverage</li>
+<li>❌ **jira_hygiene_agent**: No test coverage</li>
+<li>❌ **shared_lib**: No test coverage</li>
+</ul>
+<h2>💡 Recommendations</h2>
+<ul>
+<li>1. **Increase Integration Tests**: Add more tests for inter-service communication</li>
+<li>2. **Prioritize Critical Components**: Focus on orchestrator, slack_agent, shared_lib</li>
+<li>3. **Expand Smoke Tests**: Add more quick health verification tests</li>
+<li>4. **Add Negative Tests**: Ensure error handling is properly tested</li>
+<li>5. **Performance Tests**: Consider adding load/stress tests for critical paths</li>
+</ul>
+<h2>📁 Test File Summary</h2>
+<table>
+<tr><td>Category</td><td>Files</td><td>Tests</td></tr>
+<tr><td>unit</td><td>9</td><td>407</td></tr>
+<tr><td>e2e</td><td>8</td><td>288</td></tr>
+<tr><td>integration</td><td>1</td><td>24</td></tr>
+<tr><td>smoke</td><td>1</td><td>22</td></tr>
+</table>
+<p>---</p>
+<p>*Report generated by <code>scripts/generate_test_report.py</code>*</p>
+</body></html>
