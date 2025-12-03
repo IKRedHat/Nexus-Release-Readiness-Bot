@@ -697,7 +697,7 @@ async def _fetch_agent_metrics(client: httpx.AsyncClient, prometheus_url: str, r
         ("Jira Agent", 8081),
         ("Git/CI Agent", 8082),
         ("Slack Agent", 8084),
-        ("Hygiene Agent", 8005),
+        ("Hygiene Agent", 8085),
         ("RCA Agent", 8006),
         ("Analytics", 8086),
         ("Webhooks", 8087),
