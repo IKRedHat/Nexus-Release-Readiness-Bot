@@ -38,3 +38,4 @@ wheels/
 .setup.lock
 .setup_checkpoint
 setup.log
+services/admin_dashboard/frontend/node_modules/
