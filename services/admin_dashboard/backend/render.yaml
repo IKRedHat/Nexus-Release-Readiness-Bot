@@ -1,0 +1,48 @@
+# Render Blueprint for Nexus Admin Dashboard Backend
+# Deploy with: render blueprint apply
+# Or connect this repo to Render for automatic deployments
+
+services:
+  # Admin Dashboard Backend API
+  - type: web
+    name: nexus-admin-dashboard-api
+    runtime: python
+    region: oregon  # or frankfurt, singapore, ohio
+    plan: free  # free, starter, standard, pro
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONPATH
+        value: /opt/render/project/src/shared
+      - key: NEXUS_ENV
+        value: production
+      - key: NEXUS_RBAC_ENABLED
+        value: "true"
+      - key: NEXUS_JWT_SECRET
+        generateValue: true  # Auto-generate secure secret
+      - key: NEXUS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: NEXUS_REFRESH_TOKEN_DAYS
+        value: "7"
+      - key: NEXUS_ADMIN_EMAIL
+        value: admin@nexus.local
+      - key: NEXUS_SSO_PROVIDER
+        value: local
+      - key: NEXUS_FRONTEND_URL
+        sync: false  # Set manually after Vercel deployment
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: nexus-redis
+          property: connectionString
+    autoDeploy: true
+
+  # Redis for session storage and caching (optional - can use in-memory)
+  - type: redis
+    name: nexus-redis
+    plan: free  # free tier: 25MB
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Empty = allow all (private network only)
+

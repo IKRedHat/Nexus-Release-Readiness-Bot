@@ -35,7 +35,7 @@ interface Role {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8088';
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('nexus_access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };

@@ -215,10 +215,25 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration
+# CORS configuration - Allow Vercel frontend and local development
+CORS_ORIGINS = os.getenv("NEXUS_CORS_ORIGINS", "*").split(",")
+if CORS_ORIGINS == ["*"]:
+    # Development mode - allow all origins
+    CORS_ORIGINS = ["*"]
+else:
+    # Production mode - add common development origins
+    CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS]
+    CORS_ORIGINS.extend([
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to dashboard URL
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -235,7 +250,8 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "admin-dashboard-backend",
-        "version": "2.3.0",
+        "version": "2.4.0",
+        "environment": os.getenv("NEXUS_ENV", "development"),
         "timestamp": datetime.utcnow().isoformat(),
         "redis_connected": RedisConnection().is_connected
     }

@@ -1,0 +1,75 @@
+# Render Blueprint for Nexus Release Readiness Bot
+# =================================================
+# 
+# Deploy with: Connect this repo to Render and it will auto-deploy
+# Or use: render blueprint apply
+#
+# This deploys the Admin Dashboard backend API which provides:
+# - SSO/RBAC authentication
+# - Feature request management
+# - System configuration
+# - Agent health monitoring
+
+services:
+  # =============================================================================
+  # Admin Dashboard Backend API
+  # =============================================================================
+  - type: web
+    name: nexus-admin-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: .
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r services/admin_dashboard/backend/requirements.txt
+    startCommand: |
+      cd services/admin_dashboard/backend && \
+      PYTHONPATH=$PYTHONPATH:$(pwd)/../../../shared \
+      uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Python environment
+      - key: PYTHONPATH
+        value: /opt/render/project/src/shared
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      
+      # Application environment
+      - key: NEXUS_ENV
+        value: production
+      
+      # Authentication (RBAC)
+      - key: NEXUS_RBAC_ENABLED
+        value: "true"
+      - key: NEXUS_JWT_SECRET
+        generateValue: true
+      - key: NEXUS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: NEXUS_REFRESH_TOKEN_DAYS
+        value: "7"
+      - key: NEXUS_ADMIN_EMAIL
+        value: admin@nexus.local
+      - key: NEXUS_SSO_PROVIDER
+        value: local
+      
+      # CORS - Allow Vercel frontend
+      - key: NEXUS_CORS_ORIGINS
+        value: "https://frontend-8chgad0im-imrans-projects-8eb4b7ab.vercel.app,https://*.vercel.app"
+      
+      # Frontend URL for redirects
+      - key: NEXUS_FRONTEND_URL
+        value: "https://frontend-8chgad0im-imrans-projects-8eb4b7ab.vercel.app"
+
+# =============================================================================
+# Optional: Redis for persistent storage
+# =============================================================================
+# Uncomment if you need persistent storage (free tier: 25MB)
+#
+#   - type: redis
+#     name: nexus-redis
+#     plan: free
+#     region: oregon
+#     maxmemoryPolicy: allkeys-lru
+

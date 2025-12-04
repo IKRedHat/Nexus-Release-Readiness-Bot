@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Lightbulb, Bug, PlusCircle, Search, Filter,
   Check, X, ExternalLink, AlertCircle, Loader2,
-  ChevronDown, Clock, Tag, User, Calendar,
+  ChevronDown, Tag, User, Calendar,
   FileText, Zap, BookOpen, HelpCircle, RefreshCw
 } from 'lucide-react';
 
@@ -38,7 +38,7 @@ interface RequestOptions {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8088';
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('nexus_access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
@@ -269,11 +269,11 @@ export const FeatureRequests: React.FC = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total Requests', value: stats.total || 0, color: 'text-cyber-accent' },
-          { label: 'Pending', value: (stats.by_status as Record<string, number>)?.submitted || 0, color: 'text-blue-400' },
-          { label: 'In Progress', value: (stats.by_status as Record<string, number>)?.in_progress || 0, color: 'text-yellow-400' },
-          { label: 'Completed', value: (stats.by_status as Record<string, number>)?.completed || 0, color: 'text-green-400' },
-        ].map(stat => (
+          { label: 'Total Requests', value: Number(stats.total) || 0, color: 'text-cyber-accent' },
+          { label: 'Pending', value: Number((stats.by_status as Record<string, number>)?.submitted) || 0, color: 'text-blue-400' },
+          { label: 'In Progress', value: Number((stats.by_status as Record<string, number>)?.in_progress) || 0, color: 'text-yellow-400' },
+          { label: 'Completed', value: Number((stats.by_status as Record<string, number>)?.completed) || 0, color: 'text-green-400' },
+        ].map((stat) => (
           <div key={stat.label} className="bg-cyber-dark border border-cyber-border rounded-xl p-4">
             <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
             <div className="text-gray-400 text-sm">{stat.label}</div>

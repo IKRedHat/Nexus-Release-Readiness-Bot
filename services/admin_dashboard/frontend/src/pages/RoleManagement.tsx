@@ -10,7 +10,7 @@ import {
   Shield, Plus, Search, MoreVertical,
   Check, X, Edit2, Trash2, Lock,
   ChevronDown, ChevronUp, AlertCircle, Loader2, RefreshCw,
-  Users as UsersIcon, Copy
+  Copy
 } from 'lucide-react';
 
 interface Permission {
@@ -32,7 +32,7 @@ interface Role {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8088';
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('nexus_access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
@@ -52,7 +52,7 @@ const categoryColors: Record<string, string> = {
 
 export const RoleManagement: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [, setPermissions] = useState<Permission[]>([]);
   const [permissionCategories, setPermissionCategories] = useState<Record<string, Permission[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
