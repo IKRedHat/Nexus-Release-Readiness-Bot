@@ -825,3 +825,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 *Making release management intelligent, one decision at a time.*
 
 </div>
+# Test commit with correct author
