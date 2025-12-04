@@ -25,7 +25,7 @@
 
 ## 🎯 What is Nexus?
 
-**Nexus** is an enterprise-grade, AI-powered release automation platform that revolutionizes how teams manage software releases. Using a sophisticated **ReAct (Reasoning + Acting)** architecture powered by Google Gemini, Nexus coordinates specialized agents to deliver intelligent **Go/No-Go release decisions** through natural language conversations.
+**Nexus** is an enterprise-grade,, AI-powered release automation platform that revolutionizes how teams manage software releases. Using a sophisticated **ReAct (Reasoning + Acting)** architecture powered by Google Gemini, Nexus coordinates specialized agents to deliver intelligent **Go/No-Go release decisions** through natural language conversations.
 
 > **"Is v2.0 ready for release?"** — Ask Nexus in plain English, and get a comprehensive analysis of your Jira tickets, CI/CD pipelines, security scans, and code quality metrics in seconds.
 
