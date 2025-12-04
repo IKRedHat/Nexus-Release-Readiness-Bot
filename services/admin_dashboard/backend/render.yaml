@@ -26,7 +26,7 @@ services:
       - key: NEXUS_REFRESH_TOKEN_DAYS
         value: "7"
       - key: NEXUS_ADMIN_EMAIL
-        value: admin@nexus.local
+        value: admin@nexus.dev
       - key: NEXUS_SSO_PROVIDER
         value: local
       - key: NEXUS_FRONTEND_URL

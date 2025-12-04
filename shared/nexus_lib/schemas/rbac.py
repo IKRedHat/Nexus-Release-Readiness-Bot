@@ -11,7 +11,7 @@ This module defines the data models for:
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Set
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 
 
 # =============================================================================
@@ -191,7 +191,7 @@ class UserStatus(str, Enum):
 class User(BaseModel):
     """User model with SSO integration"""
     id: str = Field(..., description="Unique user identifier")
-    email: EmailStr = Field(..., description="User email address")
+    email: str = Field(..., description="User email address")  # Using str to allow .local domains
     name: str = Field(..., description="Full name")
     avatar_url: Optional[str] = Field(None, description="Profile picture URL")
     
@@ -219,7 +219,7 @@ class User(BaseModel):
 
 class UserCreate(BaseModel):
     """Model for creating a new user"""
-    email: EmailStr
+    email: str
     name: str
     roles: List[str] = Field(default_factory=list)
     department: Optional[str] = None
@@ -347,7 +347,7 @@ class FeatureRequest(BaseModel):
     # Metadata
     status: RequestStatus = RequestStatus.SUBMITTED
     submitter_id: str
-    submitter_email: EmailStr
+    submitter_email: str
     submitter_name: str
     
     # Jira integration
@@ -439,7 +439,7 @@ class JiraFieldMapping(BaseModel):
 class TokenPayload(BaseModel):
     """JWT token payload"""
     sub: str  # User ID
-    email: EmailStr
+    email: str
     name: str
     roles: List[str]
     permissions: List[str]
@@ -495,7 +495,7 @@ class AuditLog(BaseModel):
     id: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     user_id: str
-    user_email: EmailStr
+    user_email: str
     action: AuditAction
     resource_type: str  # e.g., "user", "role", "config"
     resource_id: Optional[str] = None

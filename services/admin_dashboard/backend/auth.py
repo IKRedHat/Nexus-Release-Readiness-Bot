@@ -70,8 +70,8 @@ class AuthConfig:
     FRONTEND_URL = os.getenv("NEXUS_FRONTEND_URL", "http://localhost:5173")
     BACKEND_URL = os.getenv("NEXUS_BACKEND_URL", "http://localhost:8088")
     
-    # Default admin
-    DEFAULT_ADMIN_EMAIL = os.getenv("NEXUS_ADMIN_EMAIL", "admin@nexus.local")
+    # Default admin (using .dev TLD which is valid)
+    DEFAULT_ADMIN_EMAIL = os.getenv("NEXUS_ADMIN_EMAIL", "admin@nexus.dev")
 
 
 # =============================================================================
