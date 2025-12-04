@@ -4,7 +4,7 @@
   "framework": null,
   "buildCommand": "yarn vite build",
   "outputDirectory": "dist",
-  "installCommand": "yarn install --ignore-scripts",
+  "installCommand": "yarn install",
   "devCommand": "yarn vite",
   "public": false,
   "cleanUrls": true,
