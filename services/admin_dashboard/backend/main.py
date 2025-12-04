@@ -48,9 +48,18 @@ try:
         ConfigManager, ConfigKeys, RedisConnection, AgentRegistry,
         SENSITIVE_KEYS, DEFAULT_CONFIG, ENV_VAR_MAPPING
     )
-except ImportError:
+    CONFIG_AVAILABLE = True
+except ImportError as e:
     # Fallback for standalone operation
+    print(f"Warning: nexus_lib.config not available: {e}")
     ConfigManager = None
+    ConfigKeys = None
+    RedisConnection = None
+    AgentRegistry = None
+    SENSITIVE_KEYS = set()
+    DEFAULT_CONFIG = {}
+    ENV_VAR_MAPPING = {}
+    CONFIG_AVAILABLE = False
 
 # Import RBAC and Feature Request modules
 RBAC_ENABLED = False
@@ -212,18 +221,25 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("🚀 Starting Nexus Admin Dashboard Backend...")
     
-    # Test Redis connection
-    try:
-        redis = await RedisConnection().get_client()
-        if redis:
-            logger.info("✅ Connected to Redis")
-    except Exception as e:
-        logger.warning(f"⚠️ Redis not available: {e}")
+    # Test Redis connection (if available)
+    if RedisConnection is not None:
+        try:
+            redis = await RedisConnection().get_client()
+            if redis:
+                logger.info("✅ Connected to Redis")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis not available: {e}")
+    else:
+        logger.info("ℹ️ Running without Redis (standalone mode)")
     
     yield
     
     # Cleanup
-    await RedisConnection().close()
+    if RedisConnection is not None:
+        try:
+            await RedisConnection().close()
+        except Exception as e:
+            logger.warning(f"Error closing Redis: {e}")
     logger.info("👋 Admin Dashboard Backend shutdown complete")
 
 
@@ -266,13 +282,21 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     """Backend health check."""
+    redis_connected = False
+    if RedisConnection is not None:
+        try:
+            redis_connected = RedisConnection().is_connected
+        except Exception:
+            redis_connected = False
+    
     return {
         "status": "healthy",
         "service": "admin-dashboard-backend",
         "version": "2.4.0",
         "environment": os.getenv("NEXUS_ENV", "development"),
         "timestamp": datetime.utcnow().isoformat(),
-        "redis_connected": RedisConnection().is_connected
+        "redis_connected": redis_connected,
+        "standalone_mode": not CONFIG_AVAILABLE
     }
 
 
@@ -289,18 +313,26 @@ async def get_dashboard_stats():
     config = await ConfigManager.get_all() if ConfigManager else {}
     
     # Quick health check
-    agents = AgentRegistry.get_all_agents() if ConfigManager else {}
+    agents = AgentRegistry.get_all_agents() if AgentRegistry else {}
     healthy = 0
     total = len(agents)
     
     uptime = (datetime.utcnow() - START_TIME).total_seconds()
+    
+    # Check Redis connection safely
+    redis_connected = False
+    if RedisConnection is not None:
+        try:
+            redis_connected = RedisConnection().is_connected
+        except Exception:
+            redis_connected = False
     
     return DashboardStats(
         mode=mode,
         config_count=len(config),
         healthy_agents=healthy,
         total_agents=total,
-        redis_connected=RedisConnection().is_connected if ConfigManager else False,
+        redis_connected=redis_connected,
         uptime_seconds=uptime
     )
 
@@ -864,6 +896,10 @@ def _get_mock_metrics() -> dict:
 @app.get("/config/templates")
 async def get_config_templates():
     """Get configuration templates for different integrations."""
+    # Return empty if ConfigKeys not available (standalone mode)
+    if ConfigKeys is None:
+        return {"message": "Configuration not available in standalone mode", "templates": {}}
+    
     return {
         "jira": {
             "name": "Jira Configuration",
@@ -961,7 +997,12 @@ class ReleaseManager:
     @classmethod
     async def _get_redis(cls):
         """Get Redis client."""
-        return await RedisConnection().get_client()
+        if RedisConnection is None:
+            return None
+        try:
+            return await RedisConnection().get_client()
+        except Exception:
+            return None
     
     @classmethod
     async def list_releases(
