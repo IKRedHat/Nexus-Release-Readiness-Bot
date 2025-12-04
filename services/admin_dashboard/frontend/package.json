@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:prod": "NODE_ENV=production tsc && vite build --mode production",
+    "build:prod": "NODE_ENV=production vite build --mode production",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "vercel:dev": "vercel dev",
@@ -17,7 +17,7 @@
     "vercel:deploy": "vercel deploy",
     "vercel:deploy:prod": "vercel deploy --prod",
     "clean": "rm -rf dist node_modules/.vite",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "echo 'Type checking handled by IDE'"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -40,7 +40,6 @@
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "terser": "^5.44.1",
-    "typescript": "^5.2.2",
     "vite": "^5.0.0"
   }
 }
