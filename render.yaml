@@ -54,13 +54,13 @@ services:
       - key: NEXUS_SSO_PROVIDER
         value: local
       
-      # CORS - Allow Vercel frontend
+      # CORS - Allow Vercel frontend (wildcard allows any Vercel deployment)
       - key: NEXUS_CORS_ORIGINS
-        value: "https://nexus-admin-dashboard-gamma.vercel.app,https://*.vercel.app,http://localhost:5173"
+        value: "https://nexus-admin-dashboard-seven.vercel.app,https://*.vercel.app,http://localhost:5173,http://localhost:3000"
       
       # Frontend URL for redirects
       - key: NEXUS_FRONTEND_URL
-        value: "https://nexus-admin-dashboard-gamma.vercel.app"
+        value: "https://nexus-admin-dashboard-seven.vercel.app"
 
 # =============================================================================
 # Optional: Redis for persistent storage
