@@ -16,6 +16,10 @@ Nexus is your AI-powered release automation assistant. It connects to your exist
 - 💡 **AI Recommendations** - Pattern-based intelligent suggestions
 - 🏠 **App Home Dashboard** - Rich Slack dashboard with widgets
 - 🏢 **Multi-Tenant** - Enterprise-ready organization isolation
+- 🔐 **Enterprise SSO** - Single Sign-On with Okta, Azure AD, Google, GitHub
+- 👥 **User Management** - Full user lifecycle with role assignments
+- 🛡️ **Role-Based Access** - Granular permissions with custom roles
+- 💡 **Feature Requests** - Submit requests with automatic Jira integration
 
 ## Getting Started
 
@@ -518,6 +522,108 @@ curl http://localhost:8005/violations/PROJ
 # Check scheduler status
 curl http://localhost:8005/status
 ```
+
+---
+
+## 🎛️ Admin Dashboard
+
+The Admin Dashboard provides a web-based interface for managing Nexus with enterprise features.
+
+### Accessing the Dashboard
+
+**Local Development:**
+```
+http://localhost:8088
+```
+
+**Production (Vercel + Render):**
+```
+https://your-app.vercel.app
+```
+
+### Logging In
+
+![Login Page](assets/mockups/admin-login.svg)
+
+**SSO Login:**
+1. Click your organization's SSO provider (Okta, Azure AD, Google, or GitHub)
+2. Authenticate with your corporate credentials
+3. You'll be redirected to the dashboard automatically
+
+**Local Login (Development):**
+1. Enter email: `admin@nexus.dev`
+2. Enter any password (development mode accepts any)
+3. Click "Sign In"
+
+### User Management
+
+If you have admin privileges, you can manage users in the dashboard.
+
+![User Management](assets/mockups/admin-user-management.svg)
+
+**Adding a User:**
+1. Navigate to **User Management** in the sidebar
+2. Click **"Add User"**
+3. Enter email, name, and department
+4. Select roles to assign
+5. Click **"Create User"**
+
+**Editing a User:**
+1. Click the **⋮** menu next to a user
+2. Select **"Edit User"**
+3. Modify details or roles
+4. Click **"Save Changes"**
+
+### Role Management
+
+Create and manage custom roles with specific permissions.
+
+![Role Management](assets/mockups/admin-role-management.svg)
+
+**Built-in Roles:**
+- **Admin**: Full system access
+- **Developer**: View + API access + Feature requests
+- **Product Manager**: View + Releases + Feature requests
+- **Viewer**: Read-only access
+
+**Creating a Custom Role:**
+1. Navigate to **Role Management**
+2. Click **"Create Role"**
+3. Enter name and description
+4. Select permissions by category
+5. Click **"Create Role"**
+
+### Feature Requests
+
+Submit feature requests and bug reports that automatically create Jira tickets.
+
+![Feature Requests](assets/mockups/admin-feature-requests.svg)
+
+**Submitting a Request:**
+1. Navigate to **Feature Requests**
+2. Click **"New Request"**
+3. Select request type:
+   - Feature Request
+   - Bug Report
+   - Improvement
+   - Documentation
+   - Question
+4. Fill in title, description, and priority
+5. For bugs: Add steps to reproduce, expected/actual behavior
+6. For features: Add use case and acceptance criteria
+7. Select component (routes to appropriate team)
+8. Click **"Submit Request"**
+
+**What Happens Next:**
+1. Request is stored in the system
+2. Jira ticket is automatically created
+3. Slack notification sent to the team
+4. You can track status on the Feature Requests page
+
+**Viewing Your Requests:**
+- See all requests with status, priority, and Jira links
+- Click on a request to view details
+- Track progress through Jira integration
 
 ---
 

@@ -7,10 +7,12 @@ This runbook provides step-by-step instructions for deploying Nexus to various e
 1. [Prerequisites](#prerequisites)
 2. [Local Development](#local-development)
 3. [Docker Compose Deployment](#docker-compose-deployment)
-4. [Kubernetes Deployment](#kubernetes-deployment)
-5. [Configuration Reference](#configuration-reference)
-6. [Post-Deployment Verification](#post-deployment-verification)
-7. [Troubleshooting](#troubleshooting)
+4. [Cloud Deployment (Render + Vercel)](#cloud-deployment-render--vercel)
+5. [Kubernetes Deployment](#kubernetes-deployment)
+6. [Authentication Configuration](#authentication-configuration)
+7. [Configuration Reference](#configuration-reference)
+8. [Post-Deployment Verification](#post-deployment-verification)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -202,6 +204,218 @@ docker-compose down
 # With volume cleanup
 docker-compose down -v
 ```
+
+---
+
+## Cloud Deployment (Render + Vercel)
+
+For production cloud hosting, deploy the backend to Render and frontend to Vercel.
+
+### Architecture
+
+```
+┌─────────────────────┐     ┌─────────────────────┐
+│   Vercel (CDN)      │     │   Render (Cloud)    │
+│                     │     │                     │
+│  ┌───────────────┐  │     │  ┌───────────────┐  │
+│  │  React App    │  │────▶│  │  FastAPI      │  │
+│  │  (Frontend)   │  │ API │  │  (Backend)    │  │
+│  └───────────────┘  │     │  └───────────────┘  │
+│                     │     │         │           │
+└─────────────────────┘     │         ▼           │
+                            │  ┌───────────────┐  │
+                            │  │  Redis        │  │
+                            │  │  (Optional)   │  │
+                            │  └───────────────┘  │
+                            └─────────────────────┘
+```
+
+### 1. Deploy Backend to Render
+
+#### Option A: Blueprint (Recommended)
+
+The repository includes a `render.yaml` Blueprint for one-click deployment:
+
+1. Go to [Render Dashboard](https://dashboard.render.com)
+2. Click **"New +"** → **"Blueprint"**
+3. Connect your GitHub repository
+4. Render auto-detects `render.yaml`
+5. Review and click **"Apply"**
+
+#### Option B: Manual Setup
+
+1. Create a new **Web Service** on Render
+2. Connect your GitHub repository
+3. Configure:
+
+| Setting | Value |
+|---------|-------|
+| **Name** | `nexus-admin-api` |
+| **Region** | Oregon (or closest) |
+| **Branch** | `main` |
+| **Root Directory** | `.` |
+| **Runtime** | Python 3 |
+| **Build Command** | `pip install -r services/admin_dashboard/backend/requirements.txt` |
+| **Start Command** | `cd services/admin_dashboard/backend && uvicorn main:app --host 0.0.0.0 --port $PORT` |
+
+4. Add Environment Variables:
+
+```bash
+PYTHONPATH=/opt/render/project/src/shared
+NEXUS_ENV=production
+NEXUS_RBAC_ENABLED=true
+NEXUS_JWT_SECRET=<generate-secure-secret>
+NEXUS_ADMIN_EMAIL=admin@nexus.dev
+NEXUS_CORS_ORIGINS=https://your-app.vercel.app
+```
+
+### 2. Deploy Frontend to Vercel
+
+#### Option A: Using Deployment Script
+
+```bash
+# Run automated deployment
+python scripts/deploy_frontend.py --env production \
+  --api-url https://nexus-admin-api.onrender.com
+```
+
+#### Option B: Manual Vercel Deployment
+
+1. Install Vercel CLI:
+```bash
+npm install -g vercel
+vercel login
+```
+
+2. Deploy:
+```bash
+cd services/admin_dashboard/frontend
+vercel --yes
+```
+
+3. Set Environment Variable:
+```bash
+vercel env add VITE_API_URL production
+# Enter: https://nexus-admin-api.onrender.com
+```
+
+4. Redeploy with env:
+```bash
+vercel --prod
+```
+
+### 3. Configure CORS
+
+Update Render backend with your Vercel URL:
+
+```bash
+# In Render Dashboard → Environment
+NEXUS_CORS_ORIGINS=https://your-app.vercel.app,https://*.vercel.app
+NEXUS_FRONTEND_URL=https://your-app.vercel.app
+```
+
+### 4. Verify Deployment
+
+```bash
+# Test backend health
+curl https://nexus-admin-api.onrender.com/health
+
+# Test frontend (should load login page)
+open https://your-app.vercel.app
+```
+
+### Production URLs
+
+| Service | URL |
+|---------|-----|
+| **Backend API** | `https://nexus-admin-api.onrender.com` |
+| **Frontend UI** | `https://your-app.vercel.app` |
+| **API Docs** | `https://nexus-admin-api.onrender.com/docs` |
+
+---
+
+## Authentication Configuration
+
+### SSO Provider Setup
+
+#### Okta Configuration
+
+1. Create an OIDC Application in Okta Admin Console
+2. Set the following:
+   - **Sign-in redirect URI**: `https://your-api.onrender.com/auth/callback/okta`
+   - **Sign-out redirect URI**: `https://your-app.vercel.app`
+   - **Allowed grant types**: Authorization Code
+
+3. Add environment variables:
+```bash
+NEXUS_SSO_PROVIDER=okta
+OKTA_DOMAIN=your-domain.okta.com
+OKTA_CLIENT_ID=your-client-id
+OKTA_CLIENT_SECRET=your-client-secret
+```
+
+#### Azure AD Configuration
+
+1. Register an application in Azure Portal
+2. Configure:
+   - **Redirect URI**: `https://your-api.onrender.com/auth/callback/azure_ad`
+   - **Supported account types**: Single tenant or Multi-tenant
+
+3. Add environment variables:
+```bash
+NEXUS_SSO_PROVIDER=azure_ad
+AZURE_TENANT_ID=your-tenant-id
+AZURE_CLIENT_ID=your-client-id
+AZURE_CLIENT_SECRET=your-client-secret
+```
+
+#### Google OAuth Configuration
+
+1. Create OAuth 2.0 credentials in Google Cloud Console
+2. Configure:
+   - **Authorized redirect URI**: `https://your-api.onrender.com/auth/callback/google`
+   - **Application type**: Web application
+
+3. Add environment variables:
+```bash
+NEXUS_SSO_PROVIDER=google
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+```
+
+#### GitHub OAuth Configuration
+
+1. Create an OAuth App in GitHub Developer Settings
+2. Configure:
+   - **Authorization callback URL**: `https://your-api.onrender.com/auth/callback/github`
+
+3. Add environment variables:
+```bash
+NEXUS_SSO_PROVIDER=github
+GITHUB_CLIENT_ID=your-client-id
+GITHUB_CLIENT_SECRET=your-client-secret
+```
+
+### JWT Configuration
+
+```bash
+# Generate a secure secret (at least 32 characters)
+NEXUS_JWT_SECRET=$(openssl rand -base64 32)
+
+# Token lifetimes
+NEXUS_TOKEN_EXPIRE_MINUTES=60
+NEXUS_REFRESH_TOKEN_DAYS=7
+```
+
+### Default Admin User
+
+The system creates a default admin user on first startup:
+
+```bash
+NEXUS_ADMIN_EMAIL=admin@nexus.dev
+```
+
+In development mode, any password works. In production, use SSO.
 
 ---
 
@@ -452,6 +666,72 @@ curl -X POST http://localhost:8085/run-check \
 ---
 
 ## Troubleshooting
+
+### Cloud Deployment Issues
+
+#### Render Health Check Failing
+
+```bash
+# Check logs in Render Dashboard → Logs
+# Common issues:
+
+# 1. PYTHONPATH not set correctly
+# Ensure PYTHONPATH includes shared library path:
+PYTHONPATH=/opt/render/project/src/shared
+
+# 2. Missing dependencies
+# Check if all packages are installed during build
+
+# 3. Import errors
+# Check logs for specific import failures
+```
+
+#### Vercel Frontend Can't Connect to Backend
+
+```bash
+# 1. Check CORS configuration
+# Backend should allow Vercel origin:
+NEXUS_CORS_ORIGINS=https://your-app.vercel.app
+
+# 2. Verify API URL in Vercel
+vercel env ls
+# Should show VITE_API_URL pointing to Render backend
+
+# 3. Check backend is running
+curl https://nexus-admin-api.onrender.com/health
+```
+
+#### SSO Login Not Working
+
+```bash
+# 1. Verify callback URLs match exactly
+# Check SSO provider settings for redirect URI
+
+# 2. Check environment variables are set
+# Provider-specific client ID and secret
+
+# 3. Check logs for OAuth errors
+# Look for "authorization code" or "token exchange" errors
+
+# 4. Verify HTTPS is used for all URLs
+# SSO providers require HTTPS for production
+```
+
+#### JWT Token Issues
+
+```bash
+# 1. Token expired
+# Default is 60 minutes; adjust with:
+NEXUS_TOKEN_EXPIRE_MINUTES=120
+
+# 2. Invalid signature
+# Ensure JWT_SECRET is the same across deployments
+# Generate a new one if needed:
+openssl rand -base64 32
+
+# 3. Token not included in requests
+# Check Authorization header format: "Bearer <token>"
+```
 
 ### Hygiene Agent Not Sending Notifications
 

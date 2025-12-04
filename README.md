@@ -6,7 +6,7 @@
 
 ### **Intelligent Multi-Agent System for Automated Release Readiness Assessments**
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue?style=for-the-badge)](CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1449%20passing-brightgreen?style=for-the-badge)](docs/testing.md)
 [![Python](https://img.shields.io/badge/python-3.10+-green?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
@@ -59,6 +59,10 @@
 
 ### 🎛️ **Admin Dashboard**
 - **Web-based UI**: Modern React dashboard for system management
+- **SSO Authentication**: Enterprise SSO with Okta, Azure AD, Google, GitHub
+- **Role-Based Access Control**: Granular permissions with dynamic roles
+- **User Management**: Complete user lifecycle management
+- **Feature Request System**: Submit requests with automatic Jira integration
 - **Dynamic Configuration**: Change settings without service restarts
 - **Live Mode Switching**: Toggle Mock/Production instantly
 - **Release Management**: Track versions, dates, and metrics from external sources
@@ -100,9 +104,12 @@
 
 ### 🏢 **Enterprise Ready**
 - **Multi-Tenant**: Organization isolation with plan tiers
+- **Enterprise SSO**: OAuth2/OIDC with Okta, Azure AD, Google, GitHub
+- **RBAC**: 20+ granular permissions with custom role creation
 - **JWT Authentication**: Secure inter-service communication
 - **Full Observability**: Prometheus, Grafana, OpenTelemetry
 - **Kubernetes Native**: Production-ready Helm charts
+- **Cloud Deployment**: Vercel (frontend) + Render (backend) support
 
 </td>
 </tr>
@@ -319,6 +326,40 @@ The Admin Dashboard provides a web-based interface for managing Nexus:
 | **Observability** | Metrics, charts, LLM usage, integrated Grafana |
 | **Health Monitor** | Real-time agent status with auto-refresh |
 | **Configuration** | Manage credentials, URLs, API keys securely |
+| **User Management** | Create, edit, delete users; assign roles |
+| **Role Management** | Dynamic roles with 20+ granular permissions |
+| **Feature Requests** | Submit requests/bugs with automatic Jira integration |
+
+### Authentication & SSO
+
+Nexus supports enterprise-grade authentication:
+
+| Provider | Features |
+|----------|----------|
+| **Okta** | OIDC, group sync, MFA support |
+| **Azure AD** | Microsoft 365 integration, SCIM provisioning |
+| **Google** | Google Workspace SSO |
+| **GitHub** | OAuth2 for developer teams |
+| **Local** | Email/password for development |
+
+```bash
+# Login via API
+curl -X POST http://localhost:8088/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@nexus.dev", "password": "your-password"}'
+```
+
+### Feature Requests System
+
+Submit feature requests and bug reports with automatic Jira ticket creation:
+
+![Feature Requests](docs/assets/mockups/admin-feature-requests.svg)
+
+- **Request Types**: Feature requests, bug reports, improvements, documentation, questions
+- **Automatic Jira Integration**: Creates tickets with proper field mapping
+- **Priority Management**: Critical, High, Medium, Low priorities
+- **Component Assignment**: Routes to appropriate team based on component
+- **Slack Notifications**: Team alerts via Block Kit messages
 
 ### Mode Switching
 
@@ -518,13 +559,35 @@ docker compose logs -f
 
 📖 See [Docker for Beginners Guide](docs/docker-for-beginners.md) for visual explanation.
 
-### Frontend (Vercel)
+### Cloud Deployment (Vercel + Render)
 
-Deploy the Admin Dashboard to Vercel for production frontend hosting:
+For a fully cloud-hosted production deployment:
+
+#### Backend (Render)
+
+Deploy the Admin Dashboard API to Render:
+
+```bash
+# Using deployment script
+python scripts/deploy_render.py
+
+# Or connect GitHub repo to Render
+# Render auto-detects render.yaml Blueprint
+```
+
+The `render.yaml` Blueprint configures:
+- Python 3.11 runtime
+- Auto-deploy on git push
+- Environment variables for JWT, CORS, SSO
+- Health check endpoint monitoring
+
+#### Frontend (Vercel)
+
+Deploy the Admin Dashboard UI to Vercel:
 
 ```bash
 # Using Python deployment script
-python scripts/deploy_frontend.py --env production --api-url https://your-api.com
+python scripts/deploy_frontend.py --env production --api-url https://your-api.onrender.com
 
 # Or manually with Vercel CLI
 cd services/admin_dashboard/frontend
@@ -532,6 +595,13 @@ npm install --legacy-peer-deps
 npm run build:prod
 vercel deploy --prod
 ```
+
+#### Production URLs
+
+| Service | Platform | URL Pattern |
+|---------|----------|-------------|
+| **Backend API** | Render | `https://nexus-admin-api.onrender.com` |
+| **Frontend UI** | Vercel | `https://nexus-admin.vercel.app` |
 
 📖 See [Frontend Deployment Guide](docs/frontend-deployment-guide.md) for complete setup.
 
@@ -541,7 +611,15 @@ vercel deploy --prod
 
 ## 🆕 Version History
 
-### v2.5.0 - Enterprise Docker & Helm (Latest)
+### v2.6.0 - Enterprise SSO & Feature Requests (Latest)
+- 🔐 **SSO Authentication** - OAuth2/OIDC with Okta, Azure AD, Google, GitHub
+- 👥 **User Management** - Complete user lifecycle with role assignments
+- 🛡️ **Role-Based Access Control** - 20+ granular permissions, dynamic roles
+- 💡 **Feature Request System** - Submit requests with automatic Jira integration
+- 🚀 **Render Deployment** - Backend cloud deployment with Blueprint
+- 📊 **Enhanced Dashboard** - New admin pages for users, roles, and features
+
+### v2.5.0 - Enterprise Docker & Helm
 - 🐳 **Multi-Stage Dockerfiles** - Optimized builds with UV package manager (10x faster)
 - 🔒 **Security Hardening** - Non-root containers, read-only filesystem, seccomp
 - ⎈ **Enterprise Helm Charts** - NetworkPolicies, ServiceMonitors, External Secrets
@@ -596,11 +674,16 @@ vercel deploy --prod
 - [x] Release Management from External Sources
 - [x] Multi-Tenant Support
 - [x] Kubernetes Helm Charts
+- [x] **Enterprise SSO** (Okta, Azure AD, Google, GitHub)
+- [x] **Role-Based Access Control** with dynamic roles
+- [x] **Feature Request System** with Jira integration
+- [x] **Cloud Deployment** (Vercel + Render)
 
 ### In Progress 🚧
 - [ ] Anthropic Claude integration
 - [ ] Custom LLM fine-tuning for release domain
 - [ ] Enhanced security scanning integration
+- [ ] SCIM provisioning for user sync
 
 ### Planned 📋
 - [ ] Mobile app companion
@@ -658,11 +741,11 @@ We welcome contributions! Every contribution matters, whether it's code, documen
 | [User Guide](docs/user_guide.md) | End-user documentation |
 | [Architecture](docs/architecture.md) | System design and components |
 | [API Reference](docs/api-specs/overview.md) | REST API documentation |
-| [Admin Dashboard](docs/admin-dashboard.md) | Dashboard features and API |
+| [Admin Dashboard](docs/admin-dashboard.md) | Dashboard features, SSO, RBAC, and API |
 | [Admin Tutorial](docs/admin-dashboard-tutorial.md) | Step-by-step dashboard guide |
 | [Frontend Deployment](docs/frontend-deployment-guide.md) | Vercel deployment guide |
+| [Backend Deployment](docs/runbooks/deployment.md) | Render/K8s production guide |
 | [Testing Guide](docs/testing.md) | Test strategy and execution |
-| [Backend Deployment](docs/runbooks/deployment.md) | Production deployment guide |
 | [RCA Documentation](docs/rca.md) | Root Cause Analysis feature |
 | [Analytics](docs/analytics.md) | Analytics dashboard features |
 | [Webhooks](docs/webhooks.md) | Webhook integrations |

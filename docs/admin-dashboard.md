@@ -8,6 +8,9 @@ The Nexus Admin Dashboard is a web-based interface for managing and monitoring y
 
 The Admin Dashboard enables you to:
 
+- **Authenticate Securely**: Enterprise SSO with Okta, Azure AD, Google, GitHub
+- **Manage Users & Roles**: Full RBAC with 20+ granular permissions
+- **Submit Feature Requests**: Create requests that auto-generate Jira tickets
 - **Toggle System Mode**: Instantly switch between Mock and Live modes
 - **Manage Credentials**: Securely update API keys and URLs
 - **Monitor Health**: Real-time status of all connected agents
@@ -216,6 +219,256 @@ curl -X POST http://localhost:8088/releases/sync/webhook \
       "target_date": "2025-02-15T00:00:00Z",
       "name": "Phoenix"
     }
+  }'
+```
+
+### 🔐 Authentication & SSO
+
+The Admin Dashboard supports enterprise Single Sign-On (SSO) authentication with multiple providers.
+
+![Login Page](assets/mockups/admin-login.svg)
+
+**Supported Providers:**
+
+| Provider | Protocol | Configuration |
+|----------|----------|---------------|
+| **Okta** | OIDC | Domain, Client ID, Client Secret |
+| **Azure AD** | OAuth2/OIDC | Tenant ID, Client ID, Client Secret |
+| **Google** | OAuth2 | Client ID, Client Secret |
+| **GitHub** | OAuth2 | Client ID, Client Secret |
+| **Local** | Email/Password | Development only |
+
+**Authentication Flow:**
+
+1. User clicks "Login with [Provider]"
+2. Redirected to SSO provider for authentication
+3. Provider redirects back with authorization code
+4. Backend exchanges code for tokens and user info
+5. JWT access and refresh tokens are issued
+6. User is redirected to dashboard
+
+**Environment Variables:**
+
+```bash
+# JWT Configuration
+NEXUS_JWT_SECRET=your-secure-secret-key
+NEXUS_TOKEN_EXPIRE_MINUTES=60
+NEXUS_REFRESH_TOKEN_DAYS=7
+
+# SSO Provider Selection
+NEXUS_SSO_PROVIDER=okta  # okta, azure_ad, google, github, local
+
+# Okta
+OKTA_DOMAIN=your-domain.okta.com
+OKTA_CLIENT_ID=your-client-id
+OKTA_CLIENT_SECRET=your-client-secret
+
+# Azure AD
+AZURE_TENANT_ID=your-tenant-id
+AZURE_CLIENT_ID=your-client-id
+AZURE_CLIENT_SECRET=your-client-secret
+
+# Google
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# GitHub
+GITHUB_CLIENT_ID=your-client-id
+GITHUB_CLIENT_SECRET=your-client-secret
+```
+
+**API Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/auth/login` | POST | Local email/password login |
+| `/auth/sso/{provider}` | GET | Initiate SSO flow |
+| `/auth/callback/{provider}` | GET | SSO callback handler |
+| `/auth/me` | GET | Get current user info |
+| `/auth/refresh` | POST | Refresh access token |
+| `/auth/logout` | POST | Invalidate tokens |
+
+### 👥 User Management
+
+Administrators can manage users, assign roles, and control access to the system.
+
+![User Management](assets/mockups/admin-user-management.svg)
+
+**Features:**
+
+- **User List**: View all users with search and filters
+- **Create User**: Add new users with role assignments
+- **Edit User**: Update user details and roles
+- **Delete User**: Remove user access (soft delete)
+- **Role Assignment**: Assign multiple roles to users
+- **SSO Sync**: Users auto-created on first SSO login
+
+**User Statuses:**
+
+| Status | Description |
+|--------|-------------|
+| `active` | User can access the system |
+| `inactive` | User disabled, cannot login |
+| `pending` | Awaiting activation |
+| `suspended` | Temporarily blocked |
+
+**API Endpoints:**
+
+| Endpoint | Method | Permission | Description |
+|----------|--------|------------|-------------|
+| `/users` | GET | `users:view` | List all users |
+| `/users` | POST | `users:create` | Create new user |
+| `/users/{id}` | GET | `users:view` | Get user details |
+| `/users/{id}` | PUT | `users:edit` | Update user |
+| `/users/{id}` | DELETE | `users:delete` | Delete user |
+| `/users/{id}/roles` | PUT | `users:roles:assign` | Update role assignments |
+
+### 🛡️ Role Management
+
+Create and manage dynamic roles with granular permissions.
+
+![Role Management](assets/mockups/admin-role-management.svg)
+
+**System Roles (Built-in):**
+
+| Role | Description | Key Permissions |
+|------|-------------|-----------------|
+| **Admin** | Full system access | All permissions |
+| **Developer** | Development team | View + API + Features |
+| **Product Manager** | Product team | View + Releases + Features |
+| **Project Manager** | Project oversight | View + Releases |
+| **QA Engineer** | Quality assurance | View + Features |
+| **Viewer** | Read-only access | View only |
+
+**Permission Categories:**
+
+```
+dashboard:*     - Dashboard access
+config:*        - Configuration management
+agents:*        - Agent control
+releases:*      - Release management
+users:*         - User administration
+roles:*         - Role management
+features:*      - Feature requests
+observability:* - Metrics and alerts
+api:*           - API access
+system:*        - System administration
+```
+
+**Creating Custom Roles:**
+
+```bash
+curl -X POST http://localhost:8088/roles \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Release Manager",
+    "description": "Manages releases and deployments",
+    "permissions": [
+      "dashboard:view",
+      "releases:view",
+      "releases:create",
+      "releases:edit",
+      "agents:view",
+      "observability:view"
+    ],
+    "is_default": false
+  }'
+```
+
+**API Endpoints:**
+
+| Endpoint | Method | Permission | Description |
+|----------|--------|------------|-------------|
+| `/roles` | GET | `roles:view` | List all roles |
+| `/roles` | POST | `roles:create` | Create new role |
+| `/roles/permissions` | GET | `roles:view` | List all permissions |
+| `/roles/{id}` | GET | `roles:view` | Get role details |
+| `/roles/{id}` | PUT | `roles:edit` | Update role |
+| `/roles/{id}` | DELETE | `roles:delete` | Delete custom role |
+
+### 💡 Feature Requests
+
+Submit feature requests and bug reports that automatically create Jira tickets.
+
+![Feature Requests](assets/mockups/admin-feature-requests.svg)
+
+**Request Types:**
+
+| Type | Jira Type | Use Case |
+|------|-----------|----------|
+| `feature_request` | Story | New functionality |
+| `bug_report` | Bug | Defect reports |
+| `improvement` | Improvement | Enhancements |
+| `documentation` | Task | Doc updates |
+| `question` | Task | Technical questions |
+
+**Priority Levels:**
+
+| Priority | Jira Priority | SLA |
+|----------|--------------|-----|
+| `critical` | Highest | 24 hours |
+| `high` | High | 3 days |
+| `medium` | Medium | 1 week |
+| `low` | Low | Best effort |
+
+**Automatic Jira Integration:**
+
+When a request is submitted:
+1. Request is validated and stored
+2. Background job creates Jira ticket
+3. Fields are mapped automatically
+4. Component determines assignee
+5. Slack notification sent to team
+6. Request updated with Jira key
+
+**Field Mapping:**
+
+```yaml
+Feature Request:
+  title → Summary
+  description → Description
+  priority → Priority
+  component → Component (routes to team)
+  use_case → Custom Field
+  acceptance_criteria → Custom Field
+
+Bug Report:
+  title → Summary
+  description → Description
+  steps_to_reproduce → Steps to Reproduce
+  expected_behavior → Expected Result
+  actual_behavior → Actual Result
+  environment → Environment
+```
+
+**API Endpoints:**
+
+| Endpoint | Method | Permission | Description |
+|----------|--------|------------|-------------|
+| `/feature-requests` | GET | `features:view` | List requests |
+| `/feature-requests` | POST | `features:submit` | Submit request |
+| `/feature-requests/options` | GET | - | Get form options |
+| `/feature-requests/stats` | GET | `features:view` | Get statistics |
+| `/feature-requests/{id}` | GET | `features:view` | Get request details |
+| `/feature-requests/{id}` | PUT | `features:manage` | Update request |
+| `/feature-requests/{id}` | DELETE | `features:manage` | Delete request |
+
+**Example: Submit Feature Request**
+
+```bash
+curl -X POST http://localhost:8088/feature-requests \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "feature_request",
+    "title": "Add dark mode toggle",
+    "description": "Users should be able to switch between light and dark themes in the dashboard.",
+    "priority": "medium",
+    "component": "admin-dashboard",
+    "use_case": "As a user, I want dark mode so that I can reduce eye strain during night work.",
+    "acceptance_criteria": "- Toggle visible in settings\n- Theme persists across sessions\n- All components styled correctly",
+    "labels": ["ui", "enhancement"]
   }'
 ```
 

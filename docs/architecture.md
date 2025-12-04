@@ -14,9 +14,16 @@ flowchart TB
         AdminUI[Admin Dashboard UI<br/>Vercel/Docker]
     end
     
+    subgraph Auth["Authentication Layer"]
+        SSO[SSO Providers<br/>Okta/Azure/Google/GitHub]
+        JWT[JWT Tokens]
+        RBAC[RBAC Engine<br/>20+ Permissions]
+    end
+    
     subgraph Gateway["Gateway Layer"]
         SlackAgent[Slack Agent<br/>Port 8084]
         AdminDash[Admin Dashboard API<br/>Port 8088]
+        FeatureReq[Feature Request Service]
     end
     
     subgraph Core["Core Layer"]
@@ -55,10 +62,15 @@ flowchart TB
     
     Slack --> SlackAgent
     API --> Orchestrator
-    AdminUI --> AdminDash
+    AdminUI --> SSO
+    SSO --> JWT
+    JWT --> AdminDash
+    AdminDash --> RBAC
+    RBAC --> FeatureReq
     SlackAgent --> Orchestrator
     AdminDash --> ConfigMgr
     AdminDash --> Agents
+    FeatureReq --> Jira
     
     Orchestrator --> ReAct
     Orchestrator --> SpecRegistry
@@ -205,6 +217,196 @@ RAG-enabled memory system for maintaining context across conversations.
 - "Last time we had a similar issue..."
 - Historical release data retrieval
 - Learning from past decisions
+
+---
+
+## Authentication & Authorization
+
+Nexus implements enterprise-grade authentication and authorization through SSO integration and Role-Based Access Control (RBAC).
+
+### Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Admin Dashboard
+    participant Backend as Admin API
+    participant SSO as SSO Provider
+    participant Store as RBAC Store
+    
+    User->>Frontend: Click "Login with SSO"
+    Frontend->>Backend: GET /auth/sso/{provider}
+    Backend->>SSO: Redirect to authorization URL
+    User->>SSO: Authenticate (MFA if required)
+    SSO->>Backend: Callback with auth code
+    Backend->>SSO: Exchange code for tokens
+    SSO-->>Backend: User info + tokens
+    Backend->>Store: Create/update user record
+    Backend->>Backend: Generate JWT tokens
+    Backend-->>Frontend: Redirect with access_token
+    Frontend->>Frontend: Store token, redirect to dashboard
+    
+    Note over User,Store: Subsequent requests use JWT
+    
+    User->>Frontend: Access protected page
+    Frontend->>Backend: Request with Bearer token
+    Backend->>Backend: Validate JWT, check permissions
+    Backend-->>Frontend: Authorized response
+```
+
+### SSO Providers
+
+| Provider | Protocol | Features |
+|----------|----------|----------|
+| **Okta** | OIDC | MFA, group sync, SCIM |
+| **Azure AD** | OAuth2/OIDC | Microsoft 365, conditional access |
+| **Google** | OAuth2 | Google Workspace integration |
+| **GitHub** | OAuth2 | Developer-friendly, org membership |
+| **Local** | Email/Password | Development and testing |
+
+### Role-Based Access Control (RBAC)
+
+```mermaid
+flowchart TB
+    subgraph Users["Users"]
+        Admin[admin@company.com<br/>Admin Role]
+        Dev[dev@company.com<br/>Developer Role]
+        PM[pm@company.com<br/>Product Manager]
+        Viewer[viewer@company.com<br/>Viewer Role]
+    end
+    
+    subgraph Roles["Roles"]
+        AdminRole[Admin<br/>All Permissions]
+        DevRole[Developer<br/>View + Edit + API]
+        PMRole[Product Manager<br/>View + Features]
+        ViewRole[Viewer<br/>View Only]
+    end
+    
+    subgraph Permissions["Permissions (20+)"]
+        Dashboard[dashboard:view]
+        Config[config:edit]
+        Users_Perm[users:manage]
+        Roles_Perm[roles:manage]
+        Features[features:submit]
+        API[api:write]
+    end
+    
+    Admin --> AdminRole
+    Dev --> DevRole
+    PM --> PMRole
+    Viewer --> ViewRole
+    
+    AdminRole --> Dashboard
+    AdminRole --> Config
+    AdminRole --> Users_Perm
+    AdminRole --> Roles_Perm
+    AdminRole --> Features
+    AdminRole --> API
+    
+    DevRole --> Dashboard
+    DevRole --> API
+    DevRole --> Features
+    
+    PMRole --> Dashboard
+    PMRole --> Features
+    
+    ViewRole --> Dashboard
+```
+
+### Permission Categories
+
+| Category | Permissions | Description |
+|----------|-------------|-------------|
+| **Dashboard** | `dashboard:view`, `dashboard:metrics:view` | View system dashboards |
+| **Configuration** | `config:view`, `config:edit`, `config:credentials:edit` | Manage system settings |
+| **Agents** | `agents:view`, `agents:restart`, `agents:configure` | Monitor and control agents |
+| **Releases** | `releases:view`, `releases:create`, `releases:edit` | Release management |
+| **Users** | `users:view`, `users:create`, `users:edit`, `users:delete` | User administration |
+| **Roles** | `roles:view`, `roles:create`, `roles:edit`, `roles:delete` | Role management |
+| **Features** | `features:submit`, `features:view`, `features:manage` | Feature request system |
+| **Observability** | `observability:view`, `observability:alerts:configure` | Metrics and alerts |
+| **API** | `api:read`, `api:write`, `api:admin` | Programmatic access |
+| **System** | `system:admin`, `system:audit:view` | System administration |
+
+---
+
+## Feature Request System
+
+The Feature Request system allows users to submit feature requests and bug reports that automatically create Jira tickets.
+
+### Feature Request Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Dashboard as Admin Dashboard
+    participant API as Feature Request API
+    participant Storage as Feature Storage
+    participant Queue as Job Queue
+    participant Jira as Jira Integration
+    participant Slack as Notification Service
+    
+    User->>Dashboard: Fill feature request form
+    Dashboard->>API: POST /feature-requests
+    API->>API: Validate request
+    API->>Storage: Save request (Redis)
+    API->>Queue: Queue Jira ticket creation
+    API-->>Dashboard: Request ID + status
+    
+    Note over Queue,Jira: Background processing
+    
+    Queue->>Jira: Create ticket with field mapping
+    Jira-->>Queue: Ticket created (PROJ-123)
+    Queue->>Storage: Update with Jira key
+    Queue->>Slack: Send notification
+    
+    User->>Dashboard: View requests
+    Dashboard->>API: GET /feature-requests
+    API->>Storage: Fetch requests
+    API-->>Dashboard: List with Jira links
+```
+
+### Request Types
+
+| Type | Jira Issue Type | Description |
+|------|-----------------|-------------|
+| `feature_request` | Story | New functionality |
+| `bug_report` | Bug | Defect reports |
+| `improvement` | Improvement | Enhancements |
+| `documentation` | Task | Doc updates |
+| `question` | Task | Technical questions |
+
+### Jira Field Mapping
+
+```yaml
+Feature Request → Jira Story:
+  title → Summary
+  description → Description
+  priority → Priority (Critical → Highest, High → High, etc.)
+  component → Component (routes to team)
+  type → Issue Type
+  labels → Labels
+  use_case → Custom Field (Use Case)
+  acceptance_criteria → Custom Field (AC)
+
+Bug Report → Jira Bug:
+  title → Summary
+  description → Description + Steps to Reproduce
+  priority → Priority
+  steps_to_reproduce → Steps to Reproduce field
+  expected_behavior → Expected Result
+  actual_behavior → Actual Result
+  environment → Environment field
+  browser → Affects Version
+```
+
+### Notification Channels
+
+| Channel | Trigger | Content |
+|---------|---------|---------|
+| **Slack** | Request submitted | Block Kit message with details |
+| **Slack** | Status changed | Update notification |
+| **Webhook** | Any event | HMAC-signed JSON payload |
 
 ---
 
