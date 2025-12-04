@@ -80,29 +80,29 @@ export const endpoints = {
   providers: '/auth/providers',
   
   // Dashboard
-  dashboardStats: '/dashboard/stats',
+  dashboardStats: '/stats',
   
   // Releases
   releases: '/releases',
   releaseCalendar: '/releases/calendar',
   
   // Health
-  health: '/health',
-  healthOverview: '/health/overview',
+  health: '/health-check',
+  healthOverview: '/health',
   
   // Metrics
-  metrics: '/metrics',
-  metricsAggregated: '/metrics/aggregated',
+  metrics: '/api/metrics',
+  metricsAggregated: '/metrics',
   
   // Feature Requests
   featureRequests: '/feature-requests',
   
   // Settings
-  configuration: '/configuration',
+  configuration: '/config',
   
   // RBAC
-  users: '/rbac/users',
-  roles: '/rbac/roles',
-  permissions: '/rbac/permissions',
+  users: '/users',
+  roles: '/roles',
+  permissions: '/roles/permissions',
 };
 
