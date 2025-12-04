@@ -4,6 +4,7 @@ import '../styles/globals.css';
 import { cn } from '@/lib/utils';
 import { AuthProvider } from '@/hooks/useAuth';
 import { Toaster } from 'sonner';
+import { Analytics } from '@vercel/analytics/react';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
@@ -30,6 +31,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster position="top-right" richColors />
+          <Analytics />
         </AuthProvider>
       </body>
     </html>
