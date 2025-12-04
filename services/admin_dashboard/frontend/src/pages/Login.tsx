@@ -47,7 +47,9 @@ const getApiUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   // If running on Vercel (production), use Render backend
-  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+  if (typeof window !== 'undefined' && 
+      (window.location.hostname.includes('vercel.app') || 
+       window.location.hostname.includes('nexus-admin-dashboard'))) {
     return 'https://nexus-admin-api-63b4.onrender.com';
   }
   // Local development

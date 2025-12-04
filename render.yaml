@@ -56,11 +56,11 @@ services:
       
       # CORS - Allow Vercel frontend
       - key: NEXUS_CORS_ORIGINS
-        value: "https://frontend-8chgad0im-imrans-projects-8eb4b7ab.vercel.app,https://*.vercel.app"
+        value: "https://nexus-admin-dashboard-gamma.vercel.app,https://*.vercel.app,http://localhost:5173"
       
       # Frontend URL for redirects
       - key: NEXUS_FRONTEND_URL
-        value: "https://frontend-8chgad0im-imrans-projects-8eb4b7ab.vercel.app"
+        value: "https://nexus-admin-dashboard-gamma.vercel.app"
 
 # =============================================================================
 # Optional: Redis for persistent storage
