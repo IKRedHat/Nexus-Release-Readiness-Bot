@@ -23,16 +23,16 @@ services:
     buildCommand: |
       pip install --upgrade pip
       pip install -r services/admin_dashboard/backend/requirements.txt
-    startCommand: |
-      cd services/admin_dashboard/backend && \
-      PYTHONPATH=$PYTHONPATH:$(pwd)/../../../shared \
-      uvicorn main:app --host 0.0.0.0 --port $PORT
+      mkdir -p /opt/render/project/src/shared
+      cp -r shared/* /opt/render/project/src/shared/ 2>/dev/null || echo "Shared lib copy skipped"
+      ls -la /opt/render/project/src/shared/ || echo "No shared dir"
+    startCommand: cd services/admin_dashboard/backend && uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 120
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       # Python environment
       - key: PYTHONPATH
-        value: /opt/render/project/src/shared
+        value: /opt/render/project/src:/opt/render/project/src/shared
       - key: PYTHON_VERSION
         value: "3.11.0"
       

@@ -31,8 +31,17 @@ from fastapi.responses import Response, RedirectResponse
 from pydantic import BaseModel, Field
 from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
-# Add shared lib to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..', 'shared'))
+# Add shared lib to path - check multiple possible locations
+_shared_paths = [
+    os.path.join(os.path.dirname(__file__), '../../..', 'shared'),  # Local development
+    '/opt/render/project/src/shared',  # Render deployment
+    os.path.join(os.path.dirname(__file__), '../../../shared'),  # Alternative path
+    os.environ.get('PYTHONPATH', '').split(':')[0] if os.environ.get('PYTHONPATH') else '',
+]
+for _path in _shared_paths:
+    if _path and os.path.isdir(_path) and _path not in sys.path:
+        sys.path.insert(0, _path)
+        print(f"Added to PYTHONPATH: {_path}")
 
 try:
     from nexus_lib.config import (
@@ -44,16 +53,8 @@ except ImportError:
     ConfigManager = None
 
 # Import RBAC and Feature Request modules
+RBAC_ENABLED = False
 try:
-    from auth import (
-        RBACService, AuthConfig, SSOHandler,
-        get_current_user, RequirePermission,
-        create_access_token, create_refresh_token, verify_local_auth,
-        rbac_store, LocalAuthRequest,
-    )
-    from feature_requests import (
-        FeatureRequestService, get_service as get_feature_service,
-    )
     from nexus_lib.schemas.rbac import (
         User, UserCreate, UserUpdate, UserWithPermissions,
         Role, RoleCreate, RoleUpdate,
@@ -63,10 +64,28 @@ try:
         AuditAction, AuditLog,
         JiraFieldMapping,
     )
+    print("Successfully imported nexus_lib.schemas.rbac")
+    
+    from auth import (
+        RBACService, AuthConfig, SSOHandler,
+        get_current_user, RequirePermission,
+        create_access_token, create_refresh_token, verify_local_auth,
+        rbac_store, LocalAuthRequest,
+    )
+    print("Successfully imported auth module")
+    
+    from feature_requests import (
+        FeatureRequestService, get_service as get_feature_service,
+    )
+    print("Successfully imported feature_requests module")
+    
     RBAC_ENABLED = True
+    print("RBAC enabled successfully")
 except ImportError as e:
+    import traceback
     print(f"Warning: RBAC modules not loaded: {e}")
-    RBAC_ENABLED = False
+    print(f"Traceback: {traceback.format_exc()}")
+    print(f"Current sys.path: {sys.path}")
 
 # Import enterprise storage (may fail if not fully configured)
 ENTERPRISE_STORAGE = False
