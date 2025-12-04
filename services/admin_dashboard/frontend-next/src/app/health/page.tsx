@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Layout from '@/components/Layout';
 import { Activity, AlertCircle, CheckCircle, XCircle, RefreshCw, Clock } from 'lucide-react';
-import { formatRelativeTime, formatPercentage, get StatusColor } from '@/lib/utils';
+import { formatRelativeTime, formatPercentage, getStatusColor } from '@/lib/utils';
 import type { HealthService } from '@/types';
 
 export default function HealthPage() {
