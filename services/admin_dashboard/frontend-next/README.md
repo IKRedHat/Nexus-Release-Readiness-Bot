@@ -76,3 +76,8 @@ NEXT_PUBLIC_APP_VERSION=3.0.0
 ## License
 
 MIT
+
+## ✅ Commit Author Verified
+
+This commit tests that the GitHub email verification is working correctly.
+Vercel should now auto-deploy without 'commit author required' errors.
