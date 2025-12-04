@@ -488,11 +488,147 @@ Agent 'jira_agent' status: unhealthy
 4. **Use Secrets Manager**: In production, use Kubernetes secrets or Vault
 5. **Enable Auto-Refresh**: Keep health monitoring in auto-refresh mode
 
+## 🔐 Authentication & Authorization (SSO/RBAC)
+
+The Admin Dashboard includes enterprise-grade authentication and access control:
+
+![Login Page](assets/mockups/admin-login.svg)
+
+### Single Sign-On (SSO)
+
+Supported SSO providers:
+
+| Provider | Protocol | Configuration |
+|----------|----------|---------------|
+| **Okta** | OIDC/SAML | Client ID, Issuer URL |
+| **Azure AD** | OIDC | Tenant ID, Client ID |
+| **Google** | OAuth 2.0 | Client ID, Domain restriction |
+| **GitHub** | OAuth 2.0 | Client ID, Org restriction |
+
+### User Management
+
+![User Management](assets/mockups/admin-user-management.svg)
+
+Manage users with full lifecycle control:
+
+- **Create Users**: Manual or SSO-synced user creation
+- **Assign Roles**: Dynamic role assignment
+- **Status Management**: Active, Pending, Suspended states
+- **SSO Sync**: Automatic user provisioning from identity provider
+
+### Role-Based Access Control (RBAC)
+
+![Role Management](assets/mockups/admin-role-management.svg)
+
+**Built-in Roles:**
+
+| Role | Permissions | Use Case |
+|------|-------------|----------|
+| **Admin** | Full system access | System administrators |
+| **Engineering Manager** | Team management, releases, metrics | Engineering leads |
+| **Developer** | View dashboards, submit requests | Development team |
+| **Product Manager** | Releases, feature requests | Product team |
+| **Project Manager** | Releases, reports | Project management |
+| **Executive** | Read-only dashboards, reports | Leadership |
+| **Viewer** | Read-only access | Stakeholders |
+
+**Custom Roles:**
+- Create custom roles with granular permissions
+- 15+ configurable permissions
+- Permission inheritance support
+
+### Available Permissions
+
+| Category | Permissions |
+|----------|-------------|
+| **Dashboard** | View, Edit Config |
+| **Users** | View, Create, Edit, Delete |
+| **Roles** | View, Manage |
+| **Feature Requests** | Submit, View, Manage |
+| **Releases** | View, Create, Edit |
+| **Audit** | View Logs |
+| **System** | Admin Config |
+
+## 💡 Feature Requests & Bug Reports
+
+The Admin Dashboard includes an integrated feature request system with automatic Jira ticket creation:
+
+![Feature Requests](assets/mockups/admin-feature-requests.svg)
+
+### Request Types
+
+| Type | Description | Jira Issue Type |
+|------|-------------|-----------------|
+| **Feature Request** | New functionality | Story |
+| **Bug Report** | Defect report | Bug |
+| **Improvement** | Enhancement request | Improvement |
+| **Documentation** | Doc updates | Task |
+
+### Automatic Jira Integration
+
+When a feature request is submitted:
+
+1. **Stored** in persistent Redis storage
+2. **Jira Ticket Created** with intelligent field mapping
+3. **Component Assigned** based on selection
+4. **Assignee Set** based on component ownership
+5. **Notifications Sent** to Slack and webhooks
+
+### Component-Based Assignment
+
+| Component | Jira Component | Default Assignee |
+|-----------|----------------|------------------|
+| `orchestrator` | Orchestrator | `NEXUS_ORCHESTRATOR_LEAD` |
+| `jira-agent` | Jira Agent | `NEXUS_JIRA_AGENT_LEAD` |
+| `slack-agent` | Slack Agent | `NEXUS_SLACK_AGENT_LEAD` |
+| `admin-dashboard` | Admin Dashboard | `NEXUS_ADMIN_LEAD` |
+| `infrastructure` | Infrastructure | `NEXUS_INFRA_LEAD` |
+
+### Feature Request API
+
+```bash
+# Submit a feature request
+curl -X POST http://localhost:8088/feature-requests \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "feature_request",
+    "title": "Add dark mode support",
+    "description": "Implement dark mode toggle for the Admin Dashboard",
+    "priority": "medium",
+    "component": "admin-dashboard"
+  }'
+
+# List feature requests
+curl http://localhost:8088/feature-requests \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get Jira integration status
+curl http://localhost:8088/feature-requests/jira/config \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Feature Request Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/feature-requests` | List all requests |
+| `POST` | `/feature-requests` | Submit new request |
+| `GET` | `/feature-requests/{id}` | Get specific request |
+| `PUT` | `/feature-requests/{id}` | Update request |
+| `DELETE` | `/feature-requests/{id}` | Delete request |
+| `GET` | `/feature-requests/stats` | Get statistics |
+| `GET` | `/feature-requests/export` | Export to JSON/CSV |
+| `GET` | `/feature-requests/{id}/audit` | Get audit trail |
+| `GET` | `/feature-requests/jira/config` | Jira config |
+| `POST` | `/feature-requests/{id}/sync-jira` | Sync from Jira |
+
 ## Security Considerations
 
-1. **Access Control**: Deploy behind authentication (OAuth, SSO)
+1. **Access Control**: Built-in SSO and RBAC (OAuth, OIDC, SAML)
 2. **HTTPS Only**: Use TLS in production
 3. **Network Segmentation**: Restrict dashboard access to admin network
-4. **Audit Logging**: Monitor configuration changes
+4. **Audit Logging**: Full audit trail for all actions
 5. **Secret Rotation**: Regularly rotate API tokens and keys
+6. **Role-Based Permissions**: Granular access control for all features
 

@@ -13,8 +13,12 @@ A step-by-step guide for using the Nexus Admin Dashboard. This tutorial is desig
 7. [Configuring Integrations](#7-configuring-integrations)
 8. [Configuration Tab - Going from Mock to Live](#8-configuration-tab---going-from-mock-to-live)
 9. [Monitoring Agents](#9-monitoring-agents)
-10. [Common Tasks](#10-common-tasks)
-11. [Troubleshooting](#11-troubleshooting)
+10. [Authentication & SSO](#10-authentication--sso)
+11. [User Management](#11-user-management)
+12. [Role Management](#12-role-management)
+13. [Feature Requests](#13-feature-requests)
+14. [Common Tasks](#14-common-tasks)
+15. [Troubleshooting](#15-troubleshooting)
 
 ---
 
@@ -643,7 +647,199 @@ Click **"Refresh Now"** to immediately check all agents.
 
 ---
 
-## 10. Common Tasks
+## 10. Authentication & SSO
+
+The Admin Dashboard supports enterprise Single Sign-On (SSO) for secure authentication.
+
+![Login Page](assets/mockups/admin-login.svg)
+
+### Step 1: Access the Login Page
+
+When you first access the dashboard, you'll see the login page with SSO options.
+
+### Step 2: Choose Your SSO Provider
+
+Click on your organization's SSO provider:
+
+| Provider | Button | Configuration |
+|----------|--------|---------------|
+| **Okta** | Blue "Okta" button | Requires Okta app setup |
+| **Azure AD** | Blue "Azure AD" button | Requires Azure app registration |
+| **Google** | White "Google" button | Requires Google OAuth setup |
+| **GitHub** | Black "GitHub" button | Requires GitHub OAuth app |
+
+### Step 3: Authenticate
+
+1. Click your SSO provider button
+2. You'll be redirected to your identity provider
+3. Enter your corporate credentials
+4. Complete any MFA requirements
+5. You'll be redirected back to the dashboard
+
+### Step 4: Local Authentication (Fallback)
+
+If SSO is not configured, you can use local authentication:
+
+1. Enter your email address
+2. Click **"Sign In"**
+3. Check your email for a magic link (if enabled)
+
+> **Tip**: Contact your administrator if you don't see your SSO provider listed.
+
+---
+
+## 11. User Management
+
+Administrators can manage users, assign roles, and control access from the User Management page.
+
+![User Management](assets/mockups/admin-user-management.svg)
+
+### Step 1: Navigate to User Management
+
+Click **"👥 User Management"** in the sidebar under the "ADMINISTRATION" section.
+
+### Step 2: View Users
+
+You'll see a table with all users showing:
+
+- **User**: Name and avatar
+- **Email**: User's email address
+- **Role**: Assigned role (Admin, Developer, etc.)
+- **Status**: Active, Pending, or Suspended
+- **Auth**: SSO provider (Okta, Azure, Google, GitHub)
+- **Actions**: Edit and delete buttons
+
+### Step 3: Add a New User
+
+1. Click the **"+ Add User"** button (top right)
+2. Fill in user details:
+   - Name
+   - Email
+   - Role (select from dropdown)
+3. Click **"Create User"**
+
+The user will receive an invitation email with setup instructions.
+
+### Step 4: Edit a User
+
+1. Find the user in the table
+2. Click the **✏️** (edit) icon
+3. Modify user details or role
+4. Click **"Save Changes"**
+
+### Step 5: Sync SSO Users
+
+Click **"🔄 Sync SSO"** to import users from your identity provider.
+
+---
+
+## 12. Role Management
+
+Define and customize roles to control access permissions.
+
+![Role Management](assets/mockups/admin-role-management.svg)
+
+### Step 1: Navigate to Role Management
+
+Click **"🔐 Role Management"** in the sidebar under the "ADMINISTRATION" section.
+
+### Step 2: View Existing Roles
+
+The left panel shows all available roles:
+
+| Role | Icon | Type |
+|------|------|------|
+| Admin | 🛡️ | System |
+| Engineering Manager | 👔 | System |
+| Developer | 💻 | System |
+| Product Manager | 📦 | System |
+| Custom roles | ⭐ | Custom |
+
+### Step 3: View Role Permissions
+
+1. Click on a role in the left panel
+2. The right panel shows all permissions
+3. Green toggles indicate enabled permissions
+
+### Step 4: Edit Role Permissions
+
+1. Click the **✏️** (edit) icon on the role
+2. Toggle permissions on/off:
+   - **Dashboard**: View, Edit Config
+   - **Users**: View, Manage, Delete
+   - **Feature Requests**: Submit, View, Manage
+   - **System**: Admin Config, Audit Logs
+3. Click **"💾 Save Permissions"**
+
+### Step 5: Create a Custom Role
+
+1. Click **"+ Create Role"** (top right)
+2. Enter role name and description
+3. Select permissions
+4. Click **"Create Role"**
+
+---
+
+## 13. Feature Requests
+
+Submit feature requests and bug reports that automatically create Jira tickets.
+
+![Feature Requests](assets/mockups/admin-feature-requests.svg)
+
+### Step 1: Navigate to Feature Requests
+
+Click **"💡 Feature Requests"** in the sidebar under the "ADMINISTRATION" section.
+
+### Step 2: View Existing Requests
+
+The page shows:
+
+- **Summary Cards**: Total, Pending, In Progress, Completed
+- **Filter Tabs**: All, Features, Bugs, My Requests
+- **Request Cards**: Detailed view of each request
+
+### Step 3: Submit a New Request
+
+1. Click **"+ New Request"** (top right)
+2. Fill in the form:
+   - **Type**: Feature Request, Bug Report, Improvement
+   - **Title**: Brief description
+   - **Description**: Detailed explanation
+   - **Priority**: Critical, High, Medium, Low
+   - **Component**: Which part of Nexus
+   - **Labels**: Optional tags
+3. Click **"Submit"**
+
+### Step 4: Automatic Jira Integration
+
+When you submit a request:
+
+1. ✅ Stored in the Admin Dashboard
+2. ✅ Jira ticket created automatically
+3. ✅ Assigned to component owner
+4. ✅ Notifications sent to Slack
+
+The Jira ticket link appears on the request card.
+
+### Step 5: Track Request Status
+
+Request statuses:
+
+| Status | Description | Jira Equivalent |
+|--------|-------------|-----------------|
+| **Submitted** | Just created | Open |
+| **Triaged** | Under review | To Do |
+| **In Progress** | Being worked on | In Progress |
+| **Completed** | Done | Done |
+| **Rejected** | Won't implement | Won't Do |
+
+### Step 6: Export Requests
+
+Click **"📤 Export"** to download requests as JSON or CSV.
+
+---
+
+## 14. Common Tasks
 
 ### Task 1: Preparing for a Demo
 
@@ -689,7 +885,7 @@ Click **"Refresh Now"** to immediately check all agents.
 
 ---
 
-## 11. Troubleshooting
+## 15. Troubleshooting
 
 ### Problem: Dashboard Won't Load
 
