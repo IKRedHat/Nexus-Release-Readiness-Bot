@@ -33,7 +33,15 @@ interface Role {
   is_system_role: boolean;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8088';
+// Auto-detect API URL based on environment
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://nexus-admin-api-63b4.onrender.com';
+  }
+  return 'http://localhost:8088';
+};
+const API_URL = getApiUrl();
 
 const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('nexus_access_token');

@@ -40,7 +40,20 @@ const providers: Record<string, AuthProvider> = {
   github: { id: 'github', name: 'GitHub', icon: <Github className="w-5 h-5" />, color: 'bg-gray-700 hover:bg-gray-800' },
 };
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8088';
+// Auto-detect API URL based on environment
+const getApiUrl = () => {
+  // If explicitly set, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // If running on Vercel (production), use Render backend
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://nexus-admin-api-63b4.onrender.com';
+  }
+  // Local development
+  return 'http://localhost:8088';
+};
+const API_URL = getApiUrl();
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');

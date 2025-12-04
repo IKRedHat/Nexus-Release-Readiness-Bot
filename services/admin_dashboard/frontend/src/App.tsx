@@ -26,6 +26,16 @@ import UserManagement from './pages/UserManagement'
 import RoleManagement from './pages/RoleManagement'
 import FeatureRequests from './pages/FeatureRequests'
 
+// Auto-detect API URL based on environment
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://nexus-admin-api-63b4.onrender.com';
+  }
+  return 'http://localhost:8088';
+};
+const API_URL = getApiUrl();
+
 // Auth Context
 interface AuthUser {
   id: string;
@@ -116,7 +126,7 @@ function App() {
   
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8088'}/auth/me`, {
+      const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('nexus_access_token')}`,
         },
