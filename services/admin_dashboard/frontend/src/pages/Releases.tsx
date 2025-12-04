@@ -76,7 +76,17 @@ interface Risk {
   status: string;
 }
 
-const API_URL = '/api';
+// Auto-detect API URL based on environment
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && 
+      (window.location.hostname.includes('vercel.app') || 
+       window.location.hostname.includes('nexus-admin-dashboard'))) {
+    return 'https://nexus-admin-api-63b4.onrender.com';
+  }
+  return 'http://localhost:8088';
+};
+const API_URL = getApiUrl();
 
 const statusColors: Record<string, string> = {
   planning: 'bg-slate-500',

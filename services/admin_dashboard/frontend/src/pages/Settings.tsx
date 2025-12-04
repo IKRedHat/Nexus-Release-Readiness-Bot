@@ -14,7 +14,17 @@ import {
 import axios from 'axios'
 import ConfigForm from '../components/ConfigForm'
 
-const API_BASE = '/api'
+// Auto-detect API URL based on environment
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && 
+      (window.location.hostname.includes('vercel.app') || 
+       window.location.hostname.includes('nexus-admin-dashboard'))) {
+    return 'https://nexus-admin-api-63b4.onrender.com';
+  }
+  return 'http://localhost:8088';
+};
+const API_BASE = getApiUrl();
 
 interface ConfigTemplate {
   name: string
