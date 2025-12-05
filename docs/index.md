@@ -229,6 +229,9 @@ Natural Slack interface with:
 | [Architecture](architecture.md) | System design and technical details |
 | [API Reference](api-specs/overview.md) | OpenAPI specifications for all agents |
 | [Deployment](runbooks/deployment.md) | Production deployment guide |
+| [Admin Dashboard](admin-dashboard.md) | Complete Admin Dashboard documentation |
+| [Admin Tutorial](admin-dashboard-tutorial.md) | Step-by-step Admin Dashboard tutorial |
+| [Analysis Reports](analysis-reports/) | Gap analysis, audits, roadmaps & planning docs |
 
 ## 🛠️ Technology Stack
 
