@@ -6,7 +6,7 @@
 
 ### **Intelligent Multi-Agent System for Automated Release Readiness Assessments**
 
-[![Version](https://img.shields.io/badge/version-2.6.0-blue?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue?style=for-the-badge)](CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1449%20passing-brightgreen?style=for-the-badge)](docs/testing.md)
 [![Python](https://img.shields.io/badge/python-3.10+-green?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
@@ -58,14 +58,17 @@
 <td width="50%">
 
 ### 🎛️ **Admin Dashboard**
-- **Web-based UI**: Modern React dashboard for system management
+- **Next.js 14 Frontend**: Modern App Router architecture with TypeScript
 - **SSO Authentication**: Enterprise SSO with Okta, Azure AD, Google, GitHub
-- **Role-Based Access Control**: Granular permissions with dynamic roles
-- **User Management**: Complete user lifecycle management
-- **Feature Request System**: Submit requests with automatic Jira integration
-- **Dynamic Configuration**: Change settings without service restarts
-- **Live Mode Switching**: Toggle Mock/Production instantly
-- **Release Management**: Track versions, dates, and metrics from external sources
+- **Role-Based Access Control**: 30+ granular permissions with dynamic roles
+- **User Management**: Complete user lifecycle with audit logging
+- **Feature Request System**: Voting, inline comments, Jira integration
+- **Release Timeline**: Interactive Gantt view with drag-and-drop
+- **WebSocket Real-Time**: Live health updates and activity feed
+- **Dashboard Customization**: Drag-and-drop widgets with persistence
+- **Keyboard Navigation**: Vim-like shortcuts (J/K/G) for power users
+- **Advanced Analytics**: Period comparison charts with trend indicators
+- **Full Audit Trail**: Searchable, filterable activity history
 
 </td>
 </tr>
@@ -313,7 +316,7 @@ Nexus sends proactive notifications:
 
 ## 🎛️ Admin Dashboard
 
-The Admin Dashboard provides a web-based interface for managing Nexus:
+The Admin Dashboard is an enterprise-grade Next.js 14 application for managing Nexus:
 
 ![Admin Dashboard](docs/assets/mockups/admin-dashboard.svg)
 
@@ -321,14 +324,14 @@ The Admin Dashboard provides a web-based interface for managing Nexus:
 
 | Tab | Functionality |
 |-----|---------------|
-| **Dashboard** | System overview, agent health, quick actions |
-| **Releases** | Track versions, target dates, import from Smartsheet/CSV |
-| **Observability** | Metrics, charts, LLM usage, integrated Grafana |
-| **Health Monitor** | Real-time agent status with auto-refresh |
-| **Configuration** | Manage credentials, URLs, API keys securely |
-| **User Management** | Create, edit, delete users; assign roles |
-| **Role Management** | Dynamic roles with 20+ granular permissions |
-| **Feature Requests** | Submit requests/bugs with automatic Jira integration |
+| **Dashboard** | Customizable widget grid, real-time stats, quick actions |
+| **Releases** | Timeline/Gantt view, CRUD operations, import from Smartsheet/CSV |
+| **Health Monitor** | WebSocket-powered live status, uptime tracking |
+| **Audit Log** | Searchable activity history with filtering and export |
+| **Configuration** | Mode switching, dynamic credential management |
+| **User Management** | Full CRUD, role assignment, SSO sync |
+| **Role Management** | 30+ permissions, custom role creation |
+| **Feature Requests** | Voting, inline comments, automatic Jira integration |
 
 ### Authentication & SSO
 
@@ -611,7 +614,20 @@ vercel deploy --prod
 
 ## 🆕 Version History
 
-### v2.6.0 - Enterprise SSO & Feature Requests (Latest)
+### v3.0.0 - Enterprise Dashboard Overhaul (Latest)
+- 🚀 **Next.js 14 Migration** - Complete frontend re-architecture with App Router
+- 🔄 **WebSocket Real-Time** - Live health updates, activity feed, metrics
+- 📅 **Release Timeline** - Interactive Gantt view with zoom levels (Day/Week/Month)
+- 🎛️ **Dashboard Widgets** - Drag-and-drop customization with persistence
+- 💬 **Inline Comments** - Threaded conversations with @mentions
+- 🔍 **Filter Persistence** - URL sync and saved presets
+- ⌨️ **Keyboard Navigation** - Vim-like shortcuts (J/K/G) for power users
+- 📊 **Advanced Analytics** - Period comparison, trend indicators, sparklines
+- 📋 **Full Audit Log** - Searchable activity history with export
+- 🗄️ **PostgreSQL Backend** - Production-ready database persistence
+- 🧪 **TDD Coverage** - Comprehensive test suite for all features
+
+### v2.6.0 - Enterprise SSO & Feature Requests
 - 🔐 **SSO Authentication** - OAuth2/OIDC with Okta, Azure AD, Google, GitHub
 - 👥 **User Management** - Complete user lifecycle with role assignments
 - 🛡️ **Role-Based Access Control** - 20+ granular permissions, dynamic roles

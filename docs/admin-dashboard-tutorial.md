@@ -1,5 +1,7 @@
 # Admin Dashboard Tutorial
 
+> **Version:** 3.0.0 | **Last Updated:** December 2024
+
 A step-by-step guide for using the Nexus Admin Dashboard. This tutorial is designed for users who prefer a visual, no-code approach to managing the Nexus system.
 
 ## Table of Contents
@@ -10,15 +12,20 @@ A step-by-step guide for using the Nexus Admin Dashboard. This tutorial is desig
 4. [Switching Between Modes](#4-switching-between-modes)
 5. [Viewing Observability Metrics](#5-viewing-observability-metrics)
 6. [Managing Releases](#6-managing-releases)
-7. [Configuring Integrations](#7-configuring-integrations)
-8. [Configuration Tab - Going from Mock to Live](#8-configuration-tab---going-from-mock-to-live)
-9. [Monitoring Agents](#9-monitoring-agents)
-10. [Authentication & SSO](#10-authentication--sso)
-11. [User Management](#11-user-management)
-12. [Role Management](#12-role-management)
-13. [Feature Requests](#13-feature-requests)
-14. [Common Tasks](#14-common-tasks)
-15. [Troubleshooting](#15-troubleshooting)
+7. [Using the Release Timeline](#7-using-the-release-timeline)
+8. [Configuring Integrations](#8-configuring-integrations)
+9. [Configuration Tab - Going from Mock to Live](#9-configuration-tab---going-from-mock-to-live)
+10. [Monitoring Agents](#10-monitoring-agents)
+11. [Authentication & SSO](#11-authentication--sso)
+12. [User Management](#12-user-management)
+13. [Role Management](#13-role-management)
+14. [Feature Requests](#14-feature-requests)
+15. [Viewing Audit Logs](#15-viewing-audit-logs)
+16. [Customizing Your Dashboard](#16-customizing-your-dashboard)
+17. [Keyboard Shortcuts](#17-keyboard-shortcuts)
+18. [Using Filter Presets](#18-using-filter-presets)
+19. [Common Tasks](#19-common-tasks)
+20. [Troubleshooting](#20-troubleshooting)
 
 ---
 
@@ -394,7 +401,65 @@ Metrics include:
 
 ---
 
-## 7. Configuring Integrations
+## 7. Using the Release Timeline
+
+The **Timeline View** provides a visual Gantt-style representation of your releases.
+
+### Step 1: Switch to Timeline View
+
+On the Releases page, click the **"📅 Timeline"** tab (next to "List" view).
+
+### Step 2: Understanding the Timeline
+
+The timeline shows:
+- **Horizontal Axis**: Time (dates)
+- **Vertical Axis**: Releases stacked
+- **Bars**: Release duration (start to target date)
+- **Today Marker**: Red vertical line showing current date
+
+### Step 3: Change Zoom Level
+
+Use the zoom controls at the top:
+
+| Zoom | Best For |
+|------|----------|
+| **Day** | Detailed daily view (1-2 weeks visible) |
+| **Week** | Standard planning view (1-2 months visible) |
+| **Month** | High-level roadmap (3-6 months visible) |
+
+### Step 4: Navigate the Timeline
+
+- **Scroll Horizontally**: Drag the timeline left/right
+- **Click "Today"**: Jump to current date
+- **Click Release Bar**: View release details
+
+### Step 5: Status Color Coding
+
+| Color | Status |
+|-------|--------|
+| 🔵 Blue | Planned |
+| 🟡 Yellow | In Progress |
+| 🟢 Green | Completed |
+| 🔴 Red | Cancelled |
+
+### Step 6: View Release Details
+
+Hover over any release bar to see a tooltip with:
+- Version and name
+- Target date
+- Current status
+- Days remaining
+
+### Step 7: Quick Actions
+
+Click on a release bar to open the detail panel where you can:
+- Edit the release
+- Change status
+- View linked items
+
+---
+
+## 8. Configuring Integrations
 
 ### Step 1: Go to Configuration
 
@@ -458,7 +523,7 @@ Scroll down to see the **"All Configuration Values"** table showing:
 
 ---
 
-## 8. Configuration Tab - Going from Mock to Live
+## 9. Configuration Tab - Going from Mock to Live
 
 The Configuration tab is where you set up all your integrations to move from Mock mode to Live mode. This is the most important section for production deployment.
 
@@ -612,7 +677,7 @@ Once all configurations are saved:
 
 ---
 
-## 9. Monitoring Agents
+## 10. Monitoring Agents
 
 ### Step 1: Go to Health Monitor
 
@@ -647,7 +712,7 @@ Click **"Refresh Now"** to immediately check all agents.
 
 ---
 
-## 10. Authentication & SSO
+## 11. Authentication & SSO
 
 The Admin Dashboard supports enterprise Single Sign-On (SSO) for secure authentication.
 
@@ -688,7 +753,7 @@ If SSO is not configured, you can use local authentication:
 
 ---
 
-## 11. User Management
+## 12. User Management
 
 Administrators can manage users, assign roles, and control access from the User Management page.
 
@@ -733,7 +798,7 @@ Click **"🔄 Sync SSO"** to import users from your identity provider.
 
 ---
 
-## 12. Role Management
+## 13. Role Management
 
 Define and customize roles to control access permissions.
 
@@ -780,7 +845,7 @@ The left panel shows all available roles:
 
 ---
 
-## 13. Feature Requests
+## 14. Feature Requests
 
 Submit feature requests and bug reports that automatically create Jira tickets.
 
@@ -839,7 +904,179 @@ Click **"📤 Export"** to download requests as JSON or CSV.
 
 ---
 
-## 14. Common Tasks
+## 15. Viewing Audit Logs
+
+The **Audit Log** page provides a complete activity history for compliance and troubleshooting.
+
+### Step 1: Navigate to Audit Log
+
+Click **"📋 Audit Log"** in the sidebar.
+
+### Step 2: View Activity History
+
+You'll see a table with all system activities:
+
+| Column | Description |
+|--------|-------------|
+| **Timestamp** | When the action occurred |
+| **User** | Who performed the action |
+| **Action** | What action was taken (create, update, delete, login) |
+| **Resource** | What was affected (user, release, config) |
+| **Details** | Additional context |
+
+### Step 3: Filter Activities
+
+Use the filter controls at the top:
+
+1. **Date Range**: Select start and end dates
+2. **User**: Filter by specific user
+3. **Action Type**: Select action types (create, update, delete, login, logout)
+4. **Resource Type**: Filter by resource (users, releases, roles, etc.)
+
+### Step 4: Search
+
+Use the search bar to find specific entries by keyword.
+
+### Step 5: View Stats Dashboard
+
+The stats panel shows:
+- Total actions in period
+- Actions by type (pie chart)
+- Most active users
+- Peak activity times
+
+### Step 6: Export Audit Data
+
+Click **"Export"** to download:
+- **JSON**: Full data for programmatic use
+- **CSV**: Spreadsheet-compatible format
+
+---
+
+## 16. Customizing Your Dashboard
+
+The Dashboard features a **drag-and-drop widget system** for personalization.
+
+### Step 1: Enter Edit Mode
+
+Click the **"⚙️ Customize"** button in the dashboard header.
+
+### Step 2: Rearrange Widgets
+
+- **Drag**: Click and hold any widget card, drag to new position
+- **Drop**: Release to place in new location
+- Other widgets will automatically reflow
+
+### Step 3: Resize Widgets
+
+Click the resize icon on any widget to choose:
+
+| Size | Description |
+|------|-------------|
+| **Small** | 1/4 width (fits 4 per row) |
+| **Medium** | 1/2 width (fits 2 per row) |
+| **Large** | 3/4 width |
+| **Full** | Full width |
+
+### Step 4: Show/Hide Widgets
+
+- Click the **eye icon** to hide a widget
+- Access hidden widgets from the **"+ Add Widget"** panel
+- Click to restore hidden widgets
+
+### Step 5: Save Layout
+
+Click **"💾 Save Layout"** - your preferences persist in browser storage.
+
+### Step 6: Reset to Default
+
+Click **"🔄 Reset Layout"** to restore the default widget arrangement.
+
+---
+
+## 17. Keyboard Shortcuts
+
+The dashboard supports **Vim-like keyboard navigation** for power users.
+
+### Navigation Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `J` | Move down to next item |
+| `K` | Move up to previous item |
+| `G` | Go to first item |
+| `Shift+G` | Go to last item |
+| `Enter` | Select/Open current item |
+| `Escape` | Close modal or cancel |
+
+### Global Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus search input |
+| `?` | Show keyboard shortcuts help |
+| `D` | Go to Dashboard |
+| `R` | Go to Releases |
+| `H` | Go to Health Monitor |
+| `S` | Go to Settings |
+
+### List-Specific Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `E` | Edit selected item |
+| `Delete` | Delete selected item |
+| `N` | Create new item |
+
+### Enabling Keyboard Navigation
+
+Keyboard shortcuts are enabled by default. Click into a list view to activate navigation.
+
+> 💡 **Tip**: Press `?` at any time to see all available shortcuts.
+
+---
+
+## 18. Using Filter Presets
+
+Save and reuse filter combinations across sessions.
+
+### Step 1: Apply Filters
+
+Set up your desired filters (status, priority, date range, etc.).
+
+### Step 2: Save as Preset
+
+1. Click **"💾 Save Preset"** button
+2. Enter a name (e.g., "My Active Releases")
+3. Click **"Save"**
+
+### Step 3: Load a Preset
+
+1. Click the **"Presets"** dropdown
+2. Select your saved preset
+3. Filters apply automatically
+
+### Step 4: Manage Presets
+
+- **Edit**: Click the pencil icon to rename
+- **Delete**: Click the trash icon to remove
+- **Set Default**: Star a preset to load on page open
+
+### URL Synchronization
+
+Filters automatically sync to the URL:
+```
+/releases?status=in_progress&priority=high
+```
+
+This means you can:
+- Share filtered views via URL
+- Bookmark specific filter combinations
+- Use browser back/forward to navigate filter history
+
+---
+
+## 19. Common Tasks
 
 ### Task 1: Preparing for a Demo
 
@@ -885,7 +1122,7 @@ Click **"📤 Export"** to download requests as JSON or CSV.
 
 ---
 
-## 15. Troubleshooting
+## 20. Troubleshooting
 
 ### Problem: Dashboard Won't Load
 

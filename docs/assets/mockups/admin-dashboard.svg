@@ -1,202 +1,224 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
   <defs>
-    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%">
-      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/>
-    </filter>
-    <linearGradient id="greenGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:0.3" />
-      <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0" />
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
     </linearGradient>
-    <linearGradient id="mockGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#fbbf24"/>
-      <stop offset="100%" style="stop-color:#f59e0b"/>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
     </linearGradient>
-    <linearGradient id="liveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:#22c55e"/>
       <stop offset="100%" style="stop-color:#16a34a"/>
     </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
   </defs>
   
   <!-- Background -->
-  <rect width="1200" height="850" fill="#060a12"/>
-  
-  <!-- Grid pattern -->
-  <defs>
-    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(0,255,136,0.03)" stroke-width="1"/>
-    </pattern>
-  </defs>
-  <rect width="1200" height="850" fill="url(#grid)"/>
+  <rect width="1200" height="800" fill="url(#bgGrad)"/>
   
   <!-- Sidebar -->
-  <rect x="0" y="0" width="240" height="850" fill="#0a0f1a"/>
-  <rect x="239" y="0" width="1" height="850" fill="#1f2937"/>
+  <rect x="0" y="0" width="240" height="800" fill="#0f172a"/>
+  <rect x="239" y="0" width="1" height="800" fill="#334155"/>
   
-  <!-- Logo area -->
-  <rect x="20" y="20" width="200" height="60" rx="8" fill="#111827"/>
-  <rect x="30" y="30" width="40" height="40" rx="8" fill="#00ff88"/>
-  <text x="42" y="58" font-family="Arial" font-size="20" fill="#0a0f1a" font-weight="bold">⚡</text>
-  <text x="80" y="48" font-family="Inter, Arial" font-size="18" font-weight="bold" fill="#f1f5f9">Nexus</text>
-  <text x="80" y="65" font-family="Inter, Arial" font-size="11" fill="#6b7280">Admin Dashboard</text>
+  <!-- Logo -->
+  <circle cx="40" cy="40" r="16" fill="url(#accentGrad)"/>
+  <text x="65" y="45" font-family="system-ui" font-size="18" font-weight="bold" fill="#f8fafc">Nexus</text>
+  <text x="125" y="45" font-family="system-ui" font-size="12" fill="#64748b">v3.0</text>
   
-  <!-- Nav items -->
-  <rect x="20" y="100" width="200" height="40" rx="8" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
-  <text x="55" y="126" font-family="Inter, Arial" font-size="13" fill="#00ff88">📊 Dashboard</text>
-  
-  <rect x="20" y="145" width="200" height="40" rx="8" fill="transparent"/>
-  <text x="55" y="171" font-family="Inter, Arial" font-size="13" fill="#6b7280">📅 Releases</text>
-  
-  <rect x="20" y="190" width="200" height="40" rx="8" fill="transparent"/>
-  <text x="55" y="216" font-family="Inter, Arial" font-size="13" fill="#6b7280">📈 Metrics</text>
-  
-  <rect x="20" y="235" width="200" height="40" rx="8" fill="transparent"/>
-  <text x="55" y="261" font-family="Inter, Arial" font-size="13" fill="#6b7280">❤️ Health Monitor</text>
-  
-  <rect x="20" y="280" width="200" height="40" rx="8" fill="transparent"/>
-  <text x="55" y="306" font-family="Inter, Arial" font-size="13" fill="#6b7280">⚙️ Configuration</text>
-  
-  <!-- Divider -->
-  <rect x="30" y="335" width="180" height="1" fill="#1f2937"/>
-  <text x="30" y="360" font-family="Inter, Arial" font-size="10" fill="#4b5563">ADMINISTRATION</text>
-  
-  <rect x="20" y="375" width="200" height="40" rx="8" fill="transparent"/>
-  <text x="55" y="401" font-family="Inter, Arial" font-size="13" fill="#6b7280">👥 User Management</text>
-  
-  <rect x="20" y="420" width="200" height="40" rx="8" fill="transparent"/>
-  <text x="55" y="446" font-family="Inter, Arial" font-size="13" fill="#6b7280">🔐 Role Management</text>
-  
-  <rect x="20" y="465" width="200" height="40" rx="8" fill="transparent"/>
-  <text x="55" y="491" font-family="Inter, Arial" font-size="13" fill="#6b7280">💡 Feature Requests</text>
+  <!-- Navigation Items -->
+  <g>
+    <!-- Dashboard (Active) -->
+    <rect x="12" y="80" width="216" height="44" rx="8" fill="#22c55e" fill-opacity="0.15"/>
+    <rect x="12" y="80" width="4" height="44" rx="2" fill="#22c55e"/>
+    <text x="48" y="108" font-family="system-ui" font-size="14" fill="#22c55e">📊 Dashboard</text>
+    
+    <!-- Releases -->
+    <text x="48" y="152" font-family="system-ui" font-size="14" fill="#94a3b8">📅 Releases</text>
+    
+    <!-- Health -->
+    <text x="48" y="196" font-family="system-ui" font-size="14" fill="#94a3b8">❤️ Health Monitor</text>
+    
+    <!-- Audit Log -->
+    <text x="48" y="240" font-family="system-ui" font-size="14" fill="#94a3b8">📋 Audit Log</text>
+    
+    <!-- Feature Requests -->
+    <text x="48" y="284" font-family="system-ui" font-size="14" fill="#94a3b8">💡 Feature Requests</text>
+    
+    <!-- Settings -->
+    <text x="48" y="328" font-family="system-ui" font-size="14" fill="#94a3b8">⚙️ Settings</text>
+    
+    <!-- Admin Section -->
+    <text x="24" y="400" font-family="system-ui" font-size="11" font-weight="bold" fill="#475569">ADMINISTRATION</text>
+    <text x="48" y="430" font-family="system-ui" font-size="14" fill="#94a3b8">👥 Users</text>
+    <text x="48" y="466" font-family="system-ui" font-size="14" fill="#94a3b8">🛡️ Roles</text>
+  </g>
   
   <!-- User Profile -->
-  <rect x="20" y="780" width="200" height="50" rx="8" fill="#111827"/>
-  <circle cx="50" cy="805" r="16" fill="#374151"/>
-  <text x="50" y="810" font-family="Inter, Arial" font-size="12" fill="#f1f5f9" text-anchor="middle">A</text>
-  <text x="75" y="800" font-family="Inter, Arial" font-size="12" fill="#f1f5f9">Admin User</text>
-  <text x="75" y="818" font-family="Inter, Arial" font-size="10" fill="#6b7280">admin@nexus.dev</text>
+  <g transform="translate(20, 730)">
+    <circle cx="20" cy="20" r="18" fill="#3b82f6"/>
+    <text x="20" y="26" font-family="system-ui" font-size="14" fill="#fff" text-anchor="middle">A</text>
+    <text x="50" y="18" font-family="system-ui" font-size="13" fill="#f8fafc">Admin User</text>
+    <text x="50" y="34" font-family="system-ui" font-size="11" fill="#64748b">admin@nexus.dev</text>
+  </g>
   
-  <!-- Version footer -->
-  <text x="30" y="750" font-family="Inter, Arial" font-size="11" fill="#4b5563">🛡️ Version 2.6.0</text>
-  
-  <!-- Main content area -->
   <!-- Header -->
-  <text x="280" y="50" font-family="Inter, Arial" font-size="24" font-weight="bold" fill="#f1f5f9">📊 Dashboard</text>
-  <text x="280" y="72" font-family="Inter, Arial" font-size="13" fill="#6b7280">Welcome to your release automation command center</text>
+  <rect x="240" y="0" width="960" height="64" fill="#0f172a"/>
+  <rect x="240" y="63" width="960" height="1" fill="#334155"/>
   
-  <!-- MODE TOGGLE CARD - PROMINENT POSITION -->
-  <rect x="280" y="95" width="880" height="100" rx="12" fill="#111827" stroke="rgba(251,191,36,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
-  <rect x="300" y="115" width="50" height="50" rx="10" fill="rgba(251,191,36,0.1)"/>
-  <text x="318" y="148" font-family="Arial" font-size="22">⚡</text>
+  <!-- Breadcrumbs -->
+  <text x="272" y="38" font-family="system-ui" font-size="13" fill="#64748b">Home</text>
+  <text x="305" y="38" font-family="system-ui" font-size="13" fill="#64748b">/</text>
+  <text x="315" y="38" font-family="system-ui" font-size="13" fill="#f8fafc">Dashboard</text>
   
-  <text x="370" y="140" font-family="Inter, Arial" font-size="18" font-weight="bold" fill="#f1f5f9">System Mode</text>
-  <text x="370" y="162" font-family="Inter, Arial" font-size="12" fill="#6b7280">Toggle between Mock (testing) and Live (production) modes</text>
+  <!-- Connection Status -->
+  <g transform="translate(920, 20)">
+    <rect x="0" y="0" width="100" height="28" rx="14" fill="#22c55e" fill-opacity="0.15"/>
+    <circle cx="16" cy="14" r="4" fill="#22c55e"/>
+    <text x="28" y="19" font-family="system-ui" font-size="12" fill="#22c55e">Connected</text>
+    <text x="90" y="19" font-family="system-ui" font-size="10" fill="#64748b">24ms</text>
+  </g>
   
-  <!-- Mode Toggle Buttons -->
-  <rect x="800" y="120" width="160" height="50" rx="8" fill="#0a0f1a"/>
+  <!-- Theme Toggle -->
+  <circle cx="1050" cy="32" r="16" fill="#1e293b" stroke="#334155"/>
+  <text x="1050" y="37" font-family="system-ui" font-size="14" text-anchor="middle">🌙</text>
   
-  <!-- Mock Button (Active) -->
-  <rect x="810" y="128" width="70" height="34" rx="6" fill="url(#mockGrad)"/>
-  <text x="828" y="150" font-family="Inter, Arial" font-size="11" font-weight="bold" fill="#0a0f1a">🧪 Mock</text>
+  <!-- Notifications -->
+  <circle cx="1090" cy="32" r="16" fill="#1e293b" stroke="#334155"/>
+  <text x="1090" y="37" font-family="system-ui" font-size="14" text-anchor="middle">🔔</text>
+  <circle cx="1100" cy="22" r="8" fill="#ef4444"/>
+  <text x="1100" y="26" font-family="system-ui" font-size="10" fill="#fff" text-anchor="middle">3</text>
   
-  <!-- Live Button -->
-  <rect x="885" y="128" width="65" height="34" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-  <text x="900" y="150" font-family="Inter, Arial" font-size="11" fill="#6b7280">📡 Live</text>
+  <!-- User Avatar -->
+  <circle cx="1140" cy="32" r="16" fill="#3b82f6"/>
+  <text x="1140" y="37" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle">A</text>
   
-  <!-- Warning Banner -->
-  <rect x="980" y="115" width="170" height="60" rx="8" fill="rgba(251,191,36,0.1)" stroke="rgba(251,191,36,0.3)" stroke-width="1"/>
-  <text x="1000" y="140" font-family="Inter, Arial" font-size="11" font-weight="bold" fill="#fbbf24">🧪 Mock Mode Active</text>
-  <text x="1000" y="160" font-family="Inter, Arial" font-size="10" fill="#9ca3af">Using simulated data</text>
+  <!-- Main Content Area -->
+  <g transform="translate(264, 88)">
+    <!-- Page Title -->
+    <text x="0" y="28" font-family="system-ui" font-size="24" font-weight="bold" fill="#f8fafc">Dashboard</text>
+    <text x="0" y="52" font-family="system-ui" font-size="14" fill="#64748b">Welcome to your release automation command center</text>
+    
+    <!-- Customize Button -->
+    <rect x="780" y="8" width="120" height="36" rx="8" fill="#3b82f6"/>
+    <text x="840" y="32" font-family="system-ui" font-size="13" fill="#fff" text-anchor="middle">⚙️ Customize</text>
+    
+    <!-- Stats Cards Row -->
+    <g transform="translate(0, 80)">
+      <!-- Releases Card -->
+      <rect x="0" y="0" width="210" height="100" rx="12" fill="url(#cardGrad)" filter="url(#shadow)"/>
+      <rect x="0" y="0" width="210" height="100" rx="12" stroke="#334155" fill="none"/>
+      <text x="20" y="32" font-family="system-ui" font-size="13" fill="#64748b">Total Releases</text>
+      <text x="20" y="68" font-family="system-ui" font-size="32" font-weight="bold" fill="#f8fafc">24</text>
+      <text x="75" y="68" font-family="system-ui" font-size="12" fill="#22c55e">↑ 12%</text>
+      <circle cx="180" cy="50" r="24" fill="#3b82f6" fill-opacity="0.2"/>
+      <text x="180" y="56" font-family="system-ui" font-size="18" text-anchor="middle">📅</text>
+      
+      <!-- Active Agents Card -->
+      <rect x="230" y="0" width="210" height="100" rx="12" fill="url(#cardGrad)" filter="url(#shadow)"/>
+      <rect x="230" y="0" width="210" height="100" rx="12" stroke="#334155" fill="none"/>
+      <text x="250" y="32" font-family="system-ui" font-size="13" fill="#64748b">Active Agents</text>
+      <text x="250" y="68" font-family="system-ui" font-size="32" font-weight="bold" fill="#f8fafc">9/9</text>
+      <text x="310" y="68" font-family="system-ui" font-size="12" fill="#22c55e">All healthy</text>
+      <circle cx="410" cy="50" r="24" fill="#22c55e" fill-opacity="0.2"/>
+      <text x="410" y="56" font-family="system-ui" font-size="18" text-anchor="middle">✓</text>
+      
+      <!-- Feature Requests Card -->
+      <rect x="460" y="0" width="210" height="100" rx="12" fill="url(#cardGrad)" filter="url(#shadow)"/>
+      <rect x="460" y="0" width="210" height="100" rx="12" stroke="#334155" fill="none"/>
+      <text x="480" y="32" font-family="system-ui" font-size="13" fill="#64748b">Feature Requests</text>
+      <text x="480" y="68" font-family="system-ui" font-size="32" font-weight="bold" fill="#f8fafc">18</text>
+      <text x="530" y="68" font-family="system-ui" font-size="12" fill="#f59e0b">5 pending</text>
+      <circle cx="640" cy="50" r="24" fill="#f59e0b" fill-opacity="0.2"/>
+      <text x="640" y="56" font-family="system-ui" font-size="18" text-anchor="middle">💡</text>
+      
+      <!-- System Health Card -->
+      <rect x="690" y="0" width="210" height="100" rx="12" fill="url(#cardGrad)" filter="url(#shadow)"/>
+      <rect x="690" y="0" width="210" height="100" rx="12" stroke="#334155" fill="none"/>
+      <text x="710" y="32" font-family="system-ui" font-size="13" fill="#64748b">System Health</text>
+      <text x="710" y="68" font-family="system-ui" font-size="32" font-weight="bold" fill="#22c55e">98%</text>
+      <text x="775" y="68" font-family="system-ui" font-size="12" fill="#22c55e">Excellent</text>
+      <circle cx="870" cy="50" r="24" fill="#22c55e" fill-opacity="0.2"/>
+      <text x="870" y="56" font-family="system-ui" font-size="18" text-anchor="middle">❤️</text>
+    </g>
+    
+    <!-- Widget Grid -->
+    <g transform="translate(0, 210)">
+      <!-- Recent Activity Widget -->
+      <rect x="0" y="0" width="450" height="280" rx="12" fill="url(#cardGrad)" filter="url(#shadow)"/>
+      <rect x="0" y="0" width="450" height="280" rx="12" stroke="#334155" fill="none"/>
+      <text x="20" y="32" font-family="system-ui" font-size="16" font-weight="600" fill="#f8fafc">Recent Activity</text>
+      <text x="390" y="32" font-family="system-ui" font-size="12" fill="#64748b">View all →</text>
+      
+      <!-- Activity Items -->
+      <g transform="translate(20, 55)">
+        <circle cx="12" cy="12" r="12" fill="#3b82f6"/>
+        <text x="12" y="17" font-family="system-ui" font-size="10" fill="#fff" text-anchor="middle">JD</text>
+        <text x="35" y="10" font-family="system-ui" font-size="13" fill="#f8fafc">John Doe</text>
+        <text x="35" y="26" font-family="system-ui" font-size="12" fill="#64748b">Created release v2.5.0</text>
+        <text x="380" y="18" font-family="system-ui" font-size="11" fill="#64748b">2m ago</text>
+      </g>
+      <g transform="translate(20, 100)">
+        <circle cx="12" cy="12" r="12" fill="#22c55e"/>
+        <text x="12" y="17" font-family="system-ui" font-size="10" fill="#fff" text-anchor="middle">JS</text>
+        <text x="35" y="10" font-family="system-ui" font-size="13" fill="#f8fafc">Jane Smith</text>
+        <text x="35" y="26" font-family="system-ui" font-size="12" fill="#64748b">Approved feature request #42</text>
+        <text x="380" y="18" font-family="system-ui" font-size="11" fill="#64748b">15m ago</text>
+      </g>
+      <g transform="translate(20, 145)">
+        <circle cx="12" cy="12" r="12" fill="#f59e0b"/>
+        <text x="12" y="17" font-family="system-ui" font-size="10" fill="#fff" text-anchor="middle">SY</text>
+        <text x="35" y="10" font-family="system-ui" font-size="13" fill="#f8fafc">System</text>
+        <text x="35" y="26" font-family="system-ui" font-size="12" fill="#64748b">Mode switched to Live</text>
+        <text x="380" y="18" font-family="system-ui" font-size="11" fill="#64748b">1h ago</text>
+      </g>
+      <g transform="translate(20, 190)">
+        <circle cx="12" cy="12" r="12" fill="#8b5cf6"/>
+        <text x="12" y="17" font-family="system-ui" font-size="10" fill="#fff" text-anchor="middle">AU</text>
+        <text x="35" y="10" font-family="system-ui" font-size="13" fill="#f8fafc">Admin User</text>
+        <text x="35" y="26" font-family="system-ui" font-size="12" fill="#64748b">Updated Jira configuration</text>
+        <text x="380" y="18" font-family="system-ui" font-size="11" fill="#64748b">3h ago</text>
+      </g>
+    </g>
+    
+    <!-- Quick Actions Widget -->
+    <g transform="translate(470, 210)">
+      <rect x="0" y="0" width="430" height="130" rx="12" fill="url(#cardGrad)" filter="url(#shadow)"/>
+      <rect x="0" y="0" width="430" height="130" rx="12" stroke="#334155" fill="none"/>
+      <text x="20" y="32" font-family="system-ui" font-size="16" font-weight="600" fill="#f8fafc">Quick Actions</text>
+      
+      <!-- Action Buttons -->
+      <rect x="20" y="55" width="120" height="50" rx="8" fill="#3b82f6"/>
+      <text x="80" y="85" font-family="system-ui" font-size="13" fill="#fff" text-anchor="middle">+ New Release</text>
+      
+      <rect x="155" y="55" width="120" height="50" rx="8" fill="#22c55e"/>
+      <text x="215" y="85" font-family="system-ui" font-size="13" fill="#fff" text-anchor="middle">Run Health Check</text>
+      
+      <rect x="290" y="55" width="120" height="50" rx="8" fill="#8b5cf6"/>
+      <text x="350" y="85" font-family="system-ui" font-size="13" fill="#fff" text-anchor="middle">View Reports</text>
+    </g>
+    
+    <!-- Mode Toggle Widget -->
+    <g transform="translate(470, 360)">
+      <rect x="0" y="0" width="430" height="130" rx="12" fill="url(#cardGrad)" filter="url(#shadow)"/>
+      <rect x="0" y="0" width="430" height="130" rx="12" stroke="#334155" fill="none"/>
+      <text x="20" y="32" font-family="system-ui" font-size="16" font-weight="600" fill="#f8fafc">System Mode</text>
+      
+      <!-- Mode Toggle -->
+      <g transform="translate(20, 55)">
+        <rect x="0" y="0" width="390" height="50" rx="25" fill="#1e293b" stroke="#334155"/>
+        <rect x="195" y="2" width="193" height="46" rx="23" fill="#22c55e"/>
+        <text x="97" y="32" font-family="system-ui" font-size="14" fill="#64748b" text-anchor="middle">Mock</text>
+        <text x="292" y="32" font-family="system-ui" font-size="14" fill="#fff" text-anchor="middle">Live</text>
+      </g>
+    </g>
+  </g>
   
-  <!-- Stats Cards Row -->
-  <rect x="280" y="210" width="210" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="300" y="240" font-family="Inter, Arial" font-size="12" fill="#9ca3af">Total Releases</text>
-  <text x="300" y="280" font-family="Inter, Arial" font-size="32" font-weight="bold" fill="#3b82f6">12</text>
-  <text x="300" y="300" font-family="Inter, Arial" font-size="11" fill="#22c55e">↑ +12%</text>
-  <rect x="440" y="230" width="40" height="40" rx="8" fill="rgba(59,130,246,0.1)"/>
-  <text x="452" y="258" font-family="Arial" font-size="18" fill="#3b82f6">📅</text>
-  
-  <rect x="505" y="210" width="210" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="525" y="240" font-family="Inter, Arial" font-size="12" fill="#9ca3af">Active Agents</text>
-  <text x="525" y="280" font-family="Inter, Arial" font-size="32" font-weight="bold" fill="#22c55e">5</text>
-  <text x="525" y="300" font-family="Inter, Arial" font-size="11" fill="#22c55e">↑ +2</text>
-  <rect x="665" y="230" width="40" height="40" rx="8" fill="rgba(34,197,94,0.1)"/>
-  <text x="677" y="258" font-family="Arial" font-size="18" fill="#22c55e">⚡</text>
-  
-  <rect x="730" y="210" width="210" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="750" y="240" font-family="Inter, Arial" font-size="12" fill="#9ca3af">Feature Requests</text>
-  <text x="750" y="280" font-family="Inter, Arial" font-size="32" font-weight="bold" fill="#8b5cf6">3</text>
-  <text x="750" y="300" font-family="Inter, Arial" font-size="11" fill="#22c55e">↑ +5</text>
-  <rect x="890" y="230" width="40" height="40" rx="8" fill="rgba(139,92,246,0.1)"/>
-  <text x="902" y="258" font-family="Arial" font-size="18" fill="#8b5cf6">💡</text>
-  
-  <rect x="955" y="210" width="205" height="100" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="975" y="240" font-family="Inter, Arial" font-size="12" fill="#9ca3af">System Health</text>
-  <text x="975" y="280" font-family="Inter, Arial" font-size="32" font-weight="bold" fill="#22c55e">98%</text>
-  <text x="975" y="300" font-family="Inter, Arial" font-size="11" fill="#22c55e">↑ +1%</text>
-  <rect x="1110" y="230" width="40" height="40" rx="8" fill="rgba(34,197,94,0.1)"/>
-  <text x="1122" y="258" font-family="Arial" font-size="18" fill="#22c55e">❤️</text>
-  
-  <!-- Recent Activity Panel -->
-  <rect x="280" y="330" width="540" height="320" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="300" y="360" font-family="Inter, Arial" font-size="16" font-weight="bold" fill="#f1f5f9">Recent Activity</text>
-  <rect x="750" y="345" width="60" height="24" rx="6" fill="#0a0f1a"/>
-  <text x="765" y="362" font-family="Inter, Arial" font-size="11" fill="#6b7280">6 items</text>
-  
-  <!-- Activity Items -->
-  <rect x="300" y="385" width="500" height="1" fill="#1f2937"/>
-  
-  <circle cx="320" cy="415" r="12" fill="rgba(34,197,94,0.2)"/>
-  <text x="315" y="420" font-family="Arial" font-size="12" fill="#22c55e">✓</text>
-  <text x="345" y="413" font-family="Inter, Arial" font-size="13" fill="#f1f5f9">Release v2.0.0 completed</text>
-  <text x="345" y="430" font-family="Inter, Arial" font-size="11" fill="#6b7280">Successfully deployed to production</text>
-  <text x="750" y="420" font-family="Inter, Arial" font-size="10" fill="#4b5563">2m ago</text>
-  
-  <circle cx="320" cy="475" r="12" fill="rgba(59,130,246,0.2)"/>
-  <text x="314" y="480" font-family="Arial" font-size="12" fill="#3b82f6">◎</text>
-  <text x="345" y="473" font-family="Inter, Arial" font-size="13" fill="#f1f5f9">New feature requested</text>
-  <text x="345" y="490" font-family="Inter, Arial" font-size="11" fill="#6b7280">User dashboard improvements</text>
-  <text x="750" y="480" font-family="Inter, Arial" font-size="10" fill="#4b5563">1h ago</text>
-  
-  <circle cx="320" cy="535" r="12" fill="rgba(245,158,11,0.2)"/>
-  <text x="314" y="540" font-family="Arial" font-size="12" fill="#f59e0b">◷</text>
-  <text x="345" y="533" font-family="Inter, Arial" font-size="13" fill="#f1f5f9">Release v2.1.0 in progress</text>
-  <text x="345" y="550" font-family="Inter, Arial" font-size="11" fill="#6b7280">Development phase - 75% complete</text>
-  <text x="750" y="540" font-family="Inter, Arial" font-size="10" fill="#4b5563">3h ago</text>
-  
-  <circle cx="320" cy="595" r="12" fill="rgba(34,197,94,0.2)"/>
-  <text x="315" y="600" font-family="Arial" font-size="12" fill="#22c55e">✓</text>
-  <text x="345" y="593" font-family="Inter, Arial" font-size="13" fill="#f1f5f9">User 'john.doe' created</text>
-  <text x="345" y="610" font-family="Inter, Arial" font-size="11" fill="#6b7280">Assigned role: Developer</text>
-  <text x="750" y="600" font-family="Inter, Arial" font-size="10" fill="#4b5563">1d ago</text>
-  
-  <!-- Quick Actions Panel -->
-  <rect x="840" y="330" width="320" height="320" rx="10" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
-  <text x="860" y="360" font-family="Inter, Arial" font-size="16" font-weight="bold" fill="#f1f5f9">Quick Actions</text>
-  
-  <!-- Action Buttons -->
-  <rect x="860" y="385" width="280" height="45" rx="8" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-  <text x="880" y="414" font-family="Inter, Arial" font-size="13" fill="#f1f5f9">📅 Create New Release</text>
-  
-  <rect x="860" y="440" width="280" height="45" rx="8" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-  <text x="880" y="469" font-family="Inter, Arial" font-size="13" fill="#f1f5f9">💡 Submit Feature Request</text>
-  
-  <rect x="860" y="495" width="280" height="45" rx="8" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-  <text x="880" y="524" font-family="Inter, Arial" font-size="13" fill="#f1f5f9">📈 View Metrics</text>
-  
-  <rect x="860" y="550" width="280" height="45" rx="8" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-  <text x="880" y="579" font-family="Inter, Arial" font-size="13" fill="#f1f5f9">⚙️ Configure System</text>
-  
-  <!-- System Status -->
-  <rect x="860" y="610" width="280" height="55" rx="8" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
-  <circle cx="885" cy="638" r="16" fill="rgba(34,197,94,0.2)"/>
-  <text x="879" y="643" font-family="Arial" font-size="14" fill="#22c55e">❤️</text>
-  <text x="915" y="632" font-family="Inter, Arial" font-size="12" font-weight="bold" fill="#f1f5f9">All Systems Operational</text>
-  <text x="915" y="650" font-family="Inter, Arial" font-size="10" fill="#6b7280">Last checked: just now</text>
-
   <!-- Footer Status Bar -->
-  <rect x="280" y="670" width="880" height="40" rx="8" fill="#0a0f1a"/>
-  <text x="300" y="695" font-family="Inter, Arial" font-size="11" fill="#22c55e">● Connected to Backend API</text>
-  <text x="520" y="695" font-family="Inter, Arial" font-size="11" fill="#6b7280">• Environment: Development</text>
-  <text x="740" y="695" font-family="Inter, Arial" font-size="11" fill="#6b7280">• Redis: Connected</text>
-  <text x="920" y="695" font-family="Inter, Arial" font-size="11" fill="#6b7280">• RBAC: Enabled</text>
+  <rect x="240" y="770" width="960" height="30" fill="#0f172a"/>
+  <text x="272" y="790" font-family="system-ui" font-size="11" fill="#64748b">Last synced: Just now</text>
+  <text x="1100" y="790" font-family="system-ui" font-size="11" fill="#64748b" text-anchor="end">Nexus Admin Dashboard v3.0.0</text>
 </svg>

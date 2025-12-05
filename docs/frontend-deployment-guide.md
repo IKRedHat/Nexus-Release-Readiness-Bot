@@ -1,11 +1,13 @@
 # 🚀 Nexus Admin Dashboard - Frontend Deployment Guide
 
 <div align="center">
-  <img src="assets/nexus-logo.png" alt="Nexus Logo" width="120" />
-  <br />
-  <strong>Complete Guide to Deploying the Nexus Admin Dashboard</strong>
-  <br />
-  <em>Version 2.3.0 | Last Updated: December 2025</em>
+
+**Complete Guide to Deploying the Nexus Admin Dashboard**
+
+*Built with Next.js 14 | Optimized for Vercel*
+
+**Version 3.0.0** | **Last Updated:** December 2024
+
 </div>
 
 ---
@@ -16,9 +18,9 @@
 2. [Prerequisites](#prerequisites)
 3. [Architecture](#architecture)
 4. [Deployment Options](#deployment-options)
-5. [Manual Deployment to Vercel](#manual-deployment-to-vercel)
-6. [Automated Deployment](#automated-deployment)
-7. [Environment Configuration](#environment-configuration)
+5. [Vercel Deployment](#vercel-deployment)
+6. [Environment Configuration](#environment-configuration)
+7. [GitHub Integration](#github-integration)
 8. [Post-Deployment Verification](#post-deployment-verification)
 9. [Troubleshooting](#troubleshooting)
 10. [Security Best Practices](#security-best-practices)
@@ -27,24 +29,39 @@
 
 ## 🎯 Overview
 
-The **Nexus Admin Dashboard** is a React-based single-page application (SPA) that serves as the central management interface for the Nexus Release Readiness platform. It provides:
+The **Nexus Admin Dashboard** is an enterprise-grade Next.js 14 application providing:
 
-- **Real-time Health Monitoring** - Track all agent statuses at a glance
-- **Configuration Management** - Switch between mock and live modes
-- **Observability Dashboard** - Integrated metrics, charts, and external tool links
-- **Release Management** - Track releases, milestones, and readiness metrics
+- **Real-time Health Monitoring** - WebSocket-powered live updates
+- **Release Management** - Timeline/Gantt views, CRUD operations
+- **User & Role Management** - Full RBAC with 30+ permissions
+- **Feature Requests** - Voting, comments, Jira integration
+- **Dynamic Configuration** - Mode switching, credential management
 
 <div align="center">
-  <img src="assets/mockups/admin-dashboard.svg" alt="Admin Dashboard Overview" width="800" />
-  <br />
-  <em>Figure 1: Nexus Admin Dashboard - Main Interface</em>
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  Next.js 14 Frontend                         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │ App Router  │  │ Server/     │  │    Tailwind CSS     │  │
+│  │   Pages     │  │ Client Comp │  │    + Shadcn/ui      │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│                     Vercel Edge Network                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │
+│  │ Global CDN   │  │  SSL/HTTPS   │  │ Edge Functions │    │
+│  └──────────────┘  └──────────────┘  └────────────────┘    │
+├─────────────────────────────────────────────────────────────┤
+│                   Backend API (FastAPI)                      │
+│              https://your-api.onrender.com                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
 </div>
 
 ---
 
 ## 🔧 Prerequisites
-
-Before deploying, ensure you have:
 
 ### Required Tools
 
@@ -53,30 +70,24 @@ Before deploying, ensure you have:
 | Node.js | 18.x or 20.x | JavaScript runtime |
 | npm | 9.x+ | Package manager |
 | Git | 2.x+ | Version control |
-| Vercel CLI | 32.x+ | Deployment tool |
+| Vercel CLI | Latest | Deployment tool (optional) |
 
 ### Required Accounts
 
-- **GitHub Account** - For repository access
-- **Vercel Account** - For hosting (free tier available)
-- **Backend API** - Running Nexus backend services
+- **GitHub Account** - Repository access
+- **Vercel Account** - Hosting (free tier available)
+- **Backend API** - Running Nexus backend on Render or similar
 
 ### Verify Prerequisites
 
 ```bash
-# Check Node.js version
-node --version  # Should be v18.x or v20.x
+# Check versions
+node --version   # v18.x or v20.x
+npm --version    # 9.x+
+git --version    # 2.x+
 
-# Check npm version
-npm --version   # Should be 9.x+
-
-# Check Git version
-git --version   # Should be 2.x+
-
-# Install Vercel CLI globally
+# Install Vercel CLI (optional)
 npm install -g vercel
-
-# Verify Vercel CLI
 vercel --version
 ```
 
@@ -86,66 +97,44 @@ vercel --version
 
 ### Frontend Stack
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Nexus Admin Dashboard                     │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   React 18  │  │ TypeScript  │  │    Tailwind CSS     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │    Vite     │  │  Recharts   │  │   React Router      │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│                     Build Output (dist/)                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-│  │index.html│  │ CSS/JS   │  │  Assets  │  │ Manifest │    │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                        Vercel Edge                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │
-│  │ CDN (Global) │  │  SSL/HTTPS   │  │ API Rewrites   │    │
-│  └──────────────┘  └──────────────┘  └────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Nexus Backend API                          │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  Admin Dashboard API (Port 8088) → All Agent Services  │ │
-│  └────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+| Technology | Purpose |
+|------------|---------|
+| **Next.js 14** | React framework with App Router |
+| **TypeScript** | Type-safe development |
+| **Tailwind CSS** | Utility-first styling |
+| **Shadcn/ui** | Accessible component library |
+| **SWR** | Data fetching with caching |
+| **Recharts** | Data visualization |
+| **@dnd-kit** | Drag-and-drop functionality |
 
-### Key Pages
+### Project Structure
 
-<div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <img src="assets/mockups/admin-dashboard-config.svg" alt="Configuration" width="350" />
-        <br /><strong>Configuration Page</strong>
-      </td>
-      <td align="center">
-        <img src="assets/mockups/admin-observability.svg" alt="Observability" width="350" />
-        <br /><strong>Observability Dashboard</strong>
-      </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <img src="assets/mockups/admin-releases.svg" alt="Releases" width="350" />
-        <br /><strong>Release Management</strong>
-      </td>
-      <td align="center">
-        <img src="assets/mockups/grafana-dashboard.svg" alt="Grafana" width="350" />
-        <br /><strong>Grafana Integration</strong>
-      </td>
-    </tr>
-  </table>
-</div>
+```
+services/admin_dashboard/frontend-next/
+├── src/
+│   ├── app/                 # Next.js App Router pages
+│   │   ├── page.tsx         # Dashboard (home)
+│   │   ├── releases/        # Release management
+│   │   ├── health/          # Health monitoring
+│   │   ├── settings/        # Configuration
+│   │   ├── admin/           # User/Role management
+│   │   ├── audit-log/       # Audit trail
+│   │   └── feature-requests/ # Feature requests
+│   ├── components/          # React components
+│   │   ├── ui/              # Shadcn/ui components
+│   │   ├── layout/          # Layout components
+│   │   ├── charts/          # Chart components
+│   │   └── ...
+│   ├── hooks/               # Custom React hooks
+│   ├── lib/                 # Utilities, API client
+│   ├── providers/           # Context providers
+│   └── types/               # TypeScript definitions
+├── public/                  # Static assets
+├── next.config.js           # Next.js configuration
+├── tailwind.config.js       # Tailwind configuration
+├── vercel.json              # Vercel configuration
+└── package.json             # Dependencies
+```
 
 ---
 
@@ -153,204 +142,137 @@ vercel --version
 
 | Method | Best For | Complexity | Time |
 |--------|----------|------------|------|
-| **Vercel CLI** | Quick deployments | ⭐ Easy | 5 min |
-| **Vercel Dashboard** | Visual management | ⭐ Easy | 10 min |
-| **GitHub Integration** | CI/CD pipelines | ⭐⭐ Medium | 15 min |
-| **Python Script** | Automated workflows | ⭐⭐ Medium | 5 min |
+| **Vercel Dashboard** | Visual management | ⭐ Easy | 5 min |
+| **Vercel CLI** | Command-line workflow | ⭐ Easy | 5 min |
+| **GitHub Integration** | CI/CD pipelines | ⭐⭐ Medium | 10 min |
+| **Docker** | Self-hosted | ⭐⭐ Medium | 15 min |
 
 ---
 
-## 📦 Manual Deployment to Vercel
+## ☁️ Vercel Deployment
 
-### Step 1: Clone and Navigate
+### Option 1: Vercel Dashboard (Recommended)
 
-```bash
-# Clone the repository (if not already done)
-git clone https://github.com/IKRedHat/Nexus-Release-Readiness-Bot.git
+1. **Push to GitHub**
+   ```bash
+   git add -A
+   git commit -m "deploy: Admin Dashboard v3.0.0"
+   git push origin main
+   ```
 
-# Navigate to the frontend directory
-cd Nexus-Release-Readiness-Bot/services/admin_dashboard/frontend
-```
+2. **Import to Vercel**
+   - Go to [vercel.com/new](https://vercel.com/new)
+   - Click "Import Git Repository"
+   - Select your repository
+   - Configure project:
+     - **Root Directory:** `services/admin_dashboard/frontend-next`
+     - **Framework Preset:** Next.js (auto-detected)
+     - **Build Command:** `npm run build`
+     - **Output Directory:** `.next`
 
-### Step 2: Install Dependencies
+3. **Set Environment Variables**
+   - Go to Project Settings → Environment Variables
+   - Add: `NEXT_PUBLIC_API_URL` = `https://your-api.onrender.com`
 
-```bash
-# Install all dependencies
-npm install --legacy-peer-deps
+4. **Deploy**
+   - Click "Deploy"
+   - Wait for build to complete (~2-3 minutes)
 
-# Verify installation
-npm list --depth=0
-```
-
-**Expected Output:**
-
-```
-nexus-admin-dashboard@2.3.0
-├── axios@1.6.0
-├── clsx@2.0.0
-├── date-fns@2.30.0
-├── lucide-react@0.294.0
-├── react@18.2.0
-├── react-dom@18.2.0
-├── react-router-dom@6.20.0
-└── recharts@2.10.0
-```
-
-### Step 3: Configure Environment
-
-Create a `.env.local` file for local development:
+### Option 2: Vercel CLI
 
 ```bash
-# Create environment file
-cat > .env.local << 'EOF'
-# Backend API URL
-VITE_API_URL=http://localhost:8088
+# Navigate to frontend
+cd services/admin_dashboard/frontend-next
 
-# Application Settings
-VITE_APP_NAME=Nexus Admin Dashboard
-VITE_APP_VERSION=2.3.0
-
-# Observability URLs
-VITE_GRAFANA_URL=http://localhost:3000
-VITE_PROMETHEUS_URL=http://localhost:9090
-VITE_JAEGER_URL=http://localhost:16686
-EOF
-```
-
-### Step 4: Build for Production
-
-```bash
-# Run production build
-npm run build:prod
-
-# Verify build output
-ls -la dist/
-```
-
-**Expected Build Structure:**
-
-```
-dist/
-├── assets/
-│   ├── css/
-│   │   └── index-[hash].css
-│   ├── images/
-│   │   └── [images]
-│   └── js/
-│       ├── index-[hash].js
-│       ├── react-vendor-[hash].js
-│       ├── chart-vendor-[hash].js
-│       └── utils-vendor-[hash].js
-├── index.html
-└── vite.svg
-```
-
-### Step 5: Login to Vercel
-
-```bash
-# Login to Vercel (opens browser for authentication)
+# Login to Vercel
 vercel login
 
-# Verify login
-vercel whoami
-```
-
-### Step 6: Deploy to Vercel
-
-#### Option A: Interactive Deployment
-
-```bash
-# Start deployment wizard
+# Deploy preview
 vercel
 
-# Answer prompts:
-# ? Set up and deploy? [Y/n] Y
-# ? Which scope? Your username or team
-# ? Link to existing project? [y/N] N
-# ? What's your project name? nexus-admin-dashboard
-# ? In which directory is your code located? ./
-# ? Want to modify settings? [y/N] N
+# Deploy to production
+vercel --prod
+
+# Set environment variable
+vercel env add NEXT_PUBLIC_API_URL production
+# Enter: https://your-api.onrender.com
 ```
 
-#### Option B: Direct Production Deployment
+### Option 3: One-Click Deploy
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/IKRedHat/Nexus-Release-Readiness-Bot&root-directory=services/admin_dashboard/frontend-next)
+
+---
+
+## ⚙️ Environment Configuration
+
+### Required Variables
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | ✅ Yes | Backend API URL | `https://api.nexus.io` |
+| `NEXT_PUBLIC_APP_VERSION` | No | Version display | `3.0.0` |
+
+### Setting Variables in Vercel
+
+**Via Dashboard:**
+1. Go to Project → Settings → Environment Variables
+2. Add variable name and value
+3. Select environments: Production, Preview, Development
+4. Click Save
+
+**Via CLI:**
 ```bash
-# Deploy directly to production
-vercel deploy --prod
+# Add variable
+vercel env add NEXT_PUBLIC_API_URL production
 
-# Or use npm script
-npm run vercel:deploy:prod
+# List variables
+vercel env ls
+
+# Remove variable
+vercel env rm NEXT_PUBLIC_API_URL production
 ```
 
-### Step 7: Configure Environment Variables
+### Local Development
 
-After initial deployment, set environment variables:
+Create `.env.local`:
 
-```bash
-# Set production API URL
-vercel env add VITE_API_URL production
-# Enter: https://your-backend-api.example.com
+```env
+# Backend API
+NEXT_PUBLIC_API_URL=http://localhost:8088
 
-# Set app name
-vercel env add VITE_APP_NAME production
-# Enter: Nexus Admin Dashboard
-
-# Set version
-vercel env add VITE_APP_VERSION production
-# Enter: 2.3.0
-
-# Redeploy with new environment variables
-vercel deploy --prod
-```
-
-### Step 8: Configure Custom Domain (Optional)
-
-```bash
-# Add custom domain
-vercel domains add nexus-dashboard.yourdomain.com
-
-# Verify DNS configuration
-vercel domains inspect nexus-dashboard.yourdomain.com
+# App Settings
+NEXT_PUBLIC_APP_VERSION=3.0.0
 ```
 
 ---
 
-## ⚙️ Automated Deployment
+## 🔗 GitHub Integration
 
-### Using the Python Deployment Script
+### Automatic Deployments
 
-We provide a comprehensive Python script for automated deployments:
+Vercel automatically deploys:
+- **Production:** On push to `main` branch
+- **Preview:** On pull requests
 
-```bash
-# Navigate to scripts directory
-cd /path/to/Nexus-Release-Readiness-Bot
+### Configure Auto-Deploy
 
-# Run deployment script
-python scripts/deploy_frontend.py --help
+1. Go to Vercel Dashboard → Project → Settings → Git
+2. Enable "Auto-deploy" for:
+   - Production Branch: `main`
+   - Preview Branches: All
 
-# Deploy to preview
-python scripts/deploy_frontend.py --env preview
-
-# Deploy to production
-python scripts/deploy_frontend.py --env production
-
-# Deploy with custom API URL
-python scripts/deploy_frontend.py --env production --api-url https://api.example.com
-```
-
-### GitHub Actions CI/CD
-
-Add automatic deployments on push:
+### GitHub Actions (Optional)
 
 ```yaml
 # .github/workflows/deploy-frontend.yml
-name: Deploy Frontend to Vercel
+name: Deploy Frontend
 
 on:
   push:
     branches: [main]
     paths:
-      - 'services/admin_dashboard/frontend/**'
+      - 'services/admin_dashboard/frontend-next/**'
 
 jobs:
   deploy:
@@ -363,17 +285,17 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: services/admin_dashboard/frontend/package-lock.json
+          cache-dependency-path: services/admin_dashboard/frontend-next/package-lock.json
       
       - name: Install Dependencies
-        working-directory: services/admin_dashboard/frontend
-        run: npm ci --legacy-peer-deps
+        working-directory: services/admin_dashboard/frontend-next
+        run: npm ci
       
       - name: Build
-        working-directory: services/admin_dashboard/frontend
-        run: npm run build:prod
+        working-directory: services/admin_dashboard/frontend-next
+        run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
       
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
@@ -381,219 +303,122 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: services/admin_dashboard/frontend
+          working-directory: services/admin_dashboard/frontend-next
           vercel-args: '--prod'
 ```
 
 ---
 
-## 🔐 Environment Configuration
-
-### Environment Variables Reference
-
-| Variable | Required | Description | Example |
-|----------|----------|-------------|---------|
-| `VITE_API_URL` | ✅ Yes | Backend API endpoint | `https://api.nexus.io` |
-| `VITE_APP_NAME` | No | Application display name | `Nexus Dashboard` |
-| `VITE_APP_VERSION` | No | Current version | `2.3.0` |
-| `VITE_GRAFANA_URL` | No | Grafana dashboard URL | `https://grafana.nexus.io` |
-| `VITE_PROMETHEUS_URL` | No | Prometheus URL | `https://prometheus.nexus.io` |
-| `VITE_JAEGER_URL` | No | Jaeger tracing URL | `https://jaeger.nexus.io` |
-| `VITE_ENABLE_MOCK_MODE` | No | Enable mock data | `false` |
-| `VITE_ENABLE_DEBUG` | No | Enable debug mode | `false` |
-
-### Setting Variables in Vercel
-
-**Via CLI:**
-
-```bash
-# Add single variable
-vercel env add VITE_API_URL production
-
-# Add from file
-cat .env.production | while read line; do
-  [[ $line =~ ^#.*$ ]] && continue
-  [[ -z $line ]] && continue
-  key=$(echo $line | cut -d= -f1)
-  value=$(echo $line | cut -d= -f2-)
-  vercel env add $key production <<< "$value"
-done
-```
-
-**Via Dashboard:**
-
-1. Go to [vercel.com/dashboard](https://vercel.com/dashboard)
-2. Select your project
-3. Navigate to **Settings** → **Environment Variables**
-4. Add each variable with appropriate scope
-
-<div align="center">
-  <img src="assets/mockups/admin-dashboard-config.svg" alt="Environment Config" width="600" />
-  <br />
-  <em>Figure 2: Configuration Management Interface</em>
-</div>
-
----
-
 ## ✅ Post-Deployment Verification
 
-### 1. Verify Deployment Status
+### 1. Check Deployment Status
 
 ```bash
-# List recent deployments
+# List deployments
 vercel ls
 
-# Get deployment details
+# Get deployment info
 vercel inspect <deployment-url>
 ```
 
-### 2. Health Check Endpoints
-
-Test your deployed dashboard:
-
-```bash
-# Check if frontend loads
-curl -I https://your-deployment-url.vercel.app
-
-# Expected: HTTP/2 200
-
-# Check API connectivity (via proxy)
-curl https://your-deployment-url.vercel.app/api/health
-```
-
-### 3. Functional Verification Checklist
+### 2. Verification Checklist
 
 | Check | Expected Result | Status |
 |-------|-----------------|--------|
 | Homepage loads | Dashboard displays | ☐ |
-| Health page shows agents | All 10 agents listed | ☐ |
-| Configuration loads | Settings form visible | ☐ |
-| Observability charts | Metrics displayed | ☐ |
-| Releases page | Calendar visible | ☐ |
-| API calls succeed | No CORS errors | ☐ |
+| Login works | Can authenticate | ☐ |
+| API connected | Data fetches | ☐ |
+| WebSocket works | Real-time updates | ☐ |
+| Theme toggle | Light/Dark works | ☐ |
+| Mobile responsive | Displays correctly | ☐ |
 
-### 4. Performance Verification
+### 3. Test API Connectivity
 
 ```bash
-# Run Lighthouse audit
-npx lighthouse https://your-deployment-url.vercel.app \
-  --output=json \
-  --output-path=./lighthouse-report.json
+# Frontend loads
+curl -I https://your-app.vercel.app
 
-# View scores
-cat lighthouse-report.json | jq '.categories | to_entries[] | "\(.key): \(.value.score * 100)%"'
+# API health (via proxy or direct)
+curl https://your-app.vercel.app/api/health
+```
+
+### 4. Performance Check
+
+Run Lighthouse audit:
+```bash
+npx lighthouse https://your-app.vercel.app \
+  --output=json \
+  --output-path=./lighthouse.json
 ```
 
 **Target Scores:**
-
-| Metric | Target | Minimum |
-|--------|--------|---------|
-| Performance | 90+ | 80 |
-| Accessibility | 95+ | 90 |
-| Best Practices | 95+ | 90 |
-| SEO | 90+ | 80 |
+| Metric | Target |
+|--------|--------|
+| Performance | 90+ |
+| Accessibility | 95+ |
+| Best Practices | 95+ |
+| SEO | 90+ |
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Common Issues and Solutions
+### Build Fails
 
-#### Issue: Build Fails with TypeScript Errors
+**TypeScript Errors:**
+```bash
+# Run type check locally first
+npm run type-check
+
+# Fix issues, then redeploy
+```
+
+**Missing Dependencies:**
+```bash
+# Clear cache and reinstall
+rm -rf node_modules .next
+npm install
+npm run build
+```
+
+### API Connection Issues
+
+**CORS Errors:**
+- Verify `NEXT_PUBLIC_API_URL` is correct
+- Check backend CORS configuration allows your Vercel domain
+
+**Environment Variables Not Loading:**
+- Variables must start with `NEXT_PUBLIC_` to be exposed to browser
+- Redeploy after adding/changing variables
+
+### Deployment Stuck
 
 ```bash
-# Error: TS2307: Cannot find module '@/components/...'
-```
+# Force new deployment
+vercel --force
 
-**Solution:** Ensure path aliases are configured in `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@components/*": ["./src/components/*"]
-    }
-  }
-}
-```
-
-#### Issue: API Calls Return CORS Errors
-
-```bash
-# Error: Access to fetch blocked by CORS policy
-```
-
-**Solution:** Verify `vercel.json` rewrites are correct and backend allows the Vercel domain:
-
-```json
-{
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://your-backend.com/:path*"
-    }
-  ]
-}
-```
-
-#### Issue: Environment Variables Not Available
-
-**Solution:** Ensure variables are prefixed with `VITE_` and redeploy:
-
-```bash
-# Variables must start with VITE_
-VITE_API_URL=https://api.example.com  # ✅ Correct
-API_URL=https://api.example.com       # ❌ Won't be exposed
-```
-
-#### Issue: Deployment Stuck or Failed
-
-```bash
 # Check deployment logs
 vercel logs <deployment-url>
-
-# Force new deployment
-vercel deploy --force
 ```
 
-#### Issue: CSS/Styles Not Loading
+### WebSocket Not Connecting
 
-**Solution:** Check build output and verify asset paths:
-
-```bash
-# Rebuild with verbose output
-npm run build -- --debug
-
-# Check if CSS file exists in dist
-ls -la dist/assets/css/
-```
-
-### Debug Mode
-
-Enable debug mode for detailed logging:
-
-```bash
-# Set debug environment variable
-vercel env add VITE_ENABLE_DEBUG production <<< "true"
-
-# Redeploy
-vercel deploy --prod
-```
+- Ensure backend WebSocket endpoints are available
+- Check browser console for connection errors
+- Verify no proxy blocking WebSocket upgrade
 
 ---
 
 ## 🔒 Security Best Practices
 
-### 1. Environment Variables
+### 1. Environment Security
 
-- ✅ Never commit `.env` files to Git
+- ✅ Never commit `.env` files
 - ✅ Use Vercel's encrypted environment variables
-- ✅ Rotate API keys regularly
-- ✅ Use different keys for preview/production
+- ✅ Rotate secrets regularly
+- ✅ Use different values for preview/production
 
-### 2. Content Security Policy
+### 2. Headers Configuration
 
 The `vercel.json` includes security headers:
 
@@ -605,24 +430,18 @@ The `vercel.json` includes security headers:
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
   ]
 }
 ```
 
-### 3. API Security
-
-- ✅ Backend should validate all requests
-- ✅ Use HTTPS for all API communications
-- ✅ Implement rate limiting on backend
-- ✅ Validate CORS origins on backend
-
-### 4. Dependency Security
+### 3. Dependency Security
 
 ```bash
-# Audit dependencies regularly
+# Audit dependencies
 npm audit
 
 # Fix vulnerabilities
@@ -636,39 +455,44 @@ npm outdated
 
 ## 📚 Additional Resources
 
-### Documentation Links
+### Nexus Documentation
 
-- [Vercel Documentation](https://vercel.com/docs)
-- [Vite Configuration](https://vitejs.dev/config/)
-- [React Router](https://reactrouter.com/)
-- [Tailwind CSS](https://tailwindcss.com/docs)
-
-### Related Nexus Documentation
-
-- [Architecture Overview](architecture.md)
 - [Admin Dashboard Guide](admin-dashboard.md)
 - [Admin Dashboard Tutorial](admin-dashboard-tutorial.md)
-- [API Testing Guide](api-testing-guide.md)
+- [Architecture Overview](architecture.md)
+- [Backend Deployment](runbooks/deployment.md)
 
-### Support
+### External Documentation
 
-For issues or questions:
-
-1. Check the [Troubleshooting](#troubleshooting) section
-2. Review [GitHub Issues](https://github.com/IKRedHat/Nexus-Release-Readiness-Bot/issues)
-3. Join our Slack community
-
----
-
-<div align="center">
-  <strong>🎉 Congratulations!</strong>
-  <br />
-  Your Nexus Admin Dashboard is now deployed and ready to use.
-  <br /><br />
-  <img src="assets/mockups/admin-dashboard.svg" alt="Success" width="600" />
-</div>
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Vercel Documentation](https://vercel.com/docs)
+- [Tailwind CSS](https://tailwindcss.com/docs)
 
 ---
 
-*Last updated: December 2025 | Nexus v2.3.0*
+## 🎉 Quick Deploy Summary
 
+```bash
+# 1. Navigate to frontend
+cd services/admin_dashboard/frontend-next
+
+# 2. Install dependencies
+npm install
+
+# 3. Build (verify locally)
+npm run build
+
+# 4. Deploy to Vercel
+vercel --prod
+
+# 5. Set API URL in Vercel Dashboard
+# NEXT_PUBLIC_API_URL = https://your-api.onrender.com
+
+# 6. Done! 🚀
+```
+
+**Your dashboard will be live at:** `https://your-project.vercel.app`
+
+---
+
+*Documentation Version 3.0.0 | Last Updated: December 2024*
