@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useCallback } from 'react';
 import { 
   LayoutDashboard, Calendar, BarChart3, Activity, Settings,
   Users, Shield, Lightbulb
@@ -15,6 +15,12 @@ import { SidebarLogo } from './layout/SidebarLogo';
 import { SidebarNav, NavItem } from './layout/SidebarNav';
 import { SidebarUserProfile } from './layout/SidebarUserProfile';
 import { AppHeader } from './layout/AppHeader';
+
+// Import new UI components
+import { ThemeToggle } from './ui/theme-toggle';
+import { NotificationsCenter } from './ui/notifications-center';
+import { Breadcrumbs } from './ui/breadcrumbs';
+import { MainContent } from './ui/skip-link';
 
 interface LayoutProps {
   children: ReactNode;
@@ -45,12 +51,15 @@ const adminNavItems: NavItem[] = [
  * 
  * Main application layout that provides:
  * - Collapsible sidebar with navigation
- * - Header with user info and system status
- * - Main content area
+ * - Header with user info, system status, theme toggle, and notifications
+ * - Breadcrumbs navigation
+ * - Main content area with skip-link target
  * 
- * Now uses modular sub-components:
- * - Sidebar, SidebarLogo, SidebarNav, SidebarUserProfile
- * - AppHeader
+ * Features:
+ * - Theme switching (dark/light mode)
+ * - Notifications center
+ * - Breadcrumb navigation
+ * - Keyboard shortcut for sidebar toggle (Cmd+B)
  * 
  * @example
  * <Layout>
@@ -61,12 +70,17 @@ export default function Layout({ children }: LayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, logout, hasPermission } = useAuth();
 
+  // Toggle sidebar - exposed for keyboard shortcut
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => !prev);
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggle={handleToggleSidebar}
       >
         {/* Logo */}
         <SidebarLogo collapsed={sidebarCollapsed} />
@@ -100,23 +114,55 @@ export default function Layout({ children }: LayoutProps) {
       </Sidebar>
 
       {/* Main Content */}
-      <main
+      <div
         className={cn(
-          'flex-1 transition-all duration-300',
+          'flex-1 flex flex-col transition-all duration-300',
           sidebarCollapsed ? 'ml-20' : 'ml-64'
         )}
       >
         {/* Header */}
-        <AppHeader
-          user={user}
-          systemStatus="healthy"
-        />
+        <header
+          role="banner"
+          className="h-16 border-b border-border bg-card flex items-center justify-between px-8 sticky top-0 z-40"
+        >
+          {/* Left Side: Breadcrumbs */}
+          <div className="flex items-center gap-4">
+            <Breadcrumbs showHome />
+          </div>
 
-        {/* Page Content */}
-        <div className="p-8">
+          {/* Right Side: Status, Theme, Notifications */}
+          <div className="flex items-center gap-3">
+            {/* System Status */}
+            <div className="flex items-center gap-2 text-sm mr-2">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-muted-foreground hidden sm:inline">System Healthy</span>
+            </div>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
+            {/* Notifications */}
+            <NotificationsCenter />
+
+            {/* User Info (condensed) */}
+            {user && (
+              <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-sm font-medium text-primary">
+                    {user.name?.charAt(0) || 'U'}
+                  </span>
+                </div>
+                <span className="text-sm text-muted-foreground">{user.name}</span>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Page Content - with skip-link target */}
+        <MainContent className="flex-1 p-8">
           {children}
-        </div>
-      </main>
+        </MainContent>
+      </div>
     </div>
   );
 }

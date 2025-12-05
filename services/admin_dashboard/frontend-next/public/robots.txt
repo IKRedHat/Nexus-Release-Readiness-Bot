@@ -1,0 +1,9 @@
+# Nexus Admin Dashboard - robots.txt
+# This is a private admin dashboard, so we disallow all indexing
+
+User-agent: *
+Disallow: /
+
+# Allow specific public pages if needed
+# Allow: /login
+
