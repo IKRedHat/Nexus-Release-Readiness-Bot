@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850">
+  <defs>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="850" fill="#060a12"/>
+  
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(0,255,136,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="850" fill="url(#grid)"/>
+  
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="240" height="850" fill="#0a0f1a"/>
+  <rect x="239" y="0" width="1" height="850" fill="#1f2937"/>
+  
+  <!-- Logo area -->
+  <rect x="20" y="20" width="200" height="60" rx="8" fill="#111827"/>
+  <rect x="30" y="30" width="40" height="40" rx="8" fill="#00ff88"/>
+  <text x="42" y="58" font-family="Arial" font-size="20" fill="#0a0f1a" font-weight="bold">⚡</text>
+  <text x="80" y="48" font-family="Inter, Arial" font-size="18" font-weight="bold" fill="#f1f5f9">Nexus</text>
+  <text x="80" y="65" font-family="Inter, Arial" font-size="11" fill="#6b7280">Admin Dashboard</text>
+  
+  <!-- Nav items -->
+  <rect x="20" y="100" width="200" height="40" rx="8" fill="transparent"/>
+  <text x="55" y="126" font-family="Inter, Arial" font-size="13" fill="#6b7280">📊 Dashboard</text>
+  
+  <rect x="20" y="145" width="200" height="40" rx="8" fill="transparent"/>
+  <text x="55" y="171" font-family="Inter, Arial" font-size="13" fill="#6b7280">📅 Releases</text>
+  
+  <rect x="20" y="190" width="200" height="40" rx="8" fill="transparent"/>
+  <text x="55" y="216" font-family="Inter, Arial" font-size="13" fill="#6b7280">📈 Metrics</text>
+  
+  <rect x="20" y="235" width="200" height="40" rx="8" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+  <text x="55" y="261" font-family="Inter, Arial" font-size="13" fill="#00ff88">❤️ Health Monitor</text>
+  
+  <rect x="20" y="280" width="200" height="40" rx="8" fill="transparent"/>
+  <text x="55" y="306" font-family="Inter, Arial" font-size="13" fill="#6b7280">⚙️ Configuration</text>
+  
+  <!-- Version footer -->
+  <text x="30" y="830" font-family="Inter, Arial" font-size="11" fill="#4b5563">🛡️ Version 2.6.0</text>
+  
+  <!-- Main content area -->
+  <!-- Header -->
+  <text x="280" y="50" font-family="Inter, Arial" font-size="24" font-weight="bold" fill="#f1f5f9">❤️ Health Monitor</text>
+  <text x="280" y="72" font-family="Inter, Arial" font-size="13" fill="#6b7280">Real-time health status of all Nexus services</text>
+  
+  <!-- Refresh Button -->
+  <rect x="1050" y="30" width="110" height="40" rx="8" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="1080" y="56" font-family="Inter, Arial" font-size="13" fill="#d1d5db">🔄 Refresh</text>
+  
+  <!-- Overall Status Card -->
+  <rect x="280" y="95" width="880" height="80" rx="12" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <rect x="300" y="115" width="50" height="50" rx="10" fill="rgba(34,197,94,0.2)"/>
+  <text x="317" y="148" font-family="Arial" font-size="22">✓</text>
+  
+  <text x="370" y="135" font-family="Inter, Arial" font-size="20" font-weight="bold" fill="#22c55e">All Systems Healthy</text>
+  <text x="370" y="158" font-family="Inter, Arial" font-size="12" fill="#6b7280">6 of 6 services operational • Last checked: 5 seconds ago</text>
+  
+  <!-- Stats -->
+  <rect x="950" y="110" width="60" height="50" rx="8" fill="#0a0f1a"/>
+  <text x="980" y="135" font-family="Inter, Arial" font-size="20" font-weight="bold" fill="#22c55e" text-anchor="middle">6</text>
+  <text x="980" y="152" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Healthy</text>
+  
+  <rect x="1020" y="110" width="60" height="50" rx="8" fill="#0a0f1a"/>
+  <text x="1050" y="135" font-family="Inter, Arial" font-size="20" font-weight="bold" fill="#f59e0b" text-anchor="middle">0</text>
+  <text x="1050" y="152" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Degraded</text>
+  
+  <rect x="1090" y="110" width="60" height="50" rx="8" fill="#0a0f1a"/>
+  <text x="1120" y="135" font-family="Inter, Arial" font-size="20" font-weight="bold" fill="#ef4444" text-anchor="middle">0</text>
+  <text x="1120" y="152" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="middle">Down</text>
+  
+  <!-- Service Cards Grid -->
+  <!-- Row 1 -->
+  <!-- API Gateway -->
+  <rect x="280" y="195" width="280" height="120" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <circle cx="305" cy="225" r="8" fill="#22c55e"/>
+  <text x="325" y="230" font-family="Inter, Arial" font-size="14" font-weight="bold" fill="#f1f5f9">API Gateway</text>
+  <rect x="450" y="217" width="55" height="20" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="460" y="231" font-family="Inter, Arial" font-size="10" fill="#22c55e">Healthy</text>
+  <text x="300" y="260" font-family="Inter, Arial" font-size="11" fill="#6b7280">Uptime: 99.9%</text>
+  <text x="300" y="280" font-family="Inter, Arial" font-size="11" fill="#6b7280">Response: 45ms</text>
+  <text x="300" y="300" font-family="Inter, Arial" font-size="10" fill="#4b5563">Last check: 5s ago</text>
+  
+  <!-- Database -->
+  <rect x="580" y="195" width="280" height="120" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <circle cx="605" cy="225" r="8" fill="#22c55e"/>
+  <text x="625" y="230" font-family="Inter, Arial" font-size="14" font-weight="bold" fill="#f1f5f9">Database</text>
+  <rect x="740" y="217" width="55" height="20" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="750" y="231" font-family="Inter, Arial" font-size="10" fill="#22c55e">Healthy</text>
+  <text x="600" y="260" font-family="Inter, Arial" font-size="11" fill="#6b7280">Uptime: 99.99%</text>
+  <text x="600" y="280" font-family="Inter, Arial" font-size="11" fill="#6b7280">Response: 12ms</text>
+  <text x="600" y="300" font-family="Inter, Arial" font-size="10" fill="#4b5563">Last check: 5s ago</text>
+  
+  <!-- Redis Cache -->
+  <rect x="880" y="195" width="280" height="120" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <circle cx="905" cy="225" r="8" fill="#22c55e"/>
+  <text x="925" y="230" font-family="Inter, Arial" font-size="14" font-weight="bold" fill="#f1f5f9">Redis Cache</text>
+  <rect x="1050" y="217" width="55" height="20" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="1060" y="231" font-family="Inter, Arial" font-size="10" fill="#22c55e">Healthy</text>
+  <text x="900" y="260" font-family="Inter, Arial" font-size="11" fill="#6b7280">Uptime: 99.95%</text>
+  <text x="900" y="280" font-family="Inter, Arial" font-size="11" fill="#6b7280">Response: 8ms</text>
+  <text x="900" y="300" font-family="Inter, Arial" font-size="10" fill="#4b5563">Last check: 5s ago</text>
+  
+  <!-- Row 2 -->
+  <!-- Orchestrator -->
+  <rect x="280" y="335" width="280" height="120" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <circle cx="305" cy="365" r="8" fill="#22c55e"/>
+  <text x="325" y="370" font-family="Inter, Arial" font-size="14" font-weight="bold" fill="#f1f5f9">Orchestrator</text>
+  <rect x="450" y="357" width="55" height="20" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="460" y="371" font-family="Inter, Arial" font-size="10" fill="#22c55e">Healthy</text>
+  <text x="300" y="400" font-family="Inter, Arial" font-size="11" fill="#6b7280">Uptime: 99.8%</text>
+  <text x="300" y="420" font-family="Inter, Arial" font-size="11" fill="#6b7280">Response: 120ms</text>
+  <text x="300" y="440" font-family="Inter, Arial" font-size="10" fill="#4b5563">Port: 8080</text>
+  
+  <!-- Jira Agent -->
+  <rect x="580" y="335" width="280" height="120" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <circle cx="605" cy="365" r="8" fill="#22c55e"/>
+  <text x="625" y="370" font-family="Inter, Arial" font-size="14" font-weight="bold" fill="#f1f5f9">Jira Agent</text>
+  <rect x="740" y="357" width="55" height="20" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="750" y="371" font-family="Inter, Arial" font-size="10" fill="#22c55e">Healthy</text>
+  <text x="600" y="400" font-family="Inter, Arial" font-size="11" fill="#6b7280">Uptime: 99.9%</text>
+  <text x="600" y="420" font-family="Inter, Arial" font-size="11" fill="#6b7280">Response: 85ms</text>
+  <text x="600" y="440" font-family="Inter, Arial" font-size="10" fill="#4b5563">Port: 8081</text>
+  
+  <!-- Slack Agent -->
+  <rect x="880" y="335" width="280" height="120" rx="10" fill="#111827" stroke="rgba(34,197,94,0.3)" stroke-width="1" filter="url(#cardShadow)"/>
+  <circle cx="905" cy="365" r="8" fill="#22c55e"/>
+  <text x="925" y="370" font-family="Inter, Arial" font-size="14" font-weight="bold" fill="#f1f5f9">Slack Agent</text>
+  <rect x="1050" y="357" width="55" height="20" rx="4" fill="rgba(34,197,94,0.2)"/>
+  <text x="1060" y="371" font-family="Inter, Arial" font-size="10" fill="#22c55e">Healthy</text>
+  <text x="900" y="400" font-family="Inter, Arial" font-size="11" fill="#6b7280">Uptime: 99.7%</text>
+  <text x="900" y="420" font-family="Inter, Arial" font-size="11" fill="#6b7280">Response: 95ms</text>
+  <text x="900" y="440" font-family="Inter, Arial" font-size="10" fill="#4b5563">Port: 8084</text>
+  
+  <!-- Health History Chart -->
+  <rect x="280" y="475" width="880" height="200" rx="12" fill="#111827" stroke="#374151" stroke-width="1" filter="url(#cardShadow)"/>
+  <text x="300" y="505" font-family="Inter, Arial" font-size="14" font-weight="bold" fill="#f1f5f9">Health History (24h)</text>
+  
+  <!-- Chart Axis -->
+  <line x1="320" y1="640" x2="1120" y2="640" stroke="#374151" stroke-width="1"/>
+  <line x1="320" y1="530" x2="320" y2="640" stroke="#374151" stroke-width="1"/>
+  
+  <!-- Y Axis Labels -->
+  <text x="310" y="540" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="end">100%</text>
+  <text x="310" y="590" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="end">50%</text>
+  <text x="310" y="640" font-family="Inter, Arial" font-size="10" fill="#6b7280" text-anchor="end">0%</text>
+  
+  <!-- Chart Line (simulated uptime) -->
+  <polyline points="340,540 440,542 540,540 640,545 740,540 840,542 940,540 1040,541 1100,540" fill="none" stroke="#22c55e" stroke-width="2"/>
+  <circle cx="340" cy="540" r="3" fill="#22c55e"/>
+  <circle cx="440" cy="542" r="3" fill="#22c55e"/>
+  <circle cx="540" cy="540" r="3" fill="#22c55e"/>
+  <circle cx="640" cy="545" r="3" fill="#22c55e"/>
+  <circle cx="740" cy="540" r="3" fill="#22c55e"/>
+  <circle cx="840" cy="542" r="3" fill="#22c55e"/>
+  <circle cx="940" cy="540" r="3" fill="#22c55e"/>
+  <circle cx="1040" cy="541" r="3" fill="#22c55e"/>
+  <circle cx="1100" cy="540" r="3" fill="#22c55e"/>
+  
+  <!-- X Axis Labels -->
+  <text x="340" y="655" font-family="Inter, Arial" font-size="9" fill="#6b7280">00:00</text>
+  <text x="540" y="655" font-family="Inter, Arial" font-size="9" fill="#6b7280">06:00</text>
+  <text x="740" y="655" font-family="Inter, Arial" font-size="9" fill="#6b7280">12:00</text>
+  <text x="940" y="655" font-family="Inter, Arial" font-size="9" fill="#6b7280">18:00</text>
+  <text x="1100" y="655" font-family="Inter, Arial" font-size="9" fill="#6b7280">Now</text>
+  
+  <!-- Legend -->
+  <rect x="1000" y="495" width="140" height="30" rx="6" fill="#0a0f1a"/>
+  <circle cx="1020" cy="510" r="5" fill="#22c55e"/>
+  <text x="1035" y="514" font-family="Inter, Arial" font-size="10" fill="#6b7280">System Uptime: 99.9%</text>
+  
+  <!-- Auto-refresh indicator -->
+  <rect x="280" y="695" width="880" height="40" rx="8" fill="#0a0f1a"/>
+  <text x="300" y="720" font-family="Inter, Arial" font-size="11" fill="#6b7280">🔄 Auto-refreshing every 10 seconds</text>
+  <text x="600" y="720" font-family="Inter, Arial" font-size="11" fill="#6b7280">• Mode: Mock</text>
+  <text x="750" y="720" font-family="Inter, Arial" font-size="11" fill="#6b7280">• Environment: Development</text>
+</svg>
+

@@ -81,6 +81,6 @@
   <text x="400" y="533" font-family="Inter, Arial" font-size="14" font-weight="600" fill="#0a0f1a" text-anchor="middle">🔐 Sign In</text>
   
   <!-- Footer -->
-  <text x="400" y="575" font-family="Inter, Arial" font-size="11" fill="#6b7280" text-anchor="middle">Protected by Nexus RBAC • Version 2.5.0</text>
+  <text x="400" y="575" font-family="Inter, Arial" font-size="11" fill="#6b7280" text-anchor="middle">Protected by Nexus RBAC • Version 2.6.0</text>
 </svg>
 
