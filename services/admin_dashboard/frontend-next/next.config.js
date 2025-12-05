@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nexus-admin-api-63b4.onrender.com';
 
@@ -115,7 +120,7 @@ const nextConfig = {
   // Performance optimizations
   experimental: {
     // Enable optimized package imports
-    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
+    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns', '@tanstack/react-table', 'cmdk'],
   },
   
   // Logging configuration
@@ -126,4 +131,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
