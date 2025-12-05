@@ -229,7 +229,7 @@
       },
       "targets": [
         {
-          "expr": "pg_stat_activity_count or vector(5)",
+          "expr": "pg_stat_activity_count or vector(0)",
           "legendFormat": ""
         }
       ],
@@ -267,7 +267,7 @@
       },
       "targets": [
         {
-          "expr": "100 * redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total) or vector(85)",
+          "expr": "100 * redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total + 1) or vector(0)",
           "legendFormat": ""
         }
       ],
@@ -301,7 +301,7 @@
       },
       "targets": [
         {
-          "expr": "redis_memory_used_bytes or vector(268435456)",
+          "expr": "redis_memory_used_bytes or vector(0)",
           "legendFormat": ""
         }
       ],
@@ -337,7 +337,7 @@
       },
       "targets": [
         {
-          "expr": "redis_connected_clients or vector(3)",
+          "expr": "redis_connected_clients or vector(0)",
           "legendFormat": ""
         }
       ],

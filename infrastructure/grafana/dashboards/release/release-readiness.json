@@ -178,7 +178,7 @@
       },
       "targets": [
         {
-          "expr": "(nexus_quality_score or vector(0.85)) * 100",
+          "expr": "(nexus_quality_score or vector(0)) * 100",
           "legendFormat": ""
         }
       ],

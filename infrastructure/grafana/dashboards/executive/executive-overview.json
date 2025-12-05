@@ -199,7 +199,7 @@
       "pluginVersion": "10.2.0",
       "targets": [
         {
-          "expr": "avg(nexus_dora_mttr_hours) or vector(2.5)",
+          "expr": "avg(nexus_dora_mttr_hours) or vector(0)",
           "legendFormat": "MTTR"
         }
       ],
@@ -354,7 +354,7 @@
       "pluginVersion": "10.2.0",
       "targets": [
         {
-          "expr": "(nexus_quality_score or vector(87)) * 100",
+          "expr": "(nexus_quality_score or vector(0)) * 100",
           "legendFormat": "Quality Score"
         }
       ],

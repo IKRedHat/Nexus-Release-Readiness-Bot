@@ -64,7 +64,7 @@
       },
       "targets": [
         {
-          "expr": "nexus_admin_active_users or vector(12)",
+          "expr": "nexus_admin_active_users or vector(0)",
           "legendFormat": ""
         }
       ],
