@@ -17,8 +17,10 @@ export const ROUTES = {
   HEALTH: '/health',
   FEATURE_REQUESTS: '/feature-requests',
   SETTINGS: '/settings',
+  AUDIT_LOG: '/audit-log',
   ADMIN_USERS: '/admin/users',
   ADMIN_ROLES: '/admin/roles',
+  DEBUG: '/debug',
 } as const;
 
 // Permissions
@@ -52,6 +54,9 @@ export const PERMISSIONS = {
   FEATURES_VIEW: 'features:view',
   FEATURES_CREATE: 'features:create',
   FEATURES_APPROVE: 'features:approve',
+  
+  // Audit Log
+  AUDIT_VIEW: 'audit:view',
 } as const;
 
 // Status options

@@ -25,6 +25,7 @@ const shortcuts = [
       { keys: ['mod', 'Shift', 'H'], description: 'Go to Health' },
       { keys: ['mod', 'Shift', 'M'], description: 'Go to Metrics' },
       { keys: ['mod', 'Shift', 'S'], description: 'Go to Settings' },
+      { keys: ['mod', 'Shift', 'A'], description: 'Go to Audit Log' },
     ],
   },
   {
@@ -37,11 +38,24 @@ const shortcuts = [
     ],
   },
   {
+    category: 'List Navigation (Vim-like)',
+    items: [
+      { keys: ['J'], description: 'Move down in list' },
+      { keys: ['K'], description: 'Move up in list' },
+      { keys: ['G', 'G'], description: 'Go to first item' },
+      { keys: ['Shift', 'G'], description: 'Go to last item' },
+      { keys: ['Enter'], description: 'Select / Open item' },
+      { keys: ['E'], description: 'Edit selected item' },
+      { keys: ['D'], description: 'Delete selected item' },
+      { keys: ['/'], description: 'Focus search' },
+    ],
+  },
+  {
     category: 'Forms',
     items: [
       { keys: ['Tab'], description: 'Move to next field' },
       { keys: ['Shift', 'Tab'], description: 'Move to previous field' },
-      { keys: ['Enter'], description: 'Submit form' },
+      { keys: ['mod', 'Enter'], description: 'Submit form' },
       { keys: ['Escape'], description: 'Cancel / Close' },
     ],
   },

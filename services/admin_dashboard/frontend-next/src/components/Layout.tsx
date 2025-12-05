@@ -3,7 +3,7 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { 
   LayoutDashboard, Calendar, BarChart3, Activity, Settings,
-  Users, Shield, Lightbulb
+  Users, Shield, Lightbulb, ScrollText
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,7 @@ const mainNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { to: ROUTES.ADMIN_USERS, icon: Users, label: 'User Management', permission: PERMISSIONS.USERS_VIEW },
   { to: ROUTES.ADMIN_ROLES, icon: Shield, label: 'Role Management', permission: PERMISSIONS.ROLES_VIEW },
+  { to: ROUTES.AUDIT_LOG, icon: ScrollText, label: 'Audit Log', permission: PERMISSIONS.AUDIT_VIEW },
 ];
 
 /**
