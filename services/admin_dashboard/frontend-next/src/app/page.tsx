@@ -1,70 +1,36 @@
 'use client';
 
 import { useDashboardStats } from '@/hooks/useAPI';
+import { DataPage } from '@/components/page';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import Layout from '@/components/Layout';
 import { 
-  TrendingUp, Users, Zap, Activity, Calendar, AlertCircle, CheckCircle, Clock,
-  Lightbulb, Settings, BarChart3
+  TrendingUp, Calendar, AlertCircle, CheckCircle, Clock,
+  Lightbulb, Settings, BarChart3, Zap, Activity
 } from 'lucide-react';
-import { formatRelativeTime, getStatusColor } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/utils';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
+import type { DashboardStats } from '@/types';
 
-export default function DashboardPage() {
-  const { data: stats, error, isLoading } = useDashboardStats();
+/**
+ * Stat card configuration
+ */
+interface StatCard {
+  label: string;
+  value: number | string;
+  change: string;
+  icon: React.ElementType;
+  color: string;
+  href: string;
+}
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="space-y-8">
-          <div>
-            <Skeleton className="h-10 w-64 mb-2" />
-            <Skeleton className="h-6 w-96" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-32" />
-            ))}
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Skeleton className="h-96" />
-            <Skeleton className="h-96" />
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
-    return (
-      <Layout>
-        <Card className="max-w-2xl mx-auto mt-20">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Unable to Load Dashboard
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                The backend API is not responding. Please check your connection.
-              </p>
-              <Button onClick={() => window.location.reload()}>
-                Retry
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </Layout>
-    );
-  }
-
-  const statCards = [
+/**
+ * Build stat cards from dashboard data
+ */
+function buildStatCards(stats: DashboardStats | null): StatCard[] {
+  return [
     { 
       label: 'Total Releases', 
       value: stats?.total_releases || 0, 
@@ -98,140 +64,176 @@ export default function DashboardPage() {
       href: ROUTES.HEALTH
     },
   ];
+}
+
+/**
+ * Stats Grid Component
+ */
+function StatsGrid({ stats }: { stats: DashboardStats }) {
+  const statCards = buildStatCards(stats);
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {statCards.map((stat) => (
+        <Link key={stat.label} href={stat.href}>
+          <Card className="hover:shadow-lg transition-all hover:border-primary/50 cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.label}
+              </CardTitle>
+              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground mb-1">
+                {stat.value}
+              </div>
+              <p className="text-sm text-green-500 font-medium flex items-center gap-1">
+                <TrendingUp size={14} />
+                {stat.change}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Recent Activity Component
+ */
+function RecentActivity({ activities }: { activities: DashboardStats['recent_activity'] }) {
+  const activityList = activities || [];
 
   return (
-    <Layout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Dashboard
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Welcome to your release automation command center
-          </p>
-        </div>
-        
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statCards.map((stat) => (
-            <Link key={stat.label} href={stat.href}>
-              <Card className="hover:shadow-lg transition-all hover:border-primary/50 cursor-pointer">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.label}
-                  </CardTitle>
-                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground mb-1">
-                    {stat.value}
-                  </div>
-                  <p className="text-sm text-green-500 font-medium flex items-center gap-1">
-                    <TrendingUp size={14} />
-                    {stat.change}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Recent Activity</span>
+          <Badge variant="outline">{activityList.length} items</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {activityList.length > 0 ? (
+            activityList.slice(0, 6).map((activity, i) => (
+              <div key={i} className="flex items-start gap-4 py-2 border-b border-border last:border-0">
+                <div className="mt-1">
+                  {activity.status === 'completed' ? (
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  ) : activity.status === 'in_progress' ? (
+                    <Clock className="w-5 h-5 text-yellow-500 animate-spin" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-blue-500" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {activity.title}
                   </p>
-                </CardContent>
-              </Card>
+                  <p className="text-xs text-muted-foreground">
+                    {activity.description}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatRelativeTime(activity.timestamp)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              No recent activity
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Quick Actions Component
+ */
+function QuickActions() {
+  const actions = [
+    { label: 'Create New Release', icon: Calendar, href: ROUTES.RELEASES },
+    { label: 'Submit Feature Request', icon: Lightbulb, href: ROUTES.FEATURE_REQUESTS },
+    { label: 'View Metrics', icon: BarChart3, href: ROUTES.METRICS },
+    { label: 'Configure System', icon: Settings, href: ROUTES.SETTINGS },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Quick Actions</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-3">
+          {actions.map((action) => (
+            <Link key={action.label} href={action.href}>
+              <Button variant="outline" className="w-full justify-start" size="lg">
+                <action.icon className="w-5 h-5 mr-3" />
+                {action.label}
+              </Button>
             </Link>
           ))}
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Recent Activity</span>
-                <Badge variant="outline">{stats?.recent_activity?.length || 0} items</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {stats?.recent_activity?.slice(0, 6).map((activity: any, i: number) => (
-                  <div key={i} className="flex items-start gap-4 py-2 border-b border-border last:border-0">
-                    <div className="mt-1">
-                      {activity.status === 'completed' ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
-                      ) : activity.status === 'in_progress' ? (
-                        <Clock className="w-5 h-5 text-yellow-500 animate-spin" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-blue-500" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {activity.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.description}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatRelativeTime(activity.timestamp)}
-                    </span>
-                  </div>
-                )) || (
-                  <p className="text-muted-foreground text-center py-8">
-                    No recent activity
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3">
-                <Link href={ROUTES.RELEASES}>
-                  <Button variant="outline" className="w-full justify-start" size="lg">
-                    <Calendar className="w-5 h-5 mr-3" />
-                    Create New Release
-                  </Button>
-                </Link>
-                <Link href={ROUTES.FEATURE_REQUESTS}>
-                  <Button variant="outline" className="w-full justify-start" size="lg">
-                    <Lightbulb className="w-5 h-5 mr-3" />
-                    Submit Feature Request
-                  </Button>
-                </Link>
-                <Link href={ROUTES.METRICS}>
-                  <Button variant="outline" className="w-full justify-start" size="lg">
-                    <BarChart3 className="w-5 h-5 mr-3" />
-                    View Metrics
-                  </Button>
-                </Link>
-                <Link href={ROUTES.SETTINGS}>
-                  <Button variant="outline" className="w-full justify-start" size="lg">
-                    <Settings className="w-5 h-5 mr-3" />
-                    Configure System
-                  </Button>
-                </Link>
-              </div>
-              
-              <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Activity className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      All Systems Operational
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Last checked: {formatRelativeTime(new Date())}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Activity className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                All Systems Operational
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Last checked: {formatRelativeTime(new Date())}
+              </p>
+            </div>
+          </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Dashboard Content Component
+ */
+function DashboardContent({ stats }: { stats: DashboardStats }) {
+  return (
+    <div className="space-y-8">
+      <StatsGrid stats={stats} />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecentActivity activities={stats.recent_activity} />
+        <QuickActions />
       </div>
-    </Layout>
+    </div>
+  );
+}
+
+/**
+ * Dashboard Page - Refactored to use DataPage
+ */
+export default function DashboardPage() {
+  const { data: stats, error, isLoading, mutate } = useDashboardStats();
+
+  return (
+    <DataPage<DashboardStats>
+      title="Dashboard"
+      description="Welcome to your release automation command center"
+      isLoading={isLoading}
+      error={error}
+      data={stats}
+      onRetry={mutate}
+      errorMessage="The backend API is not responding. Please check your connection."
+      loadingLayout="cards"
+      loadingCount={4}
+    >
+      {(dashboardStats) => <DashboardContent stats={dashboardStats} />}
+    </DataPage>
   );
 }
