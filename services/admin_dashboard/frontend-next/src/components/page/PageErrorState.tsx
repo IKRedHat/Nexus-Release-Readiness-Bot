@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
-import { AlertCircle, AlertTriangle, Info, FileQuestion, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Info, FileQuestion, Inbox, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 /**
  * Error state variants
  */
-export type ErrorVariant = 'error' | 'warning' | 'info' | 'not-found';
+export type ErrorVariant = 'error' | 'warning' | 'info' | 'not-found' | 'empty';
 
 /**
  * Props for PageErrorState component
@@ -72,6 +72,11 @@ const variantConfig: Record<ErrorVariant, {
     icon: FileQuestion,
     iconClass: 'text-muted-foreground',
     containerClass: 'not-found',
+  },
+  empty: {
+    icon: Inbox,
+    iconClass: 'text-muted-foreground',
+    containerClass: 'empty',
   },
 };
 

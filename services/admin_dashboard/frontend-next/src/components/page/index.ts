@@ -12,8 +12,8 @@ export { PageErrorState } from './PageErrorState';
 export type { PageErrorStateProps, ErrorVariant } from './PageErrorState';
 
 export { PageHeader } from './PageHeader';
-export type { PageHeaderProps, BreadcrumbItem, HeaderSize, BadgeVariant } from './PageHeader';
+export type { PageHeaderProps, BreadcrumbItem as PageBreadcrumbItem, HeaderSize, BadgeVariant } from './PageHeader';
 
-// Future exports:
-// export { DataPage } from './DataPage';
+export { DataPage } from './DataPage';
+export type { DataPageProps, BreadcrumbItem } from './DataPage';
 
