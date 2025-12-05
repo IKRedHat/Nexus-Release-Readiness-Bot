@@ -11,6 +11,7 @@
 
 | File | Original Purpose | Superseded By |
 |------|------------------|---------------|
+| `grafana-dashboard-monolithic.obsolete.json` | Single monolithic Grafana dashboard | Role-based dashboards in `infrastructure/grafana/dashboards/` |
 | `BUILD_COMPLETE_APP.obsolete.md` | Build completion notice | N/A (milestone completed) |
 | `BUILD_WARNINGS_FIXED.obsolete.md` | TypeScript warning fixes | N/A (issues resolved) |
 | `CODEBASE_CLEANUP_ANALYSIS.obsolete.md` | Cleanup analysis findings | `DOCUMENTATION_AUDIT_REPORT.md` |
