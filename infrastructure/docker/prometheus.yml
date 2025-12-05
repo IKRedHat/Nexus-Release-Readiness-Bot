@@ -1,11 +1,23 @@
 # Prometheus Configuration for Nexus Stack
+# Enhanced configuration with recording rules and alerts
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
     monitor: 'nexus-monitor'
+    environment: 'production'
 
-rule_files: []
+# Alert and recording rule files
+rule_files:
+  - '/etc/prometheus/rules/nexus-alerts.yml'
+  - '/etc/prometheus/rules/recording-rules.yml'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
 
 scrape_configs:
   # Prometheus self-monitoring

@@ -1,0 +1,115 @@
+groups:
+  - name: nexus-recording-rules
+    interval: 30s
+    rules:
+      # Request rate by service
+      - record: nexus:http_requests:rate5m
+        expr: sum(rate(http_requests_total{job=~"nexus-.*"}[5m])) by (job)
+
+      # Error rate by service
+      - record: nexus:http_errors:rate5m
+        expr: sum(rate(http_requests_total{status=~"5..",job=~"nexus-.*"}[5m])) by (job)
+
+      # Error percentage by service
+      - record: nexus:http_error_percentage:5m
+        expr: |
+          100 * nexus:http_errors:rate5m
+          / (nexus:http_requests:rate5m > 0 or vector(1))
+
+      # LLM token rate by model
+      - record: nexus:llm_tokens:rate5m
+        expr: sum(rate(nexus_llm_tokens_total[5m])) by (model_name, type)
+
+      # LLM cost rate by model ($/hour)
+      - record: nexus:llm_cost_hourly:rate
+        expr: sum(rate(nexus_llm_cost_dollars_total[5m])) by (model_name) * 3600
+
+      # LLM latency P95
+      - record: nexus:llm_latency_p95:5m
+        expr: histogram_quantile(0.95, sum(rate(nexus_llm_latency_seconds_bucket[5m])) by (le, model_name))
+
+      # LLM latency P99
+      - record: nexus:llm_latency_p99:5m
+        expr: histogram_quantile(0.99, sum(rate(nexus_llm_latency_seconds_bucket[5m])) by (le, model_name))
+
+      # Agent task success rate
+      - record: nexus:agent_success_rate:5m
+        expr: |
+          100 * sum(rate(nexus_agent_tasks_total{status="success"}[5m])) by (agent_type)
+          / (sum(rate(nexus_agent_tasks_total[5m])) by (agent_type) > 0 or vector(1))
+
+      # Tool usage rate
+      - record: nexus:tool_usage:rate5m
+        expr: sum(rate(nexus_tool_usage_total[5m])) by (tool_name, status)
+
+      # Tool latency P95
+      - record: nexus:tool_latency_p95:5m
+        expr: histogram_quantile(0.95, sum(rate(nexus_tool_latency_seconds_bucket[5m])) by (le, tool_name))
+
+      # ReAct iteration average
+      - record: nexus:react_iterations_avg:5m
+        expr: histogram_quantile(0.50, sum(rate(nexus_react_iterations_count_bucket[5m])) by (le, task_type))
+
+      # Release decision rate
+      - record: nexus:release_decisions:rate1h
+        expr: sum(increase(nexus_release_decisions_total[1h])) by (decision)
+
+      # Jira tickets processed rate
+      - record: nexus:jira_tickets:rate5m
+        expr: sum(rate(nexus_jira_tickets_processed_total[5m])) by (action)
+
+      # Authentication success rate
+      - record: nexus:auth_success_rate:5m
+        expr: |
+          100 * sum(rate(nexus_admin_auth_attempts_total{status="success"}[5m]))
+          / (sum(rate(nexus_admin_auth_attempts_total[5m])) > 0 or vector(1))
+
+      # Config changes rate
+      - record: nexus:config_changes:rate1h
+        expr: sum(increase(nexus_admin_config_changes_total[1h])) by (key)
+
+  - name: nexus-dora-rules
+    interval: 5m
+    rules:
+      # Deployment frequency (deployments per day)
+      - record: nexus:dora_deployment_frequency:24h
+        expr: sum(increase(nexus_release_decisions_total{decision="GO"}[24h]))
+
+      # Change failure rate
+      - record: nexus:dora_change_failure_rate:7d
+        expr: |
+          100 * sum(increase(nexus_release_decisions_total{decision="NO_GO"}[7d]))
+          / (sum(increase(nexus_release_decisions_total[7d])) > 0 or vector(1))
+
+  - name: nexus-cost-rules
+    interval: 5m
+    rules:
+      # Total daily LLM cost
+      - record: nexus:llm_cost_daily:total
+        expr: sum(increase(nexus_llm_cost_dollars_total[24h]))
+
+      # Cost per model (24h)
+      - record: nexus:llm_cost_daily:by_model
+        expr: sum(increase(nexus_llm_cost_dollars_total[24h])) by (model_name)
+
+      # Cost efficiency (tokens per dollar)
+      - record: nexus:llm_efficiency:tokens_per_dollar
+        expr: |
+          sum(increase(nexus_llm_tokens_total[24h]))
+          / (sum(increase(nexus_llm_cost_dollars_total[24h])) > 0 or vector(0.01))
+
+  - name: nexus-slo-rules
+    interval: 1m
+    rules:
+      # Availability SLI (percentage of successful requests)
+      - record: nexus:slo_availability:5m
+        expr: |
+          100 * (1 - sum(rate(http_requests_total{status=~"5..",job=~"nexus-.*"}[5m]))
+          / (sum(rate(http_requests_total{job=~"nexus-.*"}[5m])) > 0 or vector(1)))
+
+      # Latency SLI (percentage of requests under 1s)
+      - record: nexus:slo_latency:5m
+        expr: |
+          100 * sum(rate(http_request_duration_seconds_bucket{le="1",job=~"nexus-.*"}[5m]))
+          / (sum(rate(http_request_duration_seconds_count{job=~"nexus-.*"}[5m])) > 0 or vector(1))
+

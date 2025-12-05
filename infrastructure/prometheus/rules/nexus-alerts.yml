@@ -1,0 +1,119 @@
+groups:
+  - name: nexus-critical
+    interval: 30s
+    rules:
+      # Service availability
+      - alert: NexusServiceDown
+        expr: up{job=~"nexus-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nexus service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 1 minute"
+          runbook_url: "https://docs.nexus.io/runbooks/service-down"
+
+      # High error rate
+      - alert: NexusHighErrorRate
+        expr: |
+          100 * sum(rate(http_requests_total{status=~"5..",job=~"nexus-.*"}[5m])) by (job)
+          / sum(rate(http_requests_total{job=~"nexus-.*"}[5m])) by (job) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | printf \"%.2f\" }}%"
+
+      # LLM latency
+      - alert: NexusLLMHighLatency
+        expr: histogram_quantile(0.95, rate(nexus_llm_latency_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM P95 latency is high"
+          description: "P95 latency is {{ $value | printf \"%.2f\" }}s"
+
+  - name: nexus-ai-safety
+    interval: 1m
+    rules:
+      # Hallucination rate
+      - alert: NexusHighHallucinationRate
+        expr: avg(nexus_ai_hallucination_rate) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI hallucination rate exceeded 5%"
+          description: "Current rate: {{ $value | printf \"%.4f\" }}"
+
+      # Guardrail triggers
+      - alert: NexusGuardrailTriggersHigh
+        expr: sum(rate(nexus_ai_guardrail_triggers_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of AI guardrail triggers"
+          description: "Guardrails triggered {{ $value | printf \"%.2f\" }} times/sec"
+
+  - name: nexus-cost
+    interval: 5m
+    rules:
+      # Daily LLM cost
+      - alert: NexusLLMCostHigh
+        expr: sum(increase(nexus_llm_cost_dollars_total[24h])) > 200
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Daily LLM cost exceeded $200"
+          description: "24h cost: ${{ $value | printf \"%.2f\" }}"
+
+  - name: nexus-security
+    interval: 1m
+    rules:
+      # Failed auth attempts
+      - alert: NexusAuthFailuresHigh
+        expr: sum(increase(nexus_admin_auth_attempts_total{status="failure"}[5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of authentication failures"
+          description: "{{ $value | printf \"%.0f\" }} failures in 5 minutes"
+
+      # Rate limit hits
+      - alert: NexusRateLimitExceeded
+        expr: sum(rate(nexus_rate_limit_exceeded_total[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rate limits being hit frequently"
+          description: "{{ $value | printf \"%.2f\" }} rate limit hits/sec"
+
+  - name: nexus-slo
+    interval: 1m
+    rules:
+      # SLO burn rate
+      - alert: NexusSLOBurnRateCritical
+        expr: nexus_slo_burn_rate > 2
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SLO {{ $labels.slo_name }} burn rate is critical"
+          description: "Burn rate: {{ $value | printf \"%.2f\" }}x - error budget depleting fast"
+
+      # Error budget exhausted
+      - alert: NexusSLOErrorBudgetLow
+        expr: nexus_slo_error_budget_remaining < 10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SLO {{ $labels.slo_name }} error budget nearly exhausted"
+          description: "Only {{ $value | printf \"%.1f\" }}% error budget remaining"
+

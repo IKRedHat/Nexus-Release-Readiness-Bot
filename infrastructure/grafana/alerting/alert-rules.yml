@@ -1,0 +1,204 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Nexus Critical Alerts
+    folder: Nexus Alerts
+    interval: 1m
+    rules:
+      # LLM Cost Alert
+      - uid: nexus-llm-cost-high
+        title: High LLM Cost
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(increase(nexus_llm_cost_dollars_total[1h])) > 50
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: OK
+        for: 5m
+        annotations:
+          summary: "LLM costs exceeded $50 in the last hour"
+          description: "Current hourly cost: {{ $value | printf \"%.2f\" }}"
+        labels:
+          severity: warning
+          team: platform
+
+      # LLM Latency Alert
+      - uid: nexus-llm-latency-high
+        title: High LLM Latency
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.95, rate(nexus_llm_latency_seconds_bucket[5m])) > 5
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: OK
+        for: 5m
+        annotations:
+          summary: "LLM P95 latency exceeded 5 seconds"
+          description: "Current P95 latency: {{ $value | printf \"%.2f\" }}s"
+        labels:
+          severity: warning
+          team: ai
+
+      # Service Down Alert
+      - uid: nexus-service-down
+        title: Nexus Service Down
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up{job=~"nexus-.*"} == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: "Nexus service {{ $labels.job }} is down"
+          description: "Service has been unavailable for more than 1 minute"
+        labels:
+          severity: critical
+          team: devops
+
+      # High Error Rate
+      - uid: nexus-error-rate-high
+        title: High Error Rate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                100 * sum(rate(http_requests_total{status=~"5.."}[5m])) 
+                / sum(rate(http_requests_total[5m])) > 5
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: OK
+        for: 5m
+        annotations:
+          summary: "Error rate exceeded 5%"
+          description: "Current error rate: {{ $value | printf \"%.2f\" }}%"
+        labels:
+          severity: warning
+          team: devops
+
+      # Agent Error Rate
+      - uid: nexus-agent-errors
+        title: Agent High Error Rate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                100 * sum(rate(http_errors_total{agent_type!=""}[5m])) by (agent_type) 
+                / sum(rate(http_requests_total{agent_type!=""}[5m])) by (agent_type) > 10
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: OK
+        for: 5m
+        annotations:
+          summary: "Agent {{ $labels.agent_type }} error rate exceeded 10%"
+          description: "Current error rate: {{ $value | printf \"%.2f\" }}%"
+        labels:
+          severity: warning
+          team: platform
+
+      # Authentication Failures
+      - uid: nexus-auth-failures
+        title: Multiple Auth Failures
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(increase(nexus_admin_auth_attempts_total{status="failure"}[5m])) > 10
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: OK
+        for: 2m
+        annotations:
+          summary: "High number of authentication failures detected"
+          description: "{{ $value | printf \"%.0f\" }} failures in the last 5 minutes"
+        labels:
+          severity: warning
+          team: security
+
+      # Hallucination Rate Alert
+      - uid: nexus-hallucination-high
+        title: High AI Hallucination Rate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: avg(nexus_ai_hallucination_rate) > 0.05
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: OK
+        for: 10m
+        annotations:
+          summary: "AI hallucination rate exceeded 5%"
+          description: "Current rate: {{ $value | printf \"%.2f\" }}"
+        labels:
+          severity: warning
+          team: ai
+
+      # SLO Burn Rate Alert
+      - uid: nexus-slo-burn-high
+        title: SLO Burn Rate Critical
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: nexus_slo_burn_rate > 2
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: OK
+        for: 15m
+        annotations:
+          summary: "SLO {{ $labels.slo_name }} burn rate is critical"
+          description: "Current burn rate: {{ $value | printf \"%.2f\" }}x"
+        labels:
+          severity: critical
+          team: sre
+
