@@ -157,7 +157,7 @@ export function ReleaseTimeline({
     const totalWidth = columns.length * CELL_WIDTHS[zoomLevel];
 
     return releases.map(release => {
-      const releaseDate = parseISO(release.release_date);
+      const releaseDate = parseISO(release.target_date);
       const startDate = subMonths(releaseDate, 0); // Could add planning phase duration
       const endDate = releaseDate;
       
@@ -370,7 +370,7 @@ export function ReleaseTimeline({
                             {release.status.replace('_', ' ')}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            {format(parseISO(release.release_date), 'MMM d, yyyy')}
+                            {format(parseISO(release.target_date), 'MMM d, yyyy')}
                           </span>
                         </div>
                         {release.description && (

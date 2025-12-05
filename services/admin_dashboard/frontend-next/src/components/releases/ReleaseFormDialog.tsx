@@ -31,7 +31,7 @@ export interface ReleaseFormData {
   version: string;
   name: string;
   description: string;
-  release_date: string;
+  target_date: string;
   status: Release['status'];
   features: string[];
 }
@@ -40,7 +40,7 @@ const initialFormData: ReleaseFormData = {
   version: '',
   name: '',
   description: '',
-  release_date: new Date().toISOString().split('T')[0],
+  target_date: new Date().toISOString().split('T')[0],
   status: 'planned',
   features: [],
 };
@@ -79,7 +79,7 @@ export function ReleaseFormDialog({
           version: release.version,
           name: release.name,
           description: release.description || '',
-          release_date: release.release_date.split('T')[0],
+          target_date: release.target_date.split('T')[0],
           status: release.status,
           features: release.features || [],
         });
@@ -104,8 +104,8 @@ export function ReleaseFormDialog({
       newErrors.name = 'Name is required';
     }
 
-    if (!formData.release_date) {
-      newErrors.release_date = 'Release date is required';
+    if (!formData.target_date) {
+      newErrors.target_date = 'Release date is required';
     }
 
     setErrors(newErrors);
@@ -221,12 +221,12 @@ export function ReleaseFormDialog({
             </label>
             <Input
               type="date"
-              value={formData.release_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, release_date: e.target.value }))}
+              value={formData.target_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, target_date: e.target.value }))}
               disabled={isSubmitting}
             />
-            {errors.release_date && (
-              <p className="text-sm text-red-500">{errors.release_date}</p>
+            {errors.target_date && (
+              <p className="text-sm text-red-500">{errors.target_date}</p>
             )}
           </div>
 

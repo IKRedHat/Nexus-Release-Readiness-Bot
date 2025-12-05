@@ -56,8 +56,8 @@ export interface Release {
   id: string;
   version: string;
   name: string;
-  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
-  release_date: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'planning';
+  target_date: string;  // Backend uses target_date
   created_at: string;
   updated_at: string;
   description?: string;
@@ -65,6 +65,8 @@ export interface Release {
   bugs_fixed?: string[];
   risk_level?: 'low' | 'medium' | 'high';
   owner?: string;
+  source?: string;
+  external_id?: string;
 }
 
 export interface HealthService {
@@ -112,11 +114,30 @@ export interface SystemMetrics {
   active_connections: number;
 }
 
+// Feature request status values (matching backend)
+export type FeatureRequestStatus = 
+  | 'submitted'    // Initial submission
+  | 'triaged'      // Reviewed and prioritized
+  | 'in_progress'  // Being worked on
+  | 'completed'    // Implementation done
+  | 'rejected'     // Won't implement
+  | 'duplicate';   // Duplicate of another request
+
+// Status display mapping for UI
+export const FEATURE_REQUEST_STATUS_LABELS: Record<FeatureRequestStatus, string> = {
+  submitted: 'Pending',
+  triaged: 'Under Review',
+  in_progress: 'In Progress',
+  completed: 'Implemented',
+  rejected: 'Rejected',
+  duplicate: 'Duplicate',
+};
+
 export interface FeatureRequest {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'approved' | 'rejected' | 'implemented' | 'in_progress';
+  status: FeatureRequestStatus;
   priority: 'low' | 'medium' | 'high' | 'critical';
   requested_by: string;
   assigned_to?: string;
@@ -127,6 +148,8 @@ export interface FeatureRequest {
   votes: number;
   comments?: Comment[];
   labels?: string[];
+  type?: 'feature' | 'bug' | 'improvement' | 'task';
+  component?: string;
 }
 
 export interface Comment {

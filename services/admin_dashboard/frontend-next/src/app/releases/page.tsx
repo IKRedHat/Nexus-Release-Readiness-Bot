@@ -97,7 +97,7 @@ function ReleaseCard({
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar size={16} />
-            <span>{formatDate(release.release_date)}</span>
+            <span>{formatDate(release.target_date)}</span>
           </div>
 
           {release.features && release.features.length > 0 && (
@@ -175,7 +175,7 @@ export default function ReleasesPage() {
         await mutateAPI(
           `${endpoints.releases}/${selectedRelease.id}`,
           'PUT',
-          { ...data, release_date: `${data.release_date}T10:00:00Z` }
+          { ...data, target_date: `${data.target_date}T10:00:00Z` }
         );
         toast.success('Release Updated', {
           description: `Release ${data.version} has been updated successfully.`,
@@ -185,7 +185,7 @@ export default function ReleasesPage() {
         await mutateAPI(
           endpoints.releases,
           'POST',
-          { ...data, release_date: `${data.release_date}T10:00:00Z` }
+          { ...data, target_date: `${data.target_date}T10:00:00Z` }
         );
         toast.success('Release Created', {
           description: `Release ${data.version} has been created successfully.`,

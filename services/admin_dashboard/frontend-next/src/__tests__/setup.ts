@@ -160,7 +160,7 @@ export const createMockRelease = (overrides = {}) => ({
   version: '1.0.0',
   name: 'Test Release',
   status: 'planned' as const,
-  release_date: new Date().toISOString(),
+  target_date: new Date().toISOString(),
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   ...overrides,

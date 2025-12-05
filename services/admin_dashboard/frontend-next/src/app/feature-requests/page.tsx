@@ -14,7 +14,8 @@ import { formatRelativeTime, getStatusColor } from '@/lib/utils';
 import { endpoints } from '@/lib/api';
 import type { FeatureRequest } from '@/types';
 
-const STATUSES = ['all', 'pending', 'approved', 'in_progress', 'implemented', 'rejected'];
+// Status values matching backend
+const STATUSES = ['all', 'submitted', 'triaged', 'in_progress', 'completed', 'rejected', 'duplicate'];
 
 /**
  * Empty state component
