@@ -262,5 +262,5 @@ alembic upgrade head       # Run migrations
 
 *Made with ❤️ for new Nexus contributors*
 
-*Last Updated: December 2024 | Questions? Ask in #nexus-help*
+*Last Updated: December 2025 | Questions? Ask in #nexus-help*
 

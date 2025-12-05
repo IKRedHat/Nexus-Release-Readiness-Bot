@@ -1,6 +1,6 @@
 # Admin Dashboard
 
-> **Version:** 3.0.0 | **Last Updated:** December 2024 | **Status:** Production Ready ✅
+> **Version:** 3.0.0 | **Last Updated:** December 2025 | **Status:** Production Ready ✅
 
 The Nexus Admin Dashboard is an enterprise-grade web application for managing and monitoring your release automation system. Built with **Next.js 14**, it provides real-time control over system configuration, agent health, and operational modes.
 
@@ -678,4 +678,4 @@ NEXT_PUBLIC_DEBUG=true npm run dev
 
 ---
 
-*Documentation Version 3.0.0 | Last Updated: December 2024*
+*Documentation Version 3.0.0 | Last Updated: December 2025*

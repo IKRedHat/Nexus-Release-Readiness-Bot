@@ -1,6 +1,6 @@
 # Admin Dashboard Tutorial
 
-> **Version:** 3.0.0 | **Last Updated:** December 2024
+> **Version:** 3.0.0 | **Last Updated:** December 2025
 
 A step-by-step guide for using the Nexus Admin Dashboard. This tutorial is designed for users who prefer a visual, no-code approach to managing the Nexus system.
 

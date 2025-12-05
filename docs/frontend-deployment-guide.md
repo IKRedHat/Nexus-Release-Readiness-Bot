@@ -6,7 +6,7 @@
 
 *Built with Next.js 14 | Optimized for Vercel*
 
-**Version 3.0.0** | **Last Updated:** December 2024
+**Version 3.0.0** | **Last Updated:** December 2025
 
 </div>
 
@@ -495,4 +495,4 @@ vercel --prod
 
 ---
 
-*Documentation Version 3.0.0 | Last Updated: December 2024*
+*Documentation Version 3.0.0 | Last Updated: December 2025*

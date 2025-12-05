@@ -2,7 +2,7 @@
 
 > **Note:** These documents are archived for historical reference only. They were created during the Admin Dashboard development and refactoring phases and are no longer current.
 
-**Archived:** December 2024  
+**Archived:** December 2025  
 **Reason:** Superseded by updated documentation in `/docs/`
 
 ---
