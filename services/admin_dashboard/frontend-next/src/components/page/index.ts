@@ -11,7 +11,9 @@ export type { PageLoadingStateProps, LoadingLayout } from './PageLoadingState';
 export { PageErrorState } from './PageErrorState';
 export type { PageErrorStateProps, ErrorVariant } from './PageErrorState';
 
+export { PageHeader } from './PageHeader';
+export type { PageHeaderProps, BreadcrumbItem, HeaderSize, BadgeVariant } from './PageHeader';
+
 // Future exports:
-// export { PageHeader } from './PageHeader';
 // export { DataPage } from './DataPage';
 
