@@ -16,7 +16,9 @@ export type { SidebarNavProps, NavItem } from './SidebarNav';
 export { SidebarUserProfile } from './SidebarUserProfile';
 export type { SidebarUserProfileProps } from './SidebarUserProfile';
 
+export { AppHeader } from './AppHeader';
+export type { AppHeaderProps, SystemStatus } from './AppHeader';
+
 // Future exports:
-// export { AppHeader } from './AppHeader';
 // export { MainLayout } from './MainLayout';
 
