@@ -11,6 +11,10 @@ test.describe('Dashboard Page', () => {
     await page.goto('/');
   });
 
+  test('should display dashboard heading', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible();
+  });
+
   test('should display dashboard with welcome message', async ({ page }) => {
     await expect(page.getByText(/welcome/i)).toBeVisible();
   });
@@ -21,9 +25,35 @@ test.describe('Dashboard Page', () => {
   });
 
   test('should display quick stats cards', async ({ page }) => {
-    // Look for stat cards
+    // Look for stat cards (Total Releases, Active Agents, etc.)
     const cards = page.locator('[class*="card"]');
     await expect(cards.first()).toBeVisible();
+    
+    // Check for specific stat labels
+    const hasStatLabel = await page.getByText(/total releases|active agents|system health/i).isVisible().catch(() => false);
+    expect(hasStatLabel).toBeTruthy();
+  });
+
+  test('should display recent activity section', async ({ page }) => {
+    await expect(page.getByText(/recent activity/i)).toBeVisible();
+  });
+
+  test('should display quick actions section', async ({ page }) => {
+    await expect(page.getByText(/quick actions/i)).toBeVisible();
+  });
+
+  test('should have clickable stat cards that navigate', async ({ page }) => {
+    // Stats cards should be links
+    const statCard = page.locator('a[href="/releases"]');
+    await expect(statCard).toBeVisible();
+  });
+
+  test('should show loading state or content', async ({ page }) => {
+    // Either shows loading skeletons or actual content
+    const hasHeading = await page.getByRole('heading', { name: /dashboard/i }).isVisible().catch(() => false);
+    const hasSkeletons = await page.locator('[class*="skeleton"]').count() > 0;
+    
+    expect(hasHeading || hasSkeletons).toBeTruthy();
   });
 });
 
