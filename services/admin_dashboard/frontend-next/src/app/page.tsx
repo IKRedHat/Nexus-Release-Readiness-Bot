@@ -5,6 +5,7 @@ import { DataPage } from '@/components/page';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ModeToggle } from '@/components/mode/ModeToggle';
 import { 
   TrendingUp, Calendar, AlertCircle, CheckCircle, Clock,
   Lightbulb, Settings, BarChart3, Zap, Activity
@@ -205,8 +206,13 @@ function QuickActions() {
 function DashboardContent({ stats }: { stats: DashboardStats }) {
   return (
     <div className="space-y-8">
+      {/* Mode Toggle - Prominent Position */}
+      <ModeToggle variant="card" />
+      
+      {/* Stats Grid */}
       <StatsGrid stats={stats} />
       
+      {/* Activity and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentActivity activities={stats.recent_activity} />
         <QuickActions />
