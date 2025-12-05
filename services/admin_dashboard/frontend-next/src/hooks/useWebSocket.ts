@@ -309,49 +309,115 @@ export function useWebSocket<T = unknown>(
 }
 
 // =============================================================================
+// WebSocket URL Helper
+// =============================================================================
+
+/**
+ * Get WebSocket URL for backend connection
+ * 
+ * Uses NEXT_PUBLIC_API_URL or falls back to window.location
+ */
+function getWebSocketUrl(path: string): string | null {
+  if (typeof window === 'undefined') return null;
+  
+  // Get API URL from environment or use current host
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+  
+  if (apiUrl) {
+    // Convert http(s):// to ws(s)://
+    const wsUrl = apiUrl
+      .replace('https://', 'wss://')
+      .replace('http://', 'ws://');
+    return `${wsUrl}${path}`;
+  }
+  
+  // Fallback to same host (for proxied deployments)
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}${path}`;
+}
+
+// =============================================================================
 // Specialized Hooks
 // =============================================================================
 
 /**
  * Hook for real-time health updates
+ * 
+ * Connects to /ws/health and receives:
+ * - Health status updates every 10 seconds
+ * - Service status changes
  */
 export function useHealthWebSocket() {
-  const wsUrl = typeof window !== 'undefined' 
-    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/health`
-    : null;
+  const wsUrl = getWebSocketUrl('/ws/health');
 
   return useWebSocket(wsUrl, {
     autoReconnect: true,
     heartbeatInterval: 10000,
+    debug: process.env.NODE_ENV === 'development',
   });
 }
 
 /**
  * Hook for real-time activity updates
+ * 
+ * Connects to /ws/activity and receives:
+ * - User actions (login, logout, CRUD operations)
+ * - System events
+ * - Audit log entries
  */
 export function useActivityWebSocket() {
-  const wsUrl = typeof window !== 'undefined'
-    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/activity`
-    : null;
+  const wsUrl = getWebSocketUrl('/ws/activity');
 
   return useWebSocket(wsUrl, {
     autoReconnect: true,
     heartbeatInterval: 30000,
+    debug: process.env.NODE_ENV === 'development',
   });
 }
 
 /**
  * Hook for real-time metrics updates
+ * 
+ * Connects to /ws/metrics and receives:
+ * - CPU/Memory usage
+ * - Request rates
+ * - Performance metrics
  */
 export function useMetricsWebSocket() {
-  const wsUrl = typeof window !== 'undefined'
-    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/metrics`
-    : null;
+  const wsUrl = getWebSocketUrl('/ws/metrics');
 
   return useWebSocket(wsUrl, {
     autoReconnect: true,
     heartbeatInterval: 15000,
+    debug: process.env.NODE_ENV === 'development',
   });
+}
+
+/**
+ * Hook for main WebSocket with channel subscription
+ * 
+ * Connects to /ws and supports subscribing to multiple channels:
+ * - 'health' - Health updates
+ * - 'activity' - Activity feed
+ * - 'metrics' - Metrics updates
+ * - 'notifications' - User notifications
+ */
+export function useMainWebSocket(channels: string[] = []) {
+  const wsUrl = getWebSocketUrl('/ws');
+  
+  const ws = useWebSocket(wsUrl, {
+    autoReconnect: true,
+    heartbeatInterval: 30000,
+    debug: process.env.NODE_ENV === 'development',
+    onOpen: () => {
+      // Subscribe to requested channels on connection
+      channels.forEach((channel) => {
+        ws.subscribe(channel);
+      });
+    },
+  });
+
+  return ws;
 }
 
 export default useWebSocket;

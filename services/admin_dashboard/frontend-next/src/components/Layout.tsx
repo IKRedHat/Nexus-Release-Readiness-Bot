@@ -21,6 +21,10 @@ import { ThemeToggle } from './ui/theme-toggle';
 import { NotificationsCenter } from './ui/notifications-center';
 import { Breadcrumbs } from './ui/breadcrumbs';
 import { MainContent } from './ui/skip-link';
+import { ConnectionStatus } from './ui/connection-status';
+
+// Import WebSocket hooks
+import { useRealtimeContext } from '@/providers/WebSocketProvider';
 
 interface LayoutProps {
   children: ReactNode;
@@ -67,9 +71,27 @@ const adminNavItems: NavItem[] = [
  *   <PageContent />
  * </Layout>
  */
-export default function Layout({ children }: LayoutProps) {
+/**
+ * Inner layout component that uses WebSocket context
+ */
+function LayoutContent({ children }: LayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, logout, hasPermission } = useAuth();
+  
+  // Get WebSocket connection status
+  let wsStatus: 'connected' | 'connecting' | 'disconnected' | 'error' = 'disconnected';
+  let wsLatency: number | null = null;
+  let wsReconnect: (() => void) | undefined;
+  
+  try {
+    const ws = useRealtimeContext();
+    wsStatus = ws.status;
+    wsLatency = ws.latency;
+    wsReconnect = ws.reconnect;
+  } catch {
+    // WebSocket context not available (e.g., not wrapped in provider)
+    wsStatus = 'disconnected';
+  }
 
   // Toggle sidebar - exposed for keyboard shortcut
   const handleToggleSidebar = useCallback(() => {
@@ -133,11 +155,15 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* Right Side: Status, Theme, Notifications */}
           <div className="flex items-center gap-3">
-            {/* System Status */}
-            <div className="flex items-center gap-2 text-sm mr-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-muted-foreground hidden sm:inline">System Healthy</span>
-            </div>
+            {/* Real-time Connection Status */}
+            <ConnectionStatus
+              status={wsStatus}
+              latency={wsLatency}
+              onReconnect={wsReconnect}
+              compact
+              showLatency
+              className="hidden sm:flex mr-2"
+            />
 
             {/* Theme Toggle */}
             <ThemeToggle />
@@ -166,4 +192,14 @@ export default function Layout({ children }: LayoutProps) {
       </div>
     </div>
   );
+}
+
+/**
+ * Layout Component
+ * 
+ * Main application layout with WebSocket context awareness.
+ * Wraps the inner LayoutContent which handles WebSocket connection display.
+ */
+export default function Layout({ children }: LayoutProps) {
+  return <LayoutContent>{children}</LayoutContent>;
 }

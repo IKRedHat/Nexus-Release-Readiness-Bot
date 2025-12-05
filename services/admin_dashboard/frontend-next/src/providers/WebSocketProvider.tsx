@@ -71,7 +71,20 @@ export function WebSocketProvider({
 
   // Determine WebSocket URL
   const wsUrl = enabled && typeof window !== 'undefined'
-    ? baseUrl || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+    ? (() => {
+        if (baseUrl) return baseUrl;
+        
+        // Use API URL from environment
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+        if (apiUrl) {
+          return apiUrl
+            .replace('https://', 'wss://')
+            .replace('http://', 'ws://') + '/ws';
+        }
+        
+        // Fallback to same host
+        return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+      })()
     : null;
 
   // Handle incoming messages
