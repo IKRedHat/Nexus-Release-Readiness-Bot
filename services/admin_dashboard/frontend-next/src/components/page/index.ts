@@ -8,8 +8,10 @@
 export { PageLoadingState } from './PageLoadingState';
 export type { PageLoadingStateProps, LoadingLayout } from './PageLoadingState';
 
+export { PageErrorState } from './PageErrorState';
+export type { PageErrorStateProps, ErrorVariant } from './PageErrorState';
+
 // Future exports:
-// export { PageErrorState } from './PageErrorState';
 // export { PageHeader } from './PageHeader';
 // export { DataPage } from './DataPage';
 
