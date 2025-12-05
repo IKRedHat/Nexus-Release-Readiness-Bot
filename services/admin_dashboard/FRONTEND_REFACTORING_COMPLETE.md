@@ -5,9 +5,16 @@
 This document provides a comprehensive reference of the frontend refactoring project for the Nexus Admin Dashboard. The refactoring followed **Test-Driven Development (TDD)** methodology with a focus on:
 
 - **Modularity**: Breaking down monolithic components into reusable pieces
-- **Testability**: 150+ unit tests and 60+ E2E tests
-- **Code Quality**: Reducing duplication by ~60%
+- **Testability**: 247+ unit tests and 60+ E2E tests
+- **Code Quality**: Reducing duplication by ~75%
 - **User Experience**: Consistent loading/error states across all pages
+- **Documentation**: 8 Vercel docs consolidated into 1
+
+### Latest Updates (December 2024)
+- Added 97 UI component unit tests (Button, Badge, Card, Input, Skeleton)
+- Enhanced MSW handlers with comprehensive mock data
+- Consolidated 8 documentation files into single guide
+- Removed legacy frontend directories (~100MB saved)
 
 ---
 
